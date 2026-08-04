@@ -1,0 +1,31 @@
+module MCP_Protocol;
+
+type <java> "java.lang.String" from "rt.jar" as string;
+type <java> "java.lang.Integer" from "rt.jar" as int;
+// 定义全局协议
+global protocol MCP_Basic(role Client, role Server) {
+    initialize(string) from Client to Server; 
+    result(string, string) from Server to Client;
+    initialized() from Client to Server; 
+
+    do Interaction(Client, Server);
+}
+
+// 定义辅助协议
+aux global protocol Interaction(role Client, role Server) {
+    choice at Client {
+        list_tools() from Client to Server;
+        tools_list(string) from Server to Client;
+        do Interaction(Client, Server);
+    } or {
+        call_tool(string, string) from Client to Server;
+        choice at Server {
+            tool_result(string) from Server to Client;
+        } or {
+            error(int, string) from Server to Client;
+        }
+        do Interaction(Client, Server);
+    } or {
+        exit() from Client to Server;
+    }
+}
