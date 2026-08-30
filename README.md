@@ -87,8 +87,9 @@ uv run --frozen --python 3.13 python remote-agents\rebuild_mappings.py
 
 ## 5. 案例一：工具调用异常
 
-该案例使用5个固定IP输入，每个输入重复10次，因此验证器开启和关闭各产生
-50项任务记录，与论文实验规模一致。
+该案例以一个固定IP查询作为执行链的唯一初始输入。主控智能体随后依次调用
+IP情报、武器库资产和防御策略智能体，并自动将上一阶段的真实结果作为下一阶段
+输入。正式实验将这条完整执行链在验证器开启和关闭模式下分别重复50次。
 
 先检查配置和实际提示词，不启动服务或调用模型：
 
@@ -96,7 +97,8 @@ uv run --frozen --python 3.13 python remote-agents\rebuild_mappings.py
 uv run --frozen --python 3.13 python scripts\security_experiment_runner.py --dry-run
 ```
 
-每个固定输入各运行一次的小规模检查：
+运行一次完整执行链的小规模检查。命令会在验证器开启和关闭模式下各生成1项
+任务记录，共2项：
 
 ```powershell
 uv run --frozen --python 3.13 python scripts\security_experiment_runner.py --repetitions 1

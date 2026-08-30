@@ -17,17 +17,19 @@
 
 ## 1. 工具调用异常案例
 
-配置文件为 `security_chain_experiment.json`。5个固定IP各重复10次，验证开启和
-关闭各得到50项任务记录。
+配置文件为 `security_chain_experiment.json`。每轮实验只向主控智能体提交一次
+固定IP查询；主控智能体依次调用三个远程智能体，并将上一阶段的真实结果自动
+传递给下一阶段。正式配置将完整执行链重复50次，验证开启和关闭各得到50项
+任务记录。
 
 ```powershell
 # 只解析配置，不启动服务
 uv run --frozen --python 3.13 python scripts\security_experiment_runner.py --dry-run
 
-# 每个IP执行一次
+# 一条完整执行链在开启、关闭模式下各执行一次，共2项记录
 uv run --frozen --python 3.13 python scripts\security_experiment_runner.py --repetitions 1
 
-# 论文规模：每个IP执行10次
+# 论文规模：完整执行链在开启、关闭模式下各执行50次
 uv run --frozen --python 3.13 python scripts\security_experiment_runner.py
 ```
 

@@ -396,6 +396,64 @@ class ExperimentRunnerTests(unittest.TestCase):
         self.assertEqual(2, summary["nonrepeat_business_calls"])
         self.assertEqual(1.0, summary["communication_efficiency"])
 
+    def test_blocked_attempt_does_not_count_as_agent_coverage(self):
+        runner = ExperimentRunner.__new__(ExperimentRunner)
+        runner.config = {
+            "expected_agent_groups": [["Weather Agent"]],
+            "exclusive_agent_groups": [],
+        }
+        events = [
+            {
+                "id": "event-1",
+                "content": {
+                    "parts": [
+                        {
+                            "kind": "data",
+                            "data": {
+                                "name": "send_message",
+                                "args": {"agent_name": "Weather Agent"},
+                            },
+                        }
+                    ]
+                },
+            }
+        ]
+        # A non-business trace record proves boundary tracing was active, but
+        # no business request actually crossed that boundary.
+        wire_trace = [
+            {
+                "direction": "outgoing",
+                "phase": "control",
+                "peer": "Weather Agent",
+                "payload": {},
+            }
+        ]
+
+        summary = runner.analyze(
+            run_id="blocked-run",
+            mode_name="validation_on",
+            prompt_id="travel",
+            repetition=1,
+            conversation="conversation-1",
+            duration=1.0,
+            timed_out=False,
+            messages=[
+                {
+                    "role": "agent",
+                    "parts": [{"kind": "text", "text": "已阻止非法调用"}],
+                }
+            ],
+            events=events,
+            tasks=[],
+            log_text="",
+            wire_trace=wire_trace,
+        )
+
+        self.assertEqual(0, summary["used_agent_count"])
+        self.assertEqual(0, summary["required_stage_coverage_count"])
+        self.assertEqual(0, summary["business_send_message_calls"])
+        self.assertEqual(1, summary["blocked_send_message_calls"])
+
     def test_embedded_protocol_error_is_not_a_completed_output(self):
         runner = ExperimentRunner.__new__(ExperimentRunner)
         runner.config = {

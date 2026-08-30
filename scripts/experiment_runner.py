@@ -947,7 +947,12 @@ class ExperimentRunner:
             for record in wire_business_outgoing
             if record.get("peer")
         }
-        used_agents = sorted(wire_used_agents or model_used_agents)
+        # Once boundary tracing is available, an empty outgoing set means
+        # that every model-side attempt was blocked before transmission.  Do
+        # not count those attempts as actually covered remote agents.
+        used_agents = sorted(
+            wire_used_agents if wire_trace else model_used_agents
+        )
         groups = self.config.get("expected_agent_groups", [])
         covered = sum(
             1 for group in groups if any(agent in used_agents for agent in group)

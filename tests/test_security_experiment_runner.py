@@ -14,6 +14,18 @@ from scripts.security_experiment_runner import (
 
 
 class SecurityExperimentRunnerTests(unittest.TestCase):
+    def test_formal_config_runs_one_chain_fifty_times_per_mode(self):
+        config_path = (
+            Path(__file__).resolve().parents[1]
+            / "experiments"
+            / "security_chain_experiment.json"
+        )
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(1, len(config["prompts"]))
+        self.assertEqual("security-chain", config["prompts"][0]["id"])
+        self.assertEqual(50, config["repetitions"])
+
     def test_parses_host_remote_and_recovery_events(self):
         log_text = """===== Host UI =====
 2026-08-08 ERROR host.validation [HOST VALIDATION ERROR]
