@@ -1,0 +1,100 @@
+{
+  "experiment_name": "security-chain-error-recovery",
+  "project_root": "..",
+  "output_root": "experiments/results",
+  "host_base_url": "http://127.0.0.1:12000",
+  "repetitions": 10,
+  "startup_timeout_seconds": 240,
+  "run_timeout_seconds": 600,
+  "http_timeout_seconds": 45,
+  "poll_interval_seconds": 2,
+  "poll_error_limit": 8,
+  "settle_seconds": 1,
+  "minimum_final_chars": 20,
+  "environment": {
+    "MPST_DEFAULT_GT_FILE": "operation.gt",
+    "MPST_DEFAULT_PROTOCOL_NAME": "Operation",
+    "MPST_ERROR_FEEDBACK_ENABLED": "true",
+    "MPST_ERROR_FEEDBACK_MAX_RETRIES": "2",
+    "HOST_LOG_LEVEL": "INFO"
+  },
+  "prompts": [
+    {
+      "id": "security-chain-x",
+      "text": "请对攻击源 IP 203.0.113.10 执行完整安全分析链路。必须依次调用 IP Intelligence Agent、Weapon Library Asset Agent 和 Defense Strategy Agent：先查询威胁组织，把其原始结果作为下一步输入；再查询 CVE，把其原始结果作为最后一步输入；最后返回防御规则脚本。不得编造、修改或跳过远程智能体结果。最终回答请列出 IP、威胁组织、CVE 和防御脚本。",
+      "expected_final_output": "Block_Rule_Protocol_v3.sh"
+    },
+    {
+      "id": "security-chain-a",
+      "text": "请对攻击源 IP 198.51.100.20 执行完整安全分析链路。必须依次调用 IP Intelligence Agent、Weapon Library Asset Agent 和 Defense Strategy Agent，并把每一段远程返回的原始值传给下一段。不要自行推测任何中间值。最终回答请列出 IP、威胁组织、CVE 和防御脚本。",
+      "expected_final_output": "Drop_Payload_Signature_v1.sh"
+    },
+    {
+      "id": "security-chain-b",
+      "text": "请对攻击源 IP 192.0.2.30 执行完整安全分析链路。严格按照 IP Intelligence Agent → Weapon Library Asset Agent → Defense Strategy Agent 的顺序调用，等待每次真实返回后再继续，最终报告完整证据链和防御脚本。",
+      "expected_final_output": "Isolate_Host_Rule_v2.sh"
+    },
+    {
+      "id": "security-chain-c",
+      "text": "请对攻击源 IP 203.0.113.40 执行完整安全分析链路。依次使用三个远程智能体获取威胁组织、CVE 和防御策略，不得伪造工具结果或并发跳步。最终回答必须包含全部中间值及最后的规则脚本。",
+      "expected_final_output": "Quarantine_File_Rule_v5.sh"
+    },
+    {
+      "id": "security-chain-d",
+      "text": "请对攻击源 IP 198.51.100.50 执行完整安全分析链路。先查询 IP 情报，再把结果交给武器库资产智能体，最后把 CVE 交给防御策略智能体。所有输入必须来自上一步真实输出，最终汇总 IP、组织标签、CVE 和防御脚本。",
+      "expected_final_output": "Block_C2_Beacon_v4.sh"
+    }
+  ],
+  "expected_agent_groups": [
+    ["IP Intelligence Agent"],
+    ["Weapon Library Asset Agent"],
+    ["Defense Strategy Agent"]
+  ],
+  "exclusive_agent_groups": [],
+  "services": [
+    {
+      "name": "IP Intelligence Agent",
+      "role": "remote",
+      "cwd": "remote-agents/op1",
+      "command": ["uv", "run", "--python", "3.13", "."],
+      "url": "http://127.0.0.1:10399",
+      "port": 10399,
+      "env": {
+        "AGENT_MODEL": "ollama/glm-5.2:cloud"
+      }
+    },
+    {
+      "name": "Weapon Library Asset Agent",
+      "role": "remote",
+      "cwd": "remote-agents/op2",
+      "command": ["uv", "run", "--python", "3.13", "."],
+      "url": "http://127.0.0.1:10302",
+      "port": 10302,
+      "env": {
+        "AGENT_MODEL": "ollama/glm-5.2:cloud"
+      }
+    },
+    {
+      "name": "Defense Strategy Agent",
+      "role": "remote",
+      "cwd": "remote-agents/op3",
+      "command": ["uv", "run", "--python", "3.13", "."],
+      "url": "http://127.0.0.1:10303",
+      "port": 10303,
+      "env": {
+        "AGENT_MODEL": "ollama/glm-5.2:cloud"
+      }
+    },
+    {
+      "name": "Host UI",
+      "role": "host",
+      "cwd": "host-platform/frontend/ui",
+      "command": ["uv", "run", "--python", "3.13", "main.py"],
+      "url": "http://127.0.0.1:12000",
+      "port": 12000,
+      "env": {
+        "HOST_MODEL": "ollama/kimi-k2.6:cloud"
+      }
+    }
+  ]
+}

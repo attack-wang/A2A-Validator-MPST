@@ -30,6 +30,8 @@ from a2a.types import Message, Part, Role, TextPart  # noqa: E402
 from host_mpst_monitor import HostProtocolMonitor  # noqa: E402
 from mpst_ext import (  # noqa: E402
     MPSTValidatingExecutor,
+    resolve_error_feedback_enabled,
+    resolve_error_feedback_max_retries,
     resolve_validation_enabled,
 )
 from mpst_ext.mpst_validator import MPSTValidator, ValidatorRegistry  # noqa: E402
@@ -52,6 +54,48 @@ class MPSTValidatorTests(unittest.TestCase):
         ):
             with self.assertRaises(ValueError):
                 resolve_validation_enabled()
+
+    def test_error_feedback_configuration(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertTrue(resolve_error_feedback_enabled())
+            self.assertEqual(2, resolve_error_feedback_max_retries())
+        with patch.dict(
+            os.environ,
+            {
+                "MPST_ERROR_FEEDBACK_ENABLED": "false",
+                "MPST_ERROR_FEEDBACK_MAX_RETRIES": "4",
+            },
+            clear=True,
+        ):
+            self.assertFalse(resolve_error_feedback_enabled())
+            self.assertEqual(4, resolve_error_feedback_max_retries())
+            executor = MPSTValidatingExecutor(
+                "Agent",
+                max_tool_call_retries=1,
+            )
+            self.assertEqual(1, executor.max_validation_retries)
+            self.assertFalse(
+                executor._is_recoverable_output_violation(
+                    {"code": "WrongType"}
+                )
+            )
+        with patch.dict(
+            os.environ,
+            {"MPST_ERROR_FEEDBACK_MAX_RETRIES": "invalid"},
+            clear=True,
+        ):
+            with self.assertRaises(ValueError):
+                resolve_error_feedback_max_retries()
+
+        executor = MPSTValidatingExecutor(
+            "Agent",
+            error_feedback_enabled=True,
+        )
+        self.assertFalse(
+            executor._is_recoverable_output_violation(
+                {"code": "WrongDirection"}
+            )
+        )
 
     def test_linear_protocol_blocks_wrong_label_and_finishes(self):
         validator = MPSTValidator()
@@ -292,6 +336,90 @@ class MPSTValidatorTests(unittest.TestCase):
                 "ToolCallIncomplete",
                 status["violations"][0]["code"],
             )
+
+        asyncio.run(run_case())
+
+    def test_executor_feeds_wrong_type_back_to_model_and_recovers(self):
+        class CorrectingAgent:
+            def __init__(self):
+                self.prompts = []
+
+            async def stream(self, prompt, _session_id):
+                self.prompts.append(prompt)
+                content = "not-a-number" if len(self.prompts) == 1 else "42.5"
+                yield {
+                    "is_task_complete": True,
+                    "content": content,
+                }
+
+        class FakeUpdater:
+            def __init__(self):
+                self.statuses = []
+                self.artifacts = []
+                self.completed = False
+
+            def new_agent_message(self, parts):
+                return parts
+
+            async def update_status(self, *args, **kwargs):
+                self.statuses.append((args, kwargs))
+
+            async def add_artifact(self, *args, **kwargs):
+                self.artifacts.append((args, kwargs))
+
+            async def complete(self):
+                self.completed = True
+
+        async def run_case():
+            executor = MPSTValidatingExecutor(
+                "Agent",
+                max_validation_retries=2,
+            )
+            executor.agent = CorrectingAgent()
+            self.assertTrue(
+                executor._validation_ext.set_protocol(
+                    "Host?request__str.Host!response__float.0",
+                    "TypeRecovery",
+                )
+            )
+            message = Message(
+                role=Role.user,
+                parts=[Part(root=TextPart(text="[request: calculate]"))],
+                message_id=str(uuid.uuid4()),
+                context_id="type-recovery-session",
+            )
+            context = SimpleNamespace(message=message)
+            task = SimpleNamespace(id="task", context_id="type-recovery-session")
+            updater = FakeUpdater()
+
+            with self.assertLogs(
+                "mpst_ext.mpst_validation_ext",
+                level="INFO",
+            ) as captured:
+                await executor._execute_with_validation(
+                    context,
+                    task,
+                    updater,
+                )
+
+            self.assertEqual(2, len(executor.agent.prompts))
+            feedback = executor.agent.prompts[1]
+            self.assertIn("Error code: WrongType", feedback)
+            self.assertIn("send `response` (float) to Host", feedback)
+            self.assertIn("Recovery attempt: 1/2", feedback)
+            self.assertTrue(updater.completed)
+            self.assertEqual(1, len(updater.artifacts))
+            artifact_text = updater.artifacts[0][0][0][0].root.text
+            self.assertEqual("[response: 42.5]", artifact_text)
+            status = executor._validation_ext.get_status(
+                "type-recovery-session"
+            )
+            self.assertTrue(status["complete"])
+            self.assertEqual(2, len(status["position_history"]))
+            self.assertEqual("WrongType", status["violations"][0]["code"])
+            recovery_logs = "\n".join(captured.output)
+            self.assertIn('"event": "retry"', recovery_logs)
+            self.assertIn('"event": "recovered"', recovery_logs)
 
         asyncio.run(run_case())
 

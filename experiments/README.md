@@ -1,91 +1,133 @@
-# 自动化实验
+# 自动化实验与指标说明
 
-`scripts/experiment_runner.py` 直接调用网页使用的 Host 接口，自动完成：
+两个执行器均直接调用Mesop UI使用的Host接口，自动启动和停止服务、注册远程
+智能体、创建独立会话、发送固定提示词、等待任务结束并导出通信轨迹。验证器开启
+和关闭两组使用相同代码、模型、输入与超时配置，只改变验证开关。
 
-1. 分别以 `VALIDATION_ENABLED=true` 和 `false` 启动 Host 与远程 Agent；
-2. 注册远程 Agent；
-3. 每次实验创建全新会话，发送配对提示词并等待任务结束；
-4. 保存会话消息、Host 内部工具调用、远程返回、任务状态和各进程日志；
-5. 生成逐次结果、两组配对结果、分组均值以及人工评分表。
+每个结果目录都包含：
 
-## 旅行规划实验
-
-先关闭之前手工启动的 Host 和旅行 Agent，然后在项目根目录运行：
-
-```powershell
-uv run --python 3.13 python scripts\experiment_runner.py --config experiments\travel_experiment.json
-```
-
-默认每组重复 10 次，即验证开启和关闭各运行 10 次。先做一次小规模检查时使用：
-
-```powershell
-uv run --python 3.13 python scripts\experiment_runner.py --config experiments\travel_experiment.json --repetitions 1
-```
-
-只检查本次实际会使用的提示词，不启动模型或 Agent：
-
-```powershell
-uv run --python 3.13 python scripts\experiment_runner.py --config experiments\travel_experiment.json --dry-run
-```
-
-如果服务已由人工启动，只能运行与其环境变量一致的单组实验：
-
-```powershell
-uv run --python 3.13 python scripts\experiment_runner.py --config experiments\travel_experiment.json --mode on --reuse-services
-```
-
-结果保存在 `experiments/results/<实验名-时间>/`。其中：
-
-- `summary.csv`：每次实验的客观指标；
+- `resolved_prompts.json`：本次运行实际使用的提示词；
+- `config.snapshot.json`：展开继承关系后的配置和运行环境；
+- `summary.csv`：逐项任务指标；
 - `aggregate.csv`：两组指标均值；
-- `paired_comparison.csv`：相同提示词和重复编号的配对差值；
-- `manual_scoring.csv`：信息完整度、人工逻辑冲突数和备注；
-- `scoring_guide.csv`：六个任务点各自的 0/1 分判定规则；
-- `communications.csv`：按时间排列的应用层通信内容；
-- `a2a_trace.csv`：Host 边界处实际发送和接收的 A2A 载荷，可替代人工抓包；
-- `messages.json`、`events.json`、`tasks.json`：未经简化的原始记录；
-- `process_logs/`：该次实验期间 Host 与各远程 Agent 新增的日志。
+- `paired_comparison.csv`：相同提示词和重复编号的配对记录；
+- `communications.csv`：按时间排序的应用层消息；
+- `a2a_trace.csv`：真正跨越Host通信边界的A2A载荷；
+- `<模式>/<任务>/`：单项任务的消息、事件、任务、工具调用及进程日志。
 
-`automatic_task_point_evidence_0_6` 只表示程序找到了多少项支持证据，用于
-帮助人工复核，不能直接代替语义判断。最终案例得分填写在
-`manual_scoring.csv`：六个任务点各计 0 或 1 分，总分为 0–6 分。
+## 1. 工具调用异常案例
 
-`process_score_0_10` 是透明的流程评分：任务完成 2 分、必要 Agent 组覆盖
-3 分、实际 A2A 调用严格符合协议顺序 3 分、无远程失败任务 1 分、最终
-回答无工具调用外泄 1 分。该分数不代替论文中的人工信息完整度评分。
-
-`exact_protocol_sequence`、`repeated_agent_task` 和
-`redundant_business_calls` 均根据真正跨过 A2A 边界的调用计算；
-`blocked_send_message_calls` 表示模型已生成、但未实际外发的
-`send_message` 调用。这样，被验证器拒绝的并发调用不会被误计为实际通信。
-
-## 最终输出质量的大规模实验
-
-在 10+10 次预实验确认服务、提示词和评分规则正常后，使用独立配置运行正式实验：
+配置文件为 `security_chain_experiment.json`。5个固定IP各重复10次，验证开启和
+关闭各得到50项任务记录。
 
 ```powershell
-uv run --python 3.13 python scripts\experiment_runner.py --config experiments\travel_final_output_large.json
+# 只解析配置，不启动服务
+uv run --frozen --python 3.13 python scripts\security_experiment_runner.py --dry-run
+
+# 每个IP执行一次
+uv run --frozen --python 3.13 python scripts\security_experiment_runner.py --repetitions 1
+
+# 论文规模：每个IP执行10次
+uv run --frozen --python 3.13 python scripts\security_experiment_runner.py
 ```
 
-该配置保持 `send_message` 的并发执行方式不变，验证开启和关闭各运行 100 次，共
-200 次。正式实验使用与预实验相同的固定提示词、Agent、模型和超时设置，结果写入
-新的 `travel-final-output-large-<时间>` 目录，不会覆盖预实验数据。
+该案例额外生成：
 
-大规模实验新增以下最终输出指标：
+- `validation_events.csv`：验证错误、纠错重试、恢复成功和重试耗尽事件；
+- `error_counts.csv`：按模式、服务、阶段和错误码汇总的发生次数；
+- `error_aggregate.csv`：两组错误、恢复和最终阻断次数；
+- `<模式>/<任务>/validation_events.json`：可以追溯到单项任务的事件记录。
 
-- `final_output_usable`：任务成功结束，且最终文本不是工具调用外泄或错误消息；
-- `output_transport_complete`：包含指定日期的往返车次或航班；
-- `output_hotel_complete`：包含酒店名称和三晚住宿信息；
-- `output_ticket_complete`：包含三日景点及门票预订信息；
-- `output_weather_adapted`：体现天气与室内、室外活动的对应关系；
-- `output_daily_routes_complete`：包含每日交通方式、路线或换乘及费用；
-- `output_budget_complete`：调用 Budget Agent，并给出分项、总价和人均预算；
-- `output_completeness_score_0_6`：上述六项的合计得分。
+`validation_error_count`记录验证器观察到的错误事件；
+`recovery_retry_count`记录错误提示反馈给模型后发生的重新生成；
+`recovery_success_count`记录重新生成后通过验证的次数；
+`recovery_exhausted_count`记录达到重试上限的次数；
+`final_block_count`记录最终未被发送的异常输出。被发送前识别的非法消息属于
+“违规尝试”，不会计入已经跨越通信边界的实际业务通信。
 
-如果运行途中因网络、模型服务或电脑重启而中断，可以从已有结果目录继续：
+为保证日志计数完整，应让执行器启动服务。`--reuse-services`无法读取外部进程
+启动前的日志，只适合交互调试。
+
+## 2. 旅行规划案例
+
+旅行案例包含天气查询、攻略生成、交通选择、高铁或航班、酒店、门票、市内路线
+和预算计算8个必要业务阶段。高铁与航班是互斥分支，因此一项完整任务实际调用
+8个远程智能体。
+
+### 2.1 在线运行
+
+`travel_live.json`把出发日期解析为运行日之后第3天，行程持续4天：
 
 ```powershell
-uv run --python 3.13 python scripts\experiment_runner.py --config experiments\travel_final_output_large.json --resume-dir experiments\results\travel-final-output-large-YYYYMMDD-HHMMSS
+uv run --frozen --python 3.13 python scripts\experiment_runner.py `
+  --config experiments\travel_live.json --repetitions 1
 ```
 
-恢复运行时，脚本会读取已有的 `run.json`，跳过已经完成的实验编号，只补做缺失项。
+该模式调用实时Open-Meteo接口，用于检查当前环境和执行流程。
+
+### 2.2 论文数据回放
+
+`travel_paper_replay.json`继承100次正式实验配置，并使用
+`fixtures/weather_beijing_2026-08-10_13.json`中保存的原实验天气响应：
+
+```powershell
+uv run --frozen --python 3.13 python scripts\experiment_runner.py `
+  --config experiments\travel_paper_replay.json
+```
+
+天气回放固定了外部天气输入，但Host和远程智能体仍由大语言模型驱动，因此重新
+执行得到的文本和个别任务结果可能发生变化。
+
+### 2.3 主要指标
+
+- **任务完成率**：在规定时间内结束并返回非错误最终回复的任务比例；
+- **通信效率**：非重复远程业务调用数与实际远程业务调用总数之比；
+- **实际重复调用数**：同一业务阶段超过首次调用的累计次数；
+- **智能体覆盖数**：一项任务实际覆盖的8个必要业务阶段数量；
+- **输出质量得分**：AI评价器对交通、住宿、门票、天气适配、每日路线和预算
+  六项内容分别给出0或1分，合计为0～6分。
+
+执行器在 `summary.csv` 中保留的 `output_completeness_score_0_6` 是关键词规则
+形成的自动预检值，只用于发现明显缺项；论文输出质量以
+`ai_output_scores.csv`中的 `ai_output_quality_score_0_6` 为准。
+
+过程指标只根据真正出现在 `a2a_trace.csv` 中的业务消息计算。模型已经生成、但
+被验证器在发送前阻断的 `send_message` 调用记录在
+`blocked_send_message_calls`中，不计入实际通信次数。
+
+## 3. AI输出质量评价
+
+评价配置、提示词和程序分别位于：
+
+- `ai_judge_config.json`；
+- `ai_output_judge_prompt.md`；
+- `scripts/evaluate_outputs.py`。
+
+先检查第一项任务的完整评价提示词：
+
+```powershell
+uv run --frozen --python 3.13 python scripts\evaluate_outputs.py `
+  experiments\results\<旅行实验目录> --dry-run
+```
+
+执行评价：
+
+```powershell
+uv run --frozen --python 3.13 python scripts\evaluate_outputs.py `
+  experiments\results\<旅行实验目录>
+```
+
+评价器只读取Host最终回复，不读取验证模式、过程指标或论文结论，避免将组别信息
+泄露给评价模型。每项判断均保存直接证据、缺失原因和模型原始JSON回复。
+
+## 4. 中断恢复
+
+长时间实验可从已有结果目录继续：
+
+```powershell
+uv run --frozen --python 3.13 python scripts\experiment_runner.py `
+  --config experiments\travel_paper_replay.json `
+  --resume-dir experiments\results\travel-paper-replay-YYYYMMDD-HHMMSS
+```
+
+执行器读取已有 `run.json`，跳过已经完成的模式、提示词和重复编号，只运行缺失项。

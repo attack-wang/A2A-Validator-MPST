@@ -13,6 +13,7 @@ import csv
 import datetime as dt
 import json
 import os
+import platform
 import re
 import shutil
 import signal
@@ -69,6 +70,38 @@ def safe_name(value: str) -> str:
 
 def utc_now() -> str:
     return dt.datetime.now(dt.timezone.utc).isoformat()
+
+
+def _command_version(command: list[str], cwd: Path) -> str:
+    try:
+        return subprocess.run(
+            command,
+            cwd=cwd,
+            check=True,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return "unavailable"
+
+
+def reproducibility_metadata(project_root: Path) -> dict[str, Any]:
+    """Capture non-secret runtime provenance alongside every experiment."""
+    commit = _command_version(["git", "rev-parse", "HEAD"], project_root)
+    status = _command_version(
+        ["git", "status", "--porcelain", "--untracked-files=no"],
+        project_root,
+    )
+    return {
+        "captured_at": utc_now(),
+        "git_commit": commit,
+        "git_tracked_worktree_dirty": bool(status),
+        "python": sys.version,
+        "platform": platform.platform(),
+        "uv": _command_version(["uv", "--version"], project_root),
+    }
 
 
 def merge_config(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
@@ -163,6 +196,7 @@ def final_output_checklist(
     *,
     used_agents: set[str],
     usable: bool,
+    expected_dates: tuple[str, str] | None = None,
 ) -> dict[str, bool]:
     """Score the six observable final-output requirements for travel plans."""
     if not usable:
@@ -175,12 +209,29 @@ def final_output_checklist(
             "output_budget_complete": False,
         }
 
-    outbound_date = bool(
-        re.search(r"(?:2026[-年./]0?8[-月./]10|8\s*月\s*10\s*日)", final_text)
-    )
-    return_date = bool(
-        re.search(r"(?:2026[-年./]0?8[-月./]13|8\s*月\s*13\s*日)", final_text)
-    )
+    if expected_dates is None:
+        dates_in_text = re.findall(r"\d{4}-\d{2}-\d{2}", final_text)
+        expected_dates = (
+            (dates_in_text[0], dates_in_text[-1])
+            if dates_in_text
+            else ("2026-08-10", "2026-08-13")
+        )
+
+    def contains_date(iso_date: str) -> bool:
+        try:
+            parsed = dt.date.fromisoformat(iso_date)
+        except ValueError:
+            return iso_date in final_text
+        variants = (
+            parsed.isoformat(),
+            f"{parsed.year}年{parsed.month}月{parsed.day}日",
+            f"{parsed.month}月{parsed.day}日",
+        )
+        compact = re.sub(r"\s+", "", final_text)
+        return any(value in compact for value in variants)
+
+    outbound_date = contains_date(expected_dates[0])
+    return_date = contains_date(expected_dates[1])
     vehicle_number = bool(
         re.search(
             r"(?<![A-Z0-9])(?:G|D|C|K|T|Z)\d{1,4}(?![A-Z0-9])"
@@ -536,6 +587,13 @@ class ServiceGroup:
 
     def start_one(self, service: dict[str, Any]) -> None:
         command = [str(item) for item in service["command"]]
+        if (
+            len(command) >= 2
+            and command[0] == "uv"
+            and command[1] == "run"
+            and "--frozen" not in command
+        ):
+            command.insert(2, "--frozen")
         if shutil.which(command[0]) is None:
             raise RuntimeError(f"Executable not found: {command[0]}")
         cwd = (self.project_root / service["cwd"]).resolve()
@@ -910,6 +968,13 @@ class ExperimentRunner:
         call_counts = Counter(called_order)
         repeated_agent_task = any(count > 1 for count in call_counts.values())
         redundant_calls = sum(max(count - 1, 0) for count in call_counts.values())
+        actual_business_calls = len(called_order)
+        nonrepeat_business_calls = actual_business_calls - redundant_calls
+        communication_efficiency = (
+            nonrepeat_business_calls / actual_business_calls
+            if actual_business_calls
+            else 0.0
+        )
         blocked_model_calls = (
             max(len(business_calls) - len(wire_business_outgoing), 0)
             if wire_trace
@@ -957,10 +1022,25 @@ class ExperimentRunner:
             and not leak_detected
             and len(final_text.strip()) >= 200
         )
+        prompt_text = next(
+            (
+                str(prompt.get("text", ""))
+                for prompt in getattr(self, "prompts", [])
+                if str(prompt.get("id")) == prompt_id
+            ),
+            "",
+        )
+        prompt_dates = re.findall(r"\d{4}-\d{2}-\d{2}", prompt_text)
+        expected_dates = (
+            (prompt_dates[0], prompt_dates[-1])
+            if len(prompt_dates) >= 2
+            else None
+        )
         output_checklist = final_output_checklist(
             final_text,
             used_agents=set(used_agents),
             usable=final_output_usable,
+            expected_dates=expected_dates,
         )
         output_completeness_score = sum(output_checklist.values())
         strict_full_execution = (
@@ -1074,12 +1154,15 @@ class ExperimentRunner:
             "all_host_tool_calls": len(calls),
             "used_agent_count": len(used_agents),
             "used_agents": "|".join(used_agents),
+            "required_stage_coverage_count": covered,
             "required_group_coverage": f"{covered}/{len(groups)}",
             "required_group_coverage_ratio": round(coverage_ratio, 4),
             "exclusive_branch_violations": exclusive_violations,
             "exact_protocol_sequence": exact_protocol_sequence,
             "repeated_agent_task": repeated_agent_task,
             "redundant_business_calls": redundant_calls,
+            "nonrepeat_business_calls": nonrepeat_business_calls,
+            "communication_efficiency": round(communication_efficiency, 4),
             "failed_remote_tasks": failed_tasks,
             "tool_call_leak_in_final": leak_detected,
             "finalize_protocol_calls": sum(
@@ -1236,100 +1319,6 @@ class ExperimentRunner:
             summary_fields,
         )
 
-        manual_fields = [
-            "run_id",
-            "mode",
-            "prompt_id",
-            "repetition",
-            "c1_weather_itinerary_0_1",
-            "c2_weather_transport_0_1",
-            "c3_guide_ticket_0_1",
-            "c4_itinerary_budget_hotel_0_1",
-            "c5_daily_route_0_1",
-            "c6_expense_per_capita_0_1",
-            "manual_total_0_6",
-            "manual_logic_conflict_count",
-            "manual_notes",
-        ]
-        manual_rows = [
-            {
-                "run_id": row["run_id"],
-                "mode": row["mode"],
-                "prompt_id": row["prompt_id"],
-                "repetition": row["repetition"],
-                "c1_weather_itinerary_0_1": "",
-                "c2_weather_transport_0_1": "",
-                "c3_guide_ticket_0_1": "",
-                "c4_itinerary_budget_hotel_0_1": "",
-                "c5_daily_route_0_1": "",
-                "c6_expense_per_capita_0_1": "",
-                "manual_total_0_6": "",
-                "manual_logic_conflict_count": "",
-                "manual_notes": "",
-            }
-            for row in self.summary_rows
-        ]
-        csv_dump(
-            self.session_dir / "manual_scoring.csv",
-            manual_rows,
-            manual_fields,
-        )
-        scoring_guide = [
-            {
-                "criterion": "C1",
-                "score": "0或1",
-                "decision_rule": (
-                    "逐日天气来自Weather Agent；雨雪雷暴日主要安排室内，"
-                    "晴天安排可与户外属性一致。"
-                ),
-            },
-            {
-                "criterion": "C2",
-                "score": "0或1",
-                "decision_rule": (
-                    "Transport Select Agent收到天气结果；存在非晴天时选择"
-                    "高铁，且Train/Flight只调用与选择一致的一个。"
-                ),
-            },
-            {
-                "criterion": "C3",
-                "score": "0或1",
-                "decision_rule": (
-                    "先生成攻略再查询门票；Ticket Agent处理的景点均能在"
-                    "Guide Agent攻略中找到。"
-                ),
-            },
-            {
-                "criterion": "C4",
-                "score": "0或1",
-                "decision_rule": (
-                    "Hotel Agent同时获得行程和总预算；入住日期、位置及"
-                    "价格与行程和预算一致。"
-                ),
-            },
-            {
-                "criterion": "C5",
-                "score": "0或1",
-                "decision_rule": (
-                    "每日市内路线与酒店、景点位置一致，并包含交通工具、"
-                    "起终点、换乘路线和价格。"
-                ),
-            },
-            {
-                "criterion": "C6",
-                "score": "0或1",
-                "decision_rule": (
-                    "汇总跨城交通、门票、酒店和市内交通，给出总费用、"
-                    "两位成人的人均费用及是否超预算。"
-                ),
-            },
-        ]
-        csv_dump(
-            self.session_dir / "scoring_guide.csv",
-            scoring_guide,
-            ["criterion", "score", "decision_rule"],
-        )
-
         aggregate_rows = []
         numeric_fields = [
             "task_completed",
@@ -1341,11 +1330,14 @@ class ExperimentRunner:
             "model_send_message_tool_calls",
             "blocked_send_message_calls",
             "used_agent_count",
+            "required_stage_coverage_count",
             "required_group_coverage_ratio",
             "exclusive_branch_violations",
             "exact_protocol_sequence",
             "repeated_agent_task",
             "redundant_business_calls",
+            "nonrepeat_business_calls",
+            "communication_efficiency",
             "failed_remote_tasks",
             "tool_call_leak_in_final",
             "validation_log_markers",
@@ -1358,10 +1350,9 @@ class ExperimentRunner:
                 continue
             aggregate = {"mode": mode, "runs": len(selected)}
             for field in numeric_fields:
-                aggregate[f"mean_{field}"] = round(
-                    sum(float(row[field]) for row in selected) / len(selected),
-                    4,
-                )
+                total = sum(float(row[field]) for row in selected)
+                aggregate[f"total_{field}"] = round(total, 4)
+                aggregate[f"mean_{field}"] = round(total / len(selected), 4)
             aggregate_rows.append(aggregate)
         if aggregate_rows:
             csv_dump(
@@ -1392,10 +1383,12 @@ class ExperimentRunner:
                     "business_send_message_calls",
                     "blocked_send_message_calls",
                     "used_agent_count",
+                    "required_stage_coverage_count",
                     "exclusive_branch_violations",
                     "exact_protocol_sequence",
                     "repeated_agent_task",
                     "redundant_business_calls",
+                    "communication_efficiency",
                     "output_completeness_score_0_6",
                     "tool_call_leak_in_final",
                     "process_score_0_10",
@@ -1420,6 +1413,10 @@ class ExperimentRunner:
             self.session_dir / "resolved_prompts.json",
             self.prompts,
         )
+        json_dump(
+            self.session_dir / "reproducibility.json",
+            reproducibility_metadata(self.project_root),
+        )
         print(f"Resolved prompts written to {self.session_dir}")
         return self.session_dir
 
@@ -1435,6 +1432,9 @@ class ExperimentRunner:
         else:
             snapshot["started_at"] = utc_now()
         snapshot["mode_choice"] = self.mode_choice
+        snapshot["reproducibility"] = reproducibility_metadata(
+            self.project_root
+        )
         json_dump(self.session_dir / "config.snapshot.json", snapshot)
 
         api = ApiClient(

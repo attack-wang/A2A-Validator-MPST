@@ -1,0 +1,231 @@
+{
+  "experiment_name": "travel-final-output-large",
+  "project_root": "..",
+  "output_root": "experiments/results",
+  "host_base_url": "http://127.0.0.1:12000",
+  "repetitions": 100,
+  "startup_timeout_seconds": 240,
+  "run_timeout_seconds": 1800,
+  "http_timeout_seconds": 45,
+  "poll_interval_seconds": 2,
+  "poll_error_limit": 12,
+  "settle_seconds": 2,
+  "environment": {
+    "MPST_DEFAULT_GT_FILE": "Travel.gt",
+    "MPST_DEFAULT_PROTOCOL_NAME": "Travel",
+    "HOST_LOG_LEVEL": "INFO"
+  },
+  "prompts": [
+    {
+      "id": "travel-simplified",
+      "text": "我计划于2026年8月10日至8月13日从南京前往北京旅游，共两位成人，总预算一万元。请使用系统中可用的远程智能体获取真实信息，并制定一份完整的旅行计划。不得自行编造或修改远程智能体的返回结果。\n\n旅行计划需要满足以下条件：\n1. 根据旅行期间的实际天气安排景点；遇到降雨、降雪或雷暴时，优先安排室内活动，并标明每天景点的室内或户外属性。\n2. 跨城交通需要考虑天气带来的航班延误风险；存在不适合飞行的天气时优先选择高铁。\n3. 门票项目必须与旅游攻略中的景点一致。\n4. 酒店选择需要综合每日行程位置和一万元总预算。\n5. 给出每天从酒店到景点的交通工具、起终点、换乘路线和费用。\n6. 汇总跨城交通、住宿、门票和市内交通费用，计算两位成人的总费用、人均费用以及是否超出预算。\n\n最终回答需要包含逐日行程、跨城交通、住宿、门票、市内路线、费用汇总和上述条件的落实情况。"
+    }
+  ],
+  "expected_agent_groups": [
+    [
+      "Weather Agent"
+    ],
+    [
+      "Guide Agent"
+    ],
+    [
+      "Transport Select Agent"
+    ],
+    [
+      "Train Agent",
+      "Flight Agent"
+    ],
+    [
+      "Hotel Agent"
+    ],
+    [
+      "Ticket Agent"
+    ],
+    [
+      "Public Transport Agent"
+    ],
+    [
+      "Budget Agent"
+    ]
+  ],
+  "exclusive_agent_groups": [
+    [
+      "Train Agent",
+      "Flight Agent"
+    ]
+  ],
+  "services": [
+    {
+      "name": "Weather Agent",
+      "role": "remote",
+      "cwd": "remote-agents/weather_agent",
+      "command": [
+        "uv",
+        "run",
+        "--python",
+        "3.13",
+        "."
+      ],
+      "url": "http://127.0.0.1:10303",
+      "port": 10303,
+      "env": {
+        "AGENT_MODEL": "ollama/glm-5.2:cloud"
+      }
+    },
+    {
+      "name": "Guide Agent",
+      "role": "remote",
+      "cwd": "remote-agents/guide_agent",
+      "command": [
+        "uv",
+        "run",
+        "--python",
+        "3.13",
+        "."
+      ],
+      "url": "http://127.0.0.1:10707",
+      "port": 10707,
+      "env": {
+        "AGENT_MODEL": "ollama/qwen3.5:cloud"
+      }
+    },
+    {
+      "name": "Transport Select Agent",
+      "role": "remote",
+      "cwd": "remote-agents/transport_select_agent",
+      "command": [
+        "uv",
+        "run",
+        "--python",
+        "3.13",
+        "."
+      ],
+      "url": "http://127.0.0.1:10404",
+      "port": 10404,
+      "env": {
+        "AGENT_MODEL": "ollama/glm-5.2:cloud"
+      }
+    },
+    {
+      "name": "Train Agent",
+      "role": "remote",
+      "cwd": "remote-agents/train_agent",
+      "command": [
+        "uv",
+        "run",
+        "--python",
+        "3.13",
+        "."
+      ],
+      "url": "http://127.0.0.1:10101",
+      "port": 10101,
+      "env": {
+        "AGENT_MODEL": "ollama/qwen3.5:cloud"
+      }
+    },
+    {
+      "name": "Flight Agent",
+      "role": "remote",
+      "cwd": "remote-agents/flight_agent",
+      "command": [
+        "uv",
+        "run",
+        "--python",
+        "3.13",
+        "."
+      ],
+      "url": "http://127.0.0.1:10808",
+      "port": 10808,
+      "env": {
+        "AGENT_MODEL": "ollama/qwen3.5:cloud"
+      }
+    },
+    {
+      "name": "Hotel Agent",
+      "role": "remote",
+      "cwd": "remote-agents/hotel_agent",
+      "command": [
+        "uv",
+        "run",
+        "--python",
+        "3.13",
+        "."
+      ],
+      "url": "http://127.0.0.1:10606",
+      "port": 10606,
+      "env": {
+        "AGENT_MODEL": "ollama/qwen3.5:cloud"
+      }
+    },
+    {
+      "name": "Ticket Agent",
+      "role": "remote",
+      "cwd": "remote-agents/ticket_agent",
+      "command": [
+        "uv",
+        "run",
+        "--python",
+        "3.13",
+        "."
+      ],
+      "url": "http://127.0.0.1:10202",
+      "port": 10202,
+      "env": {
+        "AGENT_MODEL": "ollama/qwen3.5:cloud"
+      }
+    },
+    {
+      "name": "Public Transport Agent",
+      "role": "remote",
+      "cwd": "remote-agents/public_transport_agent",
+      "command": [
+        "uv",
+        "run",
+        "--python",
+        "3.13",
+        "."
+      ],
+      "url": "http://127.0.0.1:10505",
+      "port": 10505,
+      "env": {
+        "AGENT_MODEL": "ollama/glm-5.2:cloud"
+      }
+    },
+    {
+      "name": "Budget Agent",
+      "role": "remote",
+      "cwd": "remote-agents/budget_agent",
+      "command": [
+        "uv",
+        "run",
+        "--python",
+        "3.13",
+        "."
+      ],
+      "url": "http://127.0.0.1:10909",
+      "port": 10909,
+      "env": {
+        "AGENT_MODEL": "ollama/glm-5.2:cloud"
+      }
+    },
+    {
+      "name": "Host UI",
+      "role": "host",
+      "cwd": "host-platform/frontend/ui",
+      "command": [
+        "uv",
+        "run",
+        "--python",
+        "3.13",
+        "main.py"
+      ],
+      "url": "http://127.0.0.1:12000",
+      "port": 12000,
+      "env": {
+        "HOST_MODEL": "ollama/kimi-k2.6:cloud"
+      }
+    }
+  ],
+  "started_at": "2026-07-31T09:32:33.849444+00:00",
+  "mode_choice": "both"
+}

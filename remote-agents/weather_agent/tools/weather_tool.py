@@ -1,7 +1,11 @@
 """天气查询工具：通过 Open-Meteo API 获取真实天气数据。"""
 
 import asyncio
+import json
 import logging
+import os
+import re
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 import httpx
@@ -12,6 +16,42 @@ logger = logging.getLogger(__name__)
 GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
 # Open-Meteo Weather Forecast API
 WEATHER_URL = "https://api.open-meteo.com/v1/forecast"
+
+
+def _fixture_key(city: str, date: Optional[str]) -> str:
+    """Build the stable lookup key used by deterministic replay fixtures."""
+    normalized_city = city.strip()
+    if normalized_city.lower() in {"beijing", "beijing city", "北京市"}:
+        normalized_city = "北京"
+    return f"{normalized_city}|{(date or '').strip()}"
+
+
+def _load_replay_result(city: str, date: Optional[str]) -> str:
+    """Load a recorded weather-tool result for paper reproduction."""
+    fixture_value = os.getenv("WEATHER_FIXTURE_FILE", "").strip()
+    if not fixture_value:
+        raise RuntimeError(
+            "WEATHER_DATA_MODE=replay requires WEATHER_FIXTURE_FILE"
+        )
+    fixture_path = Path(fixture_value).expanduser().resolve()
+    data = json.loads(fixture_path.read_text(encoding="utf-8"))
+    queries = data.get("queries", {})
+    key = _fixture_key(city, date)
+    result = queries.get(key)
+    if result is None and date and len(re.findall(r"\d{4}-\d{2}-\d{2}", date)) > 1:
+        result = queries.get(_fixture_key(city, None))
+    if result is None:
+        available = ", ".join(sorted(queries))
+        raise KeyError(
+            f"Weather replay fixture has no entry for {key!r}; "
+            f"available keys: {available}"
+        )
+    logger.info(
+        "[weather_tool] 使用回放数据: key=%s fixture=%s",
+        key,
+        fixture_path,
+    )
+    return str(result)
 
 
 async def _get_json_with_retry(
@@ -59,6 +99,19 @@ async def query_weather(city: str, date: Optional[str] = None) -> str:
         格式化的天气信息文本。如果查询失败返回错误提示。
     """
     logger.info(f"[weather_tool] 查询天气: city={city}, date={date}")
+
+    data_mode = os.getenv("WEATHER_DATA_MODE", "live").strip().lower()
+    if data_mode == "replay":
+        try:
+            return _load_replay_result(city, date)
+        except Exception as exc:
+            logger.error("[weather_tool] 回放数据读取失败: %s", exc)
+            return f"天气回放数据读取失败：{exc}"
+    if data_mode != "live":
+        return (
+            "天气数据模式配置错误：WEATHER_DATA_MODE仅支持live或replay，"
+            f"当前值为{data_mode!r}。"
+        )
 
     # 1. 获取城市经纬度
     try:

@@ -8,7 +8,11 @@ from .mpst_validator import (
     ValidatorRegistry,
     ViolationCode,
 )
-from .validation_config import resolve_validation_enabled
+from .validation_config import (
+    resolve_error_feedback_enabled,
+    resolve_error_feedback_max_retries,
+    resolve_validation_enabled,
+)
 try:
     from .mpst_validation_ext import MPSTValidatingExecutor, MPSTValidationExtension
 except ModuleNotFoundError as exc:
@@ -29,4 +33,6 @@ __all__ = [
     'MPSTValidatingExecutor',
     'MPSTValidationExtension',
     'resolve_validation_enabled',
+    'resolve_error_feedback_enabled',
+    'resolve_error_feedback_max_retries',
 ]

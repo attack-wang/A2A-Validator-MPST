@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import datetime as dt
 import tempfile
 import threading
 import unittest
@@ -14,6 +15,7 @@ from scripts.experiment_runner import (
     final_output_checklist,
     load_experiment_config,
     parse_a2a_trace,
+    resolve_dynamic_prompt,
 )
 
 
@@ -218,6 +220,18 @@ class ExperimentRunnerTests(unittest.TestCase):
             self.assertEqual(100, loaded["repetitions"])
             self.assertEqual({"A": "1", "B": "3"}, loaded["environment"])
 
+    def test_resolves_relative_travel_dates_once(self):
+        resolved = resolve_dynamic_prompt(
+            {
+                "id": "live",
+                "template": "从{start_date}至{end_date}",
+                "start_offset_days": 3,
+                "duration_days": 4,
+            },
+            dt.date(2026, 8, 30),
+        )
+        self.assertEqual("从2026-09-02至2026-09-05", resolved["text"])
+
     def test_final_output_checklist_requires_budget_agent(self):
         text = (
             "2026年8月10日去程G1，8月13日返程G2。酒店住宿3晚。"
@@ -242,6 +256,21 @@ class ExperimentRunnerTests(unittest.TestCase):
         )
         self.assertEqual(5, sum(without_budget.values()))
         self.assertEqual(6, sum(with_budget.values()))
+
+    def test_final_output_checklist_uses_dynamic_dates(self):
+        text = (
+            "2026-09-02去程G1，2026-09-05返程G2。酒店住宿3晚。"
+            "故宫、颐和园、长城门票均已预约购票。雨天天气安排室内，"
+            "晴天安排户外。每日乘地铁并给出换乘路线和费用。"
+            "交通、住宿、门票合计总费用8000元，人均4000元。"
+        )
+        result = final_output_checklist(
+            text,
+            used_agents={"Budget Agent"},
+            usable=True,
+            expected_dates=("2026-09-02", "2026-09-05"),
+        )
+        self.assertEqual(6, sum(result.values()))
 
     def test_error_response_and_wire_failure_are_not_completed(self):
         runner = ExperimentRunner.__new__(ExperimentRunner)
@@ -363,6 +392,9 @@ class ExperimentRunnerTests(unittest.TestCase):
         self.assertEqual(1, summary["blocked_send_message_calls"])
         self.assertFalse(summary["repeated_agent_task"])
         self.assertEqual(0, summary["redundant_business_calls"])
+        self.assertEqual(2, summary["required_stage_coverage_count"])
+        self.assertEqual(2, summary["nonrepeat_business_calls"])
+        self.assertEqual(1.0, summary["communication_efficiency"])
 
     def test_embedded_protocol_error_is_not_a_completed_output(self):
         runner = ExperimentRunner.__new__(ExperimentRunner)

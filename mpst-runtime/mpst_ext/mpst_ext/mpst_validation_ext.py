@@ -15,7 +15,11 @@ from a2a.utils import new_agent_text_message, new_task
 from a2a.utils.errors import ServerError
 
 from .mpst_validator import MPSTValidator, ValidatorRegistry, ViolationCode
-from .validation_config import resolve_validation_enabled
+from .validation_config import (
+    resolve_error_feedback_enabled,
+    resolve_error_feedback_max_retries,
+    resolve_validation_enabled,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +126,9 @@ class MPSTValidatingExecutor(AgentExecutor):
         role_name: str = "Agent",
         delegate: Any = None,
         *,
-        max_tool_call_retries: int = 2,
+        max_tool_call_retries: Optional[int] = None,
+        max_validation_retries: Optional[int] = None,
+        error_feedback_enabled: Optional[bool] = None,
         validation_enabled: Optional[bool] = None,
     ):
         self.role_name = role_name
@@ -132,11 +138,27 @@ class MPSTValidatingExecutor(AgentExecutor):
         self._validation_ext = MPSTValidationExtension(role_name)
         self._delegate = delegate
         self.agent = None
-        self.max_tool_call_retries = max(0, int(max_tool_call_retries))
+        explicit_retry_limit = max_validation_retries
+        if explicit_retry_limit is None and max_tool_call_retries is not None:
+            explicit_retry_limit = max(0, int(max_tool_call_retries))
+        self.error_feedback_enabled = resolve_error_feedback_enabled(
+            error_feedback_enabled
+        )
+        self.max_validation_retries = resolve_error_feedback_max_retries(
+            explicit_retry_limit,
+            default=2,
+        )
+        # Backward-compatible attribute for integrations that still inspect it.
+        self.max_tool_call_retries = self.max_validation_retries
         logger.info(
-            "[VALIDATION MODE] role=%s enabled=%s",
+            (
+                "[VALIDATION MODE] role=%s enabled=%s "
+                "error_feedback=%s max_retries=%s"
+            ),
             role_name,
             self.validation_enabled,
+            self.error_feedback_enabled,
+            self.max_validation_retries,
         )
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
@@ -283,7 +305,8 @@ class MPSTValidatingExecutor(AgentExecutor):
                 return
 
             generation_prompt = query_text
-            tool_retry_count = 0
+            recovery_attempt = 0
+            last_recovery_result: Optional[dict[str, Any]] = None
             while True:
                 retry_requested = False
                 final_response_seen = False
@@ -314,24 +337,34 @@ class MPSTValidatingExecutor(AgentExecutor):
                         generation_metadata=generation_metadata,
                     )
                     if not outgoing["is_valid"]:
+                        recoverable = self._is_recoverable_output_violation(
+                            outgoing
+                        )
                         if (
-                            outgoing.get("code")
-                            == ViolationCode.TOOL_CALL_INCOMPLETE.value
-                            and outgoing.get("retryable")
-                            and tool_retry_count < self.max_tool_call_retries
+                            recoverable
+                            and recovery_attempt < self.max_validation_retries
                         ):
-                            tool_retry_count += 1
-                            generation_prompt = self._tool_call_retry_prompt(
+                            recovery_attempt += 1
+                            last_recovery_result = outgoing
+                            self._log_recovery_event(
+                                "retry",
+                                session_id,
                                 outgoing,
-                                tool_retry_count,
+                                recovery_attempt,
+                            )
+                            generation_prompt = self._validation_retry_prompt(
+                                outgoing,
+                                recovery_attempt,
+                                self.max_validation_retries,
                             )
                             await updater.update_status(
                                 TaskState.working,
                                 new_agent_text_message(
                                     (
-                                        "The internal tool call was not completed; "
-                                        f"regenerating ({tool_retry_count}/"
-                                        f"{self.max_tool_call_retries})..."
+                                        "The model output violated the active "
+                                        "protocol; sending corrective feedback "
+                                        f"({recovery_attempt}/"
+                                        f"{self.max_validation_retries})..."
                                     ),
                                     task.context_id,
                                     task.id,
@@ -339,9 +372,23 @@ class MPSTValidatingExecutor(AgentExecutor):
                             )
                             retry_requested = True
                             break
+                        if recoverable:
+                            self._log_recovery_event(
+                                "exhausted",
+                                session_id,
+                                outgoing,
+                                recovery_attempt,
+                            )
                         await self._fail(updater, self._violation_text("output", outgoing))
                         return
 
+                    if recovery_attempt and last_recovery_result is not None:
+                        self._log_recovery_event(
+                            "recovered",
+                            session_id,
+                            last_recovery_result,
+                            recovery_attempt,
+                        )
                     completed = self._validation_ext.get_validator(session_id).finalize()
                     if not completed["is_valid"]:
                         await self._fail(updater, self._violation_text("finalize", completed))
@@ -376,17 +423,120 @@ class MPSTValidatingExecutor(AgentExecutor):
         code = result.get("code") or "ProtocolViolation"
         return f"MPST protocol violation during {stage}: {code}: {result.get('error')}"
 
-    @staticmethod
-    def _tool_call_retry_prompt(result: dict[str, Any], attempt: int) -> str:
-        tool_name = result.get("tool_name")
-        tool_hint = f" `{tool_name}`" if tool_name else ""
-        return (
-            "The previous response exposed an unexecuted, malformed, or incomplete "
-            f"tool call{tool_hint}. Regenerate the tool call using the registered "
-            "tool schema, wait for the tool response, and only then produce the final "
-            f"business result. Do not print tool-call syntax as final text. "
-            f"Recovery attempt: {attempt}."
+    def _is_recoverable_output_violation(
+        self,
+        result: dict[str, Any],
+    ) -> bool:
+        if not self.error_feedback_enabled:
+            return False
+        code = result.get("code")
+        if code == ViolationCode.TOOL_CALL_INCOMPLETE.value:
+            return bool(result.get("retryable"))
+        return code in {
+            ViolationCode.WRONG_LABEL.value,
+            ViolationCode.WRONG_TYPE.value,
+        }
+
+    def _log_recovery_event(
+        self,
+        event: str,
+        session_id: str,
+        result: dict[str, Any],
+        attempt: int,
+    ) -> None:
+        payload = {
+            "event": event,
+            "role": self.role_name,
+            "session_id": session_id,
+            "code": result.get("code") or "ProtocolViolation",
+            "error": self._prompt_text(result.get("error") or ""),
+            "attempt": attempt,
+            "max_attempts": self.max_validation_retries,
+            "current_position": result.get("current_position"),
+        }
+        level = {
+            "retry": logging.WARNING,
+            "recovered": logging.INFO,
+            "exhausted": logging.ERROR,
+        }.get(event, logging.INFO)
+        logger.log(
+            level,
+            "[MPST RECOVERY] %s",
+            json.dumps(payload, ensure_ascii=False, default=str),
         )
+
+    @classmethod
+    def _validation_retry_prompt(
+        cls,
+        result: dict[str, Any],
+        attempt: int,
+        max_attempts: int,
+    ) -> str:
+        code = str(result.get("code") or "ProtocolViolation")
+        error = cls._prompt_text(result.get("error") or "Unknown validation error")
+        position = cls._prompt_text(result.get("current_position") or "unknown")
+        expected = cls._expected_transition_prompt(
+            result.get("expected_transitions") or []
+        )
+        lines = [
+            (
+                "The previous response was rejected by the MPST runtime and was "
+                "not delivered. Correct the response and execute the task again "
+                "in the same agent session."
+            ),
+            "",
+            "Validation feedback:",
+            f"- Error code: {code}",
+            f"- Reason: {error}",
+            f"- Current protocol position: {position}",
+            f"- Expected next action(s): {expected}",
+            f"- Recovery attempt: {attempt}/{max_attempts}",
+            "",
+            (
+                "Preserve the original user intent, choose one allowed next action, "
+                "and return a value that matches its declared type. Do not repeat "
+                "the rejected response."
+            ),
+        ]
+        if code == ViolationCode.TOOL_CALL_INCOMPLETE.value:
+            tool_name = cls._prompt_text(result.get("tool_name") or "")
+            tool_hint = f" `{tool_name}`" if tool_name else ""
+            lines.append(
+                "Regenerate the tool call"
+                f"{tool_hint} using the registered schema, wait for the tool "
+                "response, and only then produce the final business result. Do "
+                "not print tool-call syntax as final text."
+            )
+        return "\n".join(lines)
+
+    @classmethod
+    def _tool_call_retry_prompt(cls, result: dict[str, Any], attempt: int) -> str:
+        """Backward-compatible wrapper for the former tool-only recovery API."""
+        return cls._validation_retry_prompt(result, attempt, max(attempt, 1))
+
+    @staticmethod
+    def _expected_transition_prompt(transitions: Any) -> str:
+        summaries: list[str] = []
+        if isinstance(transitions, list):
+            for transition in transitions[:5]:
+                if not isinstance(transition, dict):
+                    continue
+                action = str(transition.get("action") or "act")
+                peer = str(transition.get("peer") or "peer")
+                label = str(transition.get("label") or "message")
+                data_type = str(transition.get("data_type") or "any")
+                connector = "to" if action == "send" else "from"
+                summaries.append(
+                    f"{action} `{label}` ({data_type}) {connector} {peer}"
+                )
+        return "; ".join(summaries) if summaries else "no transition available"
+
+    @staticmethod
+    def _prompt_text(value: Any, limit: int = 500) -> str:
+        text = str(value).replace("\r", " ").replace("\n", " ").strip()
+        if len(text) > limit:
+            return text[: limit - 3] + "..."
+        return text
 
     @staticmethod
     def _session_id(context: RequestContext, task: Task) -> str:
