@@ -220,6 +220,36 @@ class ExperimentRunnerTests(unittest.TestCase):
             self.assertEqual(100, loaded["repetitions"])
             self.assertEqual({"A": "1", "B": "3"}, loaded["environment"])
 
+    def test_live_travel_config_is_the_formal_reproduction_default(self):
+        root = Path(__file__).resolve().parents[1]
+        config = load_experiment_config(
+            root / "experiments" / "travel_live.json"
+        )
+
+        self.assertEqual("travel-live", config["experiment_name"])
+        self.assertEqual("live", config["environment"]["WEATHER_DATA_MODE"])
+        self.assertEqual(100, config["repetitions"])
+        self.assertEqual(1, len(config["prompts"]))
+        self.assertIn("start_offset_days", config["prompts"][0])
+
+    def test_remote_agent_cards_publish_loopback_ip(self):
+        root = Path(__file__).resolve().parents[1]
+        agent_dirs = {
+            "weather_agent", "guide_agent", "transport_select_agent",
+            "train_agent", "flight_agent", "hotel_agent", "ticket_agent",
+            "public_transport_agent", "budget_agent", "op1", "op2", "op3",
+        }
+
+        for agent_dir in agent_dirs:
+            source = (
+                root / "remote-agents" / agent_dir / "__main__.py"
+            ).read_text(encoding="utf-8")
+            self.assertIn(
+                "@click.option('--host', default='127.0.0.1')",
+                source,
+                msg=f"{agent_dir} still publishes an ambiguous host address",
+            )
+
     def test_resolves_relative_travel_dates_once(self):
         resolved = resolve_dynamic_prompt(
             {

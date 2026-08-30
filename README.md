@@ -116,23 +116,41 @@ uv run --frozen --python 3.13 python scripts\security_experiment_runner.py
 
 ## 6. 案例二：旅行规划
 
-### 6.1 在线流程检查
+### 6.1 实时天气实验（推荐）
 
-`travel_live.json` 根据运行日期自动生成未来四天的旅行日期，适合检查系统当前
-是否能够正常访问在线天气接口：
+`travel_live.json`是读者复现实验时的默认配置。脚本根据运行日期自动生成从
+第3天开始的连续4天行程，并由Weather Agent调用Open-Meteo接口获取实时天气。
+先预检动态日期和配置，不启动服务或调用模型：
+
+```powershell
+uv run --frozen --python 3.13 python scripts\experiment_runner.py `
+  --config experiments\travel_live.json --dry-run
+```
+
+随后运行一次小规模检查。验证器开启和关闭模式各执行1次：
 
 ```powershell
 uv run --frozen --python 3.13 python scripts\experiment_runner.py `
   --config experiments\travel_live.json --repetitions 1
 ```
 
-在线数据和模型输出会随时间变化，因此该模式用于复现执行流程，不用于复现论文
-中的具体数值。
+正式配置在两种模式下各执行100次，共200项任务：
 
-### 6.2 论文天气数据回放
+```powershell
+uv run --frozen --python 3.13 python scripts\experiment_runner.py `
+  --config experiments\travel_live.json
+```
+
+实时天气、模型输出和外部服务状态会随运行时间变化。读者可以据此复现智能体
+组成、A2A通信过程、协议约束、实验流程和指标计算方法，但具体文本及统计数值
+可能与论文实验存在差异。
+
+### 6.2 历史天气数据回放（可选）
 
 `travel_paper_replay.json` 固定使用论文实验期间保存的北京天气工具响应，避免
-历史日期无法由实时预报接口查询。验证开启和关闭各运行100次，共200项任务：
+历史日期无法由实时预报接口查询。该配置只用于需要固定外部天气输入时的补充
+验证；Host仍通过A2A调用Weather Agent，Weather Agent仅将在线接口替换为本地
+天气数据文件。
 
 ```powershell
 uv run --frozen --python 3.13 python scripts\experiment_runner.py `
@@ -145,12 +163,12 @@ uv run --frozen --python 3.13 python scripts\experiment_runner.py `
   --config experiments\travel_paper_replay.json
 ```
 
-运行中断后可从原目录继续：
+实时实验运行中断后可从原目录继续：
 
 ```powershell
 uv run --frozen --python 3.13 python scripts\experiment_runner.py `
-  --config experiments\travel_paper_replay.json `
-  --resume-dir experiments\results\travel-paper-replay-YYYYMMDD-HHMMSS
+  --config experiments\travel_live.json `
+  --resume-dir experiments\results\travel-live-YYYYMMDD-HHMMSS
 ```
 
 ## 7. AI输出质量评价
@@ -159,14 +177,14 @@ uv run --frozen --python 3.13 python scripts\experiment_runner.py `
 
 ```powershell
 uv run --frozen --python 3.13 python scripts\evaluate_outputs.py `
-  experiments\results\travel-paper-replay-YYYYMMDD-HHMMSS --dry-run
+  experiments\results\travel-live-YYYYMMDD-HHMMSS --dry-run
 ```
 
 确认后对全部最终回复执行六项内容评价：
 
 ```powershell
 uv run --frozen --python 3.13 python scripts\evaluate_outputs.py `
-  experiments\results\travel-paper-replay-YYYYMMDD-HHMMSS
+  experiments\results\travel-live-YYYYMMDD-HHMMSS
 ```
 
 评价器使用固定模型、温度、种子、提示词和JSON字段，输出：

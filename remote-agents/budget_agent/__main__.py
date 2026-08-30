@@ -24,7 +24,7 @@ class MissingAPIKeyError(Exception):
 
 
 @click.command()
-@click.option('--host', default='localhost')
+@click.option('--host', default='127.0.0.1')
 @click.option('--port', default=10909)
 def main(host, port):
     try:

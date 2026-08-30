@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 @click.command()
-@click.option('--host', default='localhost')
+@click.option('--host', default='127.0.0.1')
 @click.option('--port', default=10303)  # 操作3 Agent 默认使用 10303 端口
 def main(host, port):
     try:

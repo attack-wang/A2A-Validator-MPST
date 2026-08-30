@@ -56,18 +56,21 @@ uv run --frozen --python 3.13 python scripts\security_experiment_runner.py
 和预算计算8个必要业务阶段。高铁与航班是互斥分支，因此一项完整任务实际调用
 8个远程智能体。
 
-### 2.1 在线运行
+### 2.1 实时天气实验（推荐）
 
-`travel_live.json`把出发日期解析为运行日之后第3天，行程持续4天：
+`travel_live.json`是读者复现实验的默认配置。它把出发日期解析为运行日之后
+第3天，行程持续4天，并由Weather Agent调用Open-Meteo获取实时天气。正式配置
+在验证开启和关闭模式下各执行100次。小规模检查命令为：
 
 ```powershell
 uv run --frozen --python 3.13 python scripts\experiment_runner.py `
   --config experiments\travel_live.json --repetitions 1
 ```
 
-该模式调用实时Open-Meteo接口，用于检查当前环境和执行流程。
+在线数据、模型输出和外部服务状态会随运行时间变化，因此该模式复现实验流程、
+协议验证和指标计算方法，不要求具体文本与论文数值完全一致。
 
-### 2.2 论文数据回放
+### 2.2 历史天气数据回放（可选）
 
 `travel_paper_replay.json`继承100次正式实验配置，并使用
 `fixtures/weather_beijing_2026-08-10_13.json`中保存的原实验天气响应：
@@ -77,8 +80,10 @@ uv run --frozen --python 3.13 python scripts\experiment_runner.py `
   --config experiments\travel_paper_replay.json
 ```
 
-天气回放固定了外部天气输入，但Host和远程智能体仍由大语言模型驱动，因此重新
-执行得到的文本和个别任务结果可能发生变化。
+天气回放固定了外部天气输入，但不会绕过Weather Agent。Host仍通过A2A发送
+天气查询，Weather Agent接收请求后读取本地天气数据并通过A2A返回结果。Host和
+远程智能体仍由大语言模型驱动，因此重新执行得到的文本和个别任务结果可能发生
+变化。
 
 ### 2.3 主要指标
 
@@ -128,8 +133,8 @@ uv run --frozen --python 3.13 python scripts\evaluate_outputs.py `
 
 ```powershell
 uv run --frozen --python 3.13 python scripts\experiment_runner.py `
-  --config experiments\travel_paper_replay.json `
-  --resume-dir experiments\results\travel-paper-replay-YYYYMMDD-HHMMSS
+  --config experiments\travel_live.json `
+  --resume-dir experiments\results\travel-live-YYYYMMDD-HHMMSS
 ```
 
 执行器读取已有 `run.json`，跳过已经完成的模式、提示词和重复编号，只运行缺失项。
