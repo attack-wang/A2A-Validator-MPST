@@ -11,8 +11,6 @@
 
 ## 1. 环境要求
 
-以下流程已在 Windows PowerShell、Python 3.13 和 `uv` 下验证。
-
 - Git；
 - Python 3.13（可以由 `uv` 自动安装）；
 - [uv](https://docs.astral.sh/uv/)；
@@ -28,20 +26,7 @@ uv python install 3.13
 ```
 
 实验配置固定使用 `glm-5.2:cloud`、`qwen3.5:cloud` 和
-`kimi-k2.6:cloud`。首次运行前登录 Ollama，并确认本地服务可以调用模型：
-
-```powershell
-ollama signin
-ollama serve
-```
-
-在另一个终端中执行模型冒烟测试：
-
-```powershell
-ollama run glm-5.2:cloud "仅回复 OK"
-ollama run qwen3.5:cloud "仅回复 OK"
-ollama run kimi-k2.6:cloud "仅回复 OK"
-```
+`kimi-k2.6:cloud`。
 
 ## 2. 项目结构
 
@@ -279,10 +264,10 @@ uv run --frozen --python 3.13 python scripts\evaluate_outputs.py `
 
 ## 9. 结果与复现边界
 
-每次运行都会保存解析后的提示词、配置快照、Git提交号、Python/uv版本、
+每次运行都会保存解析后的提示词、配置快照、Python/uv版本、
 操作系统、通信记录和进程日志。天气回放能够固定外部天气输入；大语言模型仍具有
 运行时随机性，因此独立运行应主要复现执行流程、指标计算方法和总体趋势，不要求
 每次生成文本与论文原始文本逐字一致。论文原始输出的最小数据包位于
 `reproduction/paper-results/`，可以直接重新执行AI评价和表格汇总。
 
-运行输出默认保存在 `experiments/results/`，该目录不会提交密钥或临时日志。
+运行输出默认保存在 `experiments/results/`。
