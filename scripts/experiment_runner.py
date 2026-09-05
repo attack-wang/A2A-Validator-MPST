@@ -1291,6 +1291,20 @@ class ExperimentRunner:
         )
         self.summary_rows.append(summary)
         print(
+            self.format_terminal_summary(
+                mode_name, prompt, repetition, summary
+            )
+        )
+
+    def format_terminal_summary(
+        self,
+        mode_name: str,
+        prompt: dict[str, str],
+        repetition: int,
+        summary: dict[str, Any],
+    ) -> str:
+        """Format the one-line terminal summary for a completed run."""
+        return (
             f"[{mode_name}] {prompt['id']} repetition {repetition}: "
             f"completed={summary['task_completed']} "
             f"agents={summary['used_agent_count']} "

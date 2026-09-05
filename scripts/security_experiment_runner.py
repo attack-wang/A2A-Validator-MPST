@@ -263,6 +263,23 @@ def summarize_validation_events(
 class SecurityExperimentRunner(ExperimentRunner):
     """OP1/OP2/OP3 runner with validation-error accounting."""
 
+    def format_terminal_summary(
+        self,
+        mode_name: str,
+        prompt: dict[str, str],
+        repetition: int,
+        summary: dict[str, Any],
+    ) -> str:
+        """Report execution and validation facts without a score."""
+        return (
+            f"[{mode_name}] {prompt['id']} repetition {repetition}: "
+            f"completed={summary['task_completed']} "
+            f"agents={summary['used_agent_count']} "
+            f"calls={summary['business_send_message_calls']} "
+            f"validation_errors={summary['validation_error_count']} "
+            f"duration={summary['duration_seconds']}s"
+        )
+
     def analyze(
         self,
         run_id: str,

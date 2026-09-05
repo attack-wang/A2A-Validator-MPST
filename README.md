@@ -110,8 +110,20 @@ uv run --frozen --python 3.13 python scripts\security_experiment_runner.py --rep
 uv run --frozen --python 3.13 python scripts\security_experiment_runner.py
 ```
 
-主要结果包括 `summary.csv`、`error_counts.csv`、`error_aggregate.csv`、
-`validation_events.csv` 和每次任务的原始日志。指标定义见
+`--dry-run`通常在数秒内完成。小规模命令共运行2项任务，每项任务的等待上限为
+10分钟，因此任务等待时间最多约20分钟，另需计算两种模式的服务启动和停止时间。
+正式命令共运行100项任务，仅任务等待上限合计约16小时40分钟；实际时间取决于
+云端模型响应和网络状况，通常会明显短于该上限。每项任务的实际运行秒数记录在
+`run.json`和`summary.csv`的`duration_seconds`字段中。
+
+该案例的终端摘要只报告完成情况、智能体数、实际调用数、验证错误数和运行时间，
+不计算或显示分数。例如：
+
+```text
+[validation_on] security-chain repetition 1: completed=True agents=3 calls=3 validation_errors=2 duration=42.18s
+```
+
+工具调用异常案例的错误指标和全部输出文件说明见
 [experiments/README.md](experiments/README.md)。
 
 ## 6. 案例二：旅行规划
@@ -140,6 +152,12 @@ uv run --frozen --python 3.13 python scripts\experiment_runner.py `
 uv run --frozen --python 3.13 python scripts\experiment_runner.py `
   --config experiments\travel_live.json
 ```
+
+`--dry-run`通常在数秒内完成。小规模命令共运行2项任务，每项任务的等待上限为
+30分钟，因此任务等待时间最多约60分钟，另需计算服务启动和停止时间。正式命令
+共运行200项任务，仅任务等待上限合计为100小时。旅行规划包含多轮模型调用，建议
+为正式实验预留充足时间，并使用第6.2节后的中断恢复命令。实际运行时间记录在
+`run.json`和`summary.csv`的`duration_seconds`字段中。
 
 实时天气、模型输出和外部服务状态会随运行时间变化。读者可以据此复现智能体
 组成、A2A通信过程、协议约束、实验流程和指标计算方法，但具体文本及统计数值
@@ -187,6 +205,10 @@ uv run --frozen --python 3.13 python scripts\evaluate_outputs.py `
   experiments\results\travel-live-YYYYMMDD-HHMMSS
 ```
 
+评价时间与待评价任务数近似成正比。默认配置中，每次模型请求的超时时间为180秒，
+失败时最多尝试3次；正常响应时通常远短于该上限。对200项正式实验结果进行评价
+可能持续数小时，可先使用`--limit 1`检查模型连接和返回格式。
+
 评价器使用固定模型、温度、种子、提示词和JSON字段，输出：
 
 - `ai_judgments.json`：原始回复与逐项证据；
@@ -194,7 +216,68 @@ uv run --frozen --python 3.13 python scripts\evaluate_outputs.py `
 - `ai_score_aggregate.csv`：验证开启与关闭两组的汇总结果；
 - `ai_judge_manifest.json`：评价模型、提示词和运行环境记录。
 
-## 8. 结果与复现边界
+## 8. 完整输出文件说明
+
+结果目录默认为`experiments/results/<实验名称>-YYYYMMDD-HHMMSS/`。其中
+`validation_on`和`validation_off`分别表示验证器开启与关闭模式，`<任务目录>`
+表示一次独立任务，例如`validation_on-security-chain-r01`。
+
+### 8.1 配置预检输出
+
+使用`--dry-run`时只生成以下文件，不启动服务或调用模型：
+
+- `resolved_prompts.json`：解析日期模板等动态字段后，本次实验实际使用的完整提示词；
+- `reproducibility.json`：当前Git提交、Python与uv版本、操作系统及生成时间。
+
+### 8.2 正式实验顶层输出
+
+- `config.snapshot.json`：展开`extends`继承、解析动态提示词并应用命令行参数后的完整
+  配置，同时保存运行环境和开始时间；
+- `summary.csv`：每项任务一行的完成情况、通信指标、覆盖情况、运行时间等原始指标；
+- `aggregate.csv`：按验证器开启和关闭模式汇总的指标总值与均值；
+- `paired_comparison.csv`：按相同提示词和重复编号配对的两组指标及差值；仅同时运行
+  两种模式且存在完整配对时生成；
+- `manifest.json`：实验名称、完成时间、任务记录数和结果目录。
+
+### 8.3 模式与单项任务输出
+
+- `validation_on/_service_logs/<服务名>.log`、
+  `validation_off/_service_logs/<服务名>.log`：某一验证模式下，各Host或Remote Agent
+  从启动到停止的完整标准输出和错误日志；
+- `<模式>/<任务目录>/prompt.txt`：该任务发送给主控智能体的初始提示词；
+- `<模式>/<任务目录>/final_response.txt`：主控智能体返回的最终可见文本；
+- `<模式>/<任务目录>/run.json`：该任务的身份、完成状态、运行秒数和全部计算指标；
+- `<模式>/<任务目录>/messages.json`：Host会话接口返回的原始消息列表；
+- `<模式>/<任务目录>/events.json`：该任务期间Host新增的原始事件列表；
+- `<模式>/<任务目录>/tasks.json`：该任务期间Host新增的A2A任务记录；
+- `<模式>/<任务目录>/tool_calls.json`：从Host事件中提取的工具调用记录；
+- `<模式>/<任务目录>/communications.csv`：将消息和事件统一后按时间排序的应用层
+  通信记录；
+- `<模式>/<任务目录>/a2a_trace.json`：从进程日志中提取的、实际跨越Host通信边界的
+  A2A请求与响应载荷；
+- `<模式>/<任务目录>/a2a_trace.csv`：与`a2a_trace.json`内容对应的表格形式，便于
+  统计通信次数；
+- `<模式>/<任务目录>/process_logs/<服务名>.log`：从模式级完整日志中截取的该任务
+  执行时间片，便于定位单次运行问题。
+
+### 8.4 工具调用异常案例附加输出
+
+- `validation_events.csv`：全部任务中的验证错误、反馈重试、重试成功和重试耗尽事件；
+- `error_counts.csv`：按验证模式、服务、处理阶段和错误码统计的事件次数；
+- `error_aggregate.csv`：按验证模式汇总的验证错误、反馈重试、重试成功、重试耗尽
+  和最终阻断次数；
+- `<模式>/<任务目录>/validation_events.json`：单项任务的完整验证事件及上下文字段；
+- `<模式>/<任务目录>/validation_events.csv`：同一单项任务验证事件的表格形式。
+
+### 8.5 AI输出质量评价文件
+
+- `ai_judge_prompt.preview.txt`：使用`--dry-run`时生成的第一项任务评价提示词预览；
+- `ai_judgments.json`：每项任务的六项判断、证据、原因及评价模型原始回复；
+- `ai_output_scores.csv`：每项任务的六项0/1判断和0～6分输出质量得分；
+- `ai_score_aggregate.csv`：按验证模式汇总的六项满足率和平均输出质量得分；
+- `ai_judge_manifest.json`：评价配置、提示词路径、评价任务数和运行环境。
+
+## 9. 结果与复现边界
 
 每次运行都会保存解析后的提示词、配置快照、Git提交号、Python/uv版本、
 操作系统、通信记录和进程日志。天气回放能够固定外部天气输入；大语言模型仍具有

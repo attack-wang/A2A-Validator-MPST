@@ -26,6 +26,27 @@ class SecurityExperimentRunnerTests(unittest.TestCase):
         self.assertEqual("security-chain", config["prompts"][0]["id"])
         self.assertEqual(50, config["repetitions"])
 
+    def test_terminal_summary_omits_score(self):
+        runner = SecurityExperimentRunner.__new__(SecurityExperimentRunner)
+
+        output = runner.format_terminal_summary(
+            "validation_on",
+            {"id": "security-chain"},
+            1,
+            {
+                "task_completed": True,
+                "used_agent_count": 3,
+                "business_send_message_calls": 3,
+                "validation_error_count": 2,
+                "duration_seconds": 12.5,
+                "process_score_0_10": 10,
+            },
+        )
+
+        self.assertNotIn("score=", output)
+        self.assertIn("validation_errors=2", output)
+        self.assertIn("duration=12.5s", output)
+
     def test_parses_host_remote_and_recovery_events(self):
         log_text = """===== Host UI =====
 2026-08-08 ERROR host.validation [HOST VALIDATION ERROR]
