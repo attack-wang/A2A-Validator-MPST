@@ -1,0 +1,47 @@
+"""Global configuration constants for the Gold Miner game."""
+# Screen
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+FPS = 60
+TITLE = "Gold Miner"
+# Layout
+SKY_HEIGHT = 150
+PIVOT_X = SCREEN_WIDTH // 2
+PIVOT_Y = 90
+# Colors
+COLOR_SKY_TOP = (135, 206, 250)
+COLOR_SKY_BOTTOM = (200, 230, 255)
+COLOR_DIRT = (139, 90, 43)
+COLOR_DIRT_DARK = (110, 70, 35)
+COLOR_LINE = (60, 60, 60)
+COLOR_TEXT = (40, 40, 40)
+COLOR_GOLD = (255, 200, 40)
+COLOR_GOLD_DARK = (200, 150, 20)
+COLOR_ROCK = (130, 130, 130)
+COLOR_ROCK_DARK = (100, 100, 100)
+COLOR_DIAMOND = (80, 220, 255)
+COLOR_SKULL = (240, 240, 240)
+COLOR_TNT = (200, 40, 40)
+COLOR_MYSTERY = (170, 80, 200)
+COLOR_MOLE = (120, 80, 50)
+COLOR_HUD_BG = (30, 30, 50)
+# Claw
+CLAW_MIN_LENGTH = 40
+CLAW_MAX_LENGTH = 480
+CLAW_SWING_SPEED = 60.0        # degrees per second
+CLAW_SWING_SPEED_PER_LEVEL = 6.0
+CLAW_EXTEND_SPEED = 420.0      # pixels per second
+CLAW_RETRACT_SPEED = 380.0     # pixels per second (empty)
+CLAW_MAX_ANGLE = 75.0          # degrees from straight down
+# Objects
+OBJECT_MIN_Y = SKY_HEIGHT + 60
+OBJECT_MAX_Y = SCREEN_HEIGHT - 40
+OBJECT_MARGIN_X = 40
+# Level difficulty
+BASE_TIME = 60.0
+TIME_PER_LEVEL = 3.0
+MIN_TIME = 30.0
+BASE_TARGET = 450
+TARGET_PER_LEVEL = 175
+# Values
+...

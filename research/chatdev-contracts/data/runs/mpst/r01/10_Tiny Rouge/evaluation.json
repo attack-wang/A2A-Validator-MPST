@@ -1,0 +1,74 @@
+{
+  "task_index": 10,
+  "project_name": "Tiny Rouge",
+  "framework": "ChatDev",
+  "workflow_status": "completed",
+  "workspace": "data/runs/mpst/r01/10_Tiny Rouge/artifact",
+  "source_file_count": 6,
+  "python_compile": {
+    "checked": 6,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-01T14:41:22+0800",
+  "judge": {
+    "verdict": "fail",
+    "functional_completeness": 0.85,
+    "executable_likelihood": 0.3,
+    "implemented_requirements": [
+      {
+        "requirement": "Fixed 80x80 grid map",
+        "fulfilled": true,
+        "evidence": "settings.py defines GRID_WIDTH = 80 and GRID_HEIGHT = 80; level.py uses these constants to build the map."
+      },
+      {
+        "requirement": "Player movement with W/A/S/D keys",
+        "fulfilled": true,
+        "evidence": "game.py.handle_input maps pygame.K_w, K_a, K_s, K_d to attempt_move calls."
+      },
+      {
+        "requirement": "Player can move only on floor tiles and cannot pass through walls",
+        "fulfilled": true,
+        "evidence": "Game.attempt_move checks level.is_wall before allowing movement; level.is_wall returns True for out‑of‑bounds or TILE_WALL."
+      },
+      {
+        "requirement": "Goal is to reach the door to proceed to the next level",
+        "fulfilled": true,
+        "evidence": "Game.attempt_move calls enter_door() when level.is_door is true, which loads the next floor."
+      },
+      {
+        "requirement": "Combat resolves by subtracting monster HP from player HP",
+        "fulfilled": true,
+        "evidence": "Game.resolve_combat subtracts monster.hp from player via player.take_damage."
+      },
+      {
+        "requirement": "HP restored by 20–30 points when touching a treasure chest",
+        "fulfilled": true,
+        "evidence": "Game.open_chest uses rng.randint(CHEST_HEAL_MIN, CHEST_HEAL_MAX) where settings define 20‑30."
+      },
+      {
+        "requirement": "Always at least one valid path from start to door",
+        "fulfilled": true,
+        "evidence": "Level._verify_connectivity runs a BFS; generation retries until a path exists; fallback floor guarantees a path."
+      },
+      {
+        "requirement": "Minimal UI displaying player HP and encountered monster stats",
+        "fulfilled": false,
+        "evidence": "ui.py defines draw() and draw_map() but the called draw_panel() method is missing; no code renders HP bar or monster information."
+      }
+    ],
+    "critical_issues": [
+      "ui.py calls self.draw_panel(game) but draw_panel is not defined, causing an AttributeError at runtime.",
+      "Because the UI does not render HP or monster stats, the requirement for a minimal UI is unmet."
+    ],
+    "summary": "The codebase implements the core gameplay mechanics, map generation, movement, combat, healing, and level progression as specified. However, the UI layer is incomplete: the required draw_panel method is missing, leading to a runtime crash and the absence of the mandated HP and monster‑stat display. Consequently, the submission fails the acceptance criteria.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": false
+}

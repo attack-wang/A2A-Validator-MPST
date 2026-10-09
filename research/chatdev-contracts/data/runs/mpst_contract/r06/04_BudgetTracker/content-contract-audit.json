@@ -1,0 +1,442 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "As the Chief Product Officer, I'd like to share my thoughts on the best product modality for our customer's budget tracker.\n\nGiven the task is to create a budget tracker to monitor expenses and savings, let me analyze the candidate modalities:\n\n1. **Excel**: While spreadsheets are traditionally used for budgeting, a static .xlsx file lacks interactivity — users would need to manually manage formulas and charts, which doesn't deliver a polished \"tracker\" experience.\n\n2. **Dashboard**: Great for real-time visualization, but it's more suited to monitoring existing data streams rather than an interactive tool where users input and manage their own expenses over time.\n\n3. **Website**: Could work, but a budget tracker involves personal financial data entry and local data persistence, which is better handled in a self-contained tool.\n\n4. **Application**: This is my recommendation. A Python-based application can provide a fully interactive experience — users can add expenses, categorize them, set savings goals, and view visualized summaries (pie charts of spending categories, trends over time, expense vs. savings comparisons) all in one tool. It's realizable, self-contained, and directly fulfills the \"tracker\" nature of the request.\n\nIn my opinion, **Application** is the most suitable modality — it transforms the budget tracker from a passive document into an interactive, functional tool that truly helps users monitor their expenses and savings.\n\nWhat are your thoughts? Do you agree that we should build this as an Application?"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\nimport sys\nfrom tracker import BudgetTracker\n\n\ndef fmt(x):\n    return f\"${x:,.2f}\"\n\n\ndef print_transactions(ts):\n    if not ts:\n        print(\"No transactions recorded.\")\n        return\n    print(f\"{'ID':>4} {'Date':<12} {'Type':<9} {'Category':<15} {'Description':<25} {'Amount':>12}\")\n    print(\"-\" * 82)\n    for t in ts:\n        print(f\"{t.id:>4} {t.date:<12} {t.kind:<9} {t.category:<15} {t.description[:24]:<25} {fmt(t.amount):>12}\")\n\n\ndef prompt_float(msg):\n    while True:\n        try:\n            v = float(input(msg).strip())\n            if v <= 0:\n                print(\"Amount must be positive.\")\n                continue\n            return v\n        except ValueError:\n            print(\"Enter a valid number.\")\n\n\ndef prompt_date():\n    d = input(\"Date (YYYY-MM-DD, blank=today): \").strip()\n    return d or None\n\n\ndef show_summary(tr):\n    s = tr.summary()\n    print(\"\\n=== Overall Summary ===\")\n    print(f\"Income:   {fmt(s['income'])}\")\n    print(f\"Expenses: {fmt(s['expenses'])}\")\n    print(f\"Savings:  {fmt(s['savings'])}\")\n    print(f\"Available balance (income - expenses - savings): {fmt(s['balance'])}\")\n\n\ndef main():\n    tr = BudgetTracker()\n    menu = (\n        \"\\n=== Budget Tracker ===\\n\"\n        \"1) Add expense\\n\"\n        \"2) Add income\\n\"\n        \"3) Add savings deposit\\n\"\n        \"4) List transactions\\n\"\n        \"5) Delete transaction\\n\"\n        \"6) Overall summary\\n\"\n        \"7) Expense breakdown by category\\n\"\n        \"8) Monthly report\\n\"\n        \"9) Exit\\n\"\n    )\n    while True:\n        print(menu)\n        choice = input(\"Choose an option: \").strip()\n        try:\n            if choice == \"1\":\n                t = tr.add(\"expense\", input(\"Category: \").strip() or \"General\",\n                           input(\"Description: \").strip(), prompt_float(\"Amount: \"), prompt_date())\n                print(f\"Added expense #{t.id}.\")\n            elif choice == \"2\":\n                t = tr.add(\"income\", input(\"Source: \").strip() or \"Income\",\n                           input(\"Description: \").strip(), prompt_float(\"Amount: \"), prompt_date())\n                print(f\"Added income #{t.id}.\")\n            elif choice == \"3\":\n                t = tr.add(\"savings\", input(\"Goal/Category: \").strip() or \"Savings\",\n                           input(\"Description: \").strip(), prompt_float(\"Amount: \"), prompt_date())\n                print(f\"Added savings deposit #{t.id}.\")\n            elif choice == \"4\":\n                print_transactions(tr.list_all())\n            elif choice == \"5\":\n                print_transactions(tr.list_all())\n                tid = int(input(\"ID to delete: \").strip())\n                tr.delete(tid)\n                print(f\"Deleted transaction #{tid}.\")\n            elif choice == \"6\":\n                show_summary(tr)\n            elif choice == \"7\":\n                cats = tr.by_category(\"expense\")\n                if not cats:\n                    print(\"No expenses recorded.\")\n                else:\n                    total = sum(cats.values())\n                    print(\"\\n=== Expenses by Category ===\")\n                    for c, v in cats.items():\n                        print(f\"{c:<20} {fmt(v):>12} ({v / total * 100:.1f}%)\")\n            elif choice == \"8\":\n                m = input(\"Month (YYYY-MM, blank=this month): \").strip() or None\n                r = tr.monthly(m)\n                print(f\"\\n=== Report for {r['month']} ===\")\n                print(f\"Income: {fmt(r['income'])} | Expenses: {fmt(r['expenses'])} | \"\n                      f\"Savings: {fmt(r['savings'])} | Net: {fmt(r['balance'])}\")\n            elif choice == \"9\":\n                print(\"Goodbye! Data saved to budget_data.json\")\n                break\n            else:\n                print(\"Invalid option.\")\n        except ValueError as e:\n            print(f\"Error: {e}\")\n        except KeyboardInterrupt:\n            print(\"\\nInterrupted. Data saved.\")\n            break\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nmodels.py\n```python\nfrom dataclasses import dataclass\n\n\n@dataclass\nclass Transaction:\n    id: int\n    date: str\n    kind: str  # expense | income | savings\n    category: str\n    description: str\n    amount: float\n\n    def to_dict(self):\n        return {\n            \"id\": self.id,\n            \"date\": self.date,\n            \"kind\": self.kind,\n            \"category\": self.category,\n            \"description\": self.description,\n            \"amount\": self.amount,\n        }\n\n    @staticmethod\n    def from_dict(d):\n        return Transaction(int(d[\"id\"]), str(d[\"date\"]), str(d[\"kind\"]),\n                           str(d[\"category\"]), str(d[\"description\"]), float(d[\"amount\"]))\n```\n\nstorage.py\n```python\nimport json\nimport os\n\nDATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), \"budget_data.json\")\n\n\ndef load_data():\n    default = {\"next_id\": 1, \"transactions\": []}\n    if os.path.exists(DATA_FILE):\n        try:\n            with open(DATA_FILE, \"r\", encoding=\"utf-8\") as f:\n                data = json.load(f)\n            if isinstance(data, dict) and \"transactions\" in data and \"next_id\" in data:\n                return data\n        except (json.JSONDecodeError, OSError):\n            pass\n    return default\n\n\ndef save_data(data):\n    with open(DATA_FILE, \"w\", encoding=\"utf-8\") as f:\n        json.dump(data, f, indent=2)\n```\n\ntracker.py\n```python\nimport datetime\nfrom models import Transaction\nimport storage\n\nKINDS = (\"expense\", \"income\", \"savings\")\n\n\nclass BudgetTracker:\n    def __init__(self):\n        self.data = storage.load_data()\n\n    def _save(self):\n        storage.save_data(self.data)\n\n    def add(self, kind, category, description, amount, date=None):\n        if kind not in KINDS:\n            raise ValueError(\"Type must be expense, income, or savings.\")\n        if amount <= 0:\n            raise ValueError(\"Amount must be positive.\")\n        date = date or datetime.date.today().isoformat()\n        try:\n            datetime.date.fromisoformat(date)\n        except ValueError:\n            raise ValueError(\"Date must be in YYYY-MM-DD format.\")\n        t = Transaction(self.data[\"next_id\"], date, kind, category or \"General\",\n                        description or \"\", round(float(amount), 2))\n        self.data[\"next_id\"] += 1\n        self.data[\"transactions\"].append(t.to_dict())\n        self._save()\n        return t\n\n    def delete(self, tid):\n        before = len(self.data[\"transactions\"])\n        self.data[\"transactions\"] = [t for t in self.data[\"transactions\"] if int(t[\"id\"]) != tid]\n        if len(self.data[\"transactions\"]) == before:\n            raise ValueError(\"Transaction not found.\")\n        self._save()\n\n    def list_all(self):\n        return sorted((Transaction.from_dict(t) for t in self.data[\"transactions\"]),\n                      key=lambda t: (t.date, t.id))\n\n    def summary(self):\n        inc = exp = sav = 0.0\n        for t in self.data[\"transactions\"]:\n            a = float(t[\"amount\"])\n            if t[\"kind\"] == \"income\":\n                inc += a\n            elif t[\"kind\"] == \"expense\":\n                exp += a\n            else:\n                sav += a\n        return {\"income\": inc, \"expenses\": exp, \"savings\": sav, \"balance\": inc - exp - sav}\n\n    def by_category(self, kind=\"expense\"):\n        cats = {}\n        for t in self.data[\"transactions\"]:\n            if t[\"kind\"] == kind:\n                cats[t[\"category\"]] = cats.get(t[\"category\"], 0.0) + float(t[\"amount\"])\n        return dict(sorted(cats.items(), key=lambda kv: -kv[1]))\n\n    def monthly(self, month=None):\n        month = month or datetime.date.today().strftime(\"%Y-%m\")\n        try:\n            datetime.datetime.strptime(month, \"%Y-%m\")\n        except ValueError:\n            raise ValueError(\"Month must be in YYYY-MM format.\")\n        inc = exp = sav = 0.0\n        for t in self.data[\"transactions\"]:\n            if str(t[\"date\"]).startswith(month):\n                a = float(t[\"amount\"])\n                if t[\"kind\"] == \"income\":\n                    inc += a\n                elif t[\"kind\"] == \"expense\":\n                    exp += a\n                else:\n                    sav += a\n        return {\"month\": month, \"income\": inc, \"expenses\": exp,\n                \"savings\": sav, \"balance\": inc - exp - sav}\n```"
+    },
+    {
+      "phase": "CodeComplete",
+      "source_snapshot": "8537afddfd70f45cfae0be70a11024049ca533fe2a063fad3f3726a428f15f6e",
+      "result": "main.py\n```python\nimport sys\nfrom tracker import BudgetTracker\n\n\ndef fmt(x):\n    return f\"${x:,.2f}\"\n\n\ndef print_transactions(ts):\n    if not ts:\n        print(\"No transactions recorded.\")\n        return\n    print(f\"{'ID':>4} {'Date':<12} {'Type':<9} {'Category':<15} {'Description':<25} {'Amount':>12}\")\n    print(\"-\" * 82)\n    for t in ts:\n        print(f\"{t.id:>4} {t.date:<12} {t.kind:<9} {t.category:<15} {t.description[:24]:<25} {fmt(t.amount):>12}\")\n\n\ndef prompt_float(msg):\n    while True:\n        try:\n            v = float(input(msg).strip())\n            if v <= 0:\n                print(\"Amount must be positive.\")\n                continue\n            return v\n        except ValueError:\n            print(\"Enter a valid number.\")\n\n\ndef prompt_date():\n    d = input(\"Date (YYYY-MM-DD, blank=today): \").strip()\n    return d or None\n\n\ndef show_summary(tr):\n    s = tr.summary()\n    print(\"\\n=== Overall Summary ===\")\n    print(f\"Income:   {fmt(s['income'])}\")\n    print(f\"Expenses: {fmt(s['expenses'])}\")\n    print(f\"Savings:  {fmt(s['savings'])}\")\n    print(f\"Available balance (income - expenses - savings): {fmt(s['balance'])}\")\n\n\ndef main():\n    tr = BudgetTracker()\n    menu = (\n        \"\\n=== Budget Tracker ===\\n\"\n        \"1) Add expense\\n\"\n        \"2) Add income\\n\"\n        \"3) Add savings deposit\\n\"\n        \"4) List transactions\\n\"\n        \"5) Delete transaction\\n\"\n        \"6) Overall summary\\n\"\n        \"7) Expense breakdown by category\\n\"\n        \"8) Monthly report\\n\"\n        \"9) Exit\\n\"\n    )\n    while True:\n        print(menu)\n        choice = input(\"Choose an option: \").strip()\n        try:\n            if choice == \"1\":\n                t = tr.add(\"expense\", input(\"Category: \").strip() or \"General\",\n                           input(\"Description: \").strip(), prompt_float(\"Amount: \"), prompt_date())\n                print(f\"Added expense #{t.id}.\")\n            elif choice == \"2\":\n                t = tr.add(\"income\", input(\"Source: \").strip() or \"Income\",\n                           input(\"Description: \").strip(), prompt_float(\"Amount: \"), prompt_date())\n                print(f\"Added income #{t.id}.\")\n            elif choice == \"3\":\n                t = tr.add(\"savings\", input(\"Goal/Category: \").strip() or \"Savings\",\n                           input(\"Description: \").strip(), prompt_float(\"Amount: \"), prompt_date())\n                print(f\"Added savings deposit #{t.id}.\")\n            elif choice == \"4\":\n                print_transactions(tr.list_all())\n            elif choice == \"5\":\n                print_transactions(tr.list_all())\n                tid = int(input(\"ID to delete: \").strip())\n                tr.delete(tid)\n                print(f\"Deleted transaction #{tid}.\")\n            elif choice == \"6\":\n                show_summary(tr)\n            elif choice == \"7\":\n                cats = tr.by_category(\"expense\")\n                if not cats:\n                    print(\"No expenses recorded.\")\n                else:\n                    total = sum(cats.values())\n                    print(\"\\n=== Expenses by Category ===\")\n                    for c, v in cats.items():\n                        print(f\"{c:<20} {fmt(v):>12} ({v / total * 100:.1f}%)\")\n            elif choice == \"8\":\n                m = input(\"Month (YYYY-MM, blank=this month): \").strip() or None\n                r = tr.monthly(m)\n                print(f\"\\n=== Report for {r['month']} ===\")\n                print(f\"Income: {fmt(r['income'])} | Expenses: {fmt(r['expenses'])} | \"\n                      f\"Savings: {fmt(r['savings'])} | Net: {fmt(r['balance'])}\")\n            elif choice == \"9\":\n                print(\"Goodbye! Data saved to budget_data.json\")\n                break\n            else:\n                print(\"Invalid option.\")\n        except ValueError as e:\n            print(f\"Error: {e}\")\n        except KeyboardInterrupt:\n            print(\"\\nInterrupted. Data saved.\")\n            break\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nmodels.py\n```python\nfrom dataclasses import dataclass\n\n\n@dataclass\nclass Transaction:\n    id: int\n    date: str\n    kind: str  # expense | income | savings\n    category: str\n    description: str\n    amount: float\n\n    def to_dict(self):\n        return {\n            \"id\": self.id,\n            \"date\": self.date,\n            \"kind\": self.kind,\n            \"category\": self.category,\n            \"description\": self.description,\n            \"amount\": self.amount,\n        }\n\n    @staticmethod\n    def from_dict(d):\n        return Transaction(int(d[\"id\"]), str(d[\"date\"]), str(d[\"kind\"]),\n                           str(d[\"category\"]), str(d[\"description\"]), float(d[\"amount\"]))\n```\n\nstorage.py\n```python\nimport json\nimport os\n\nDATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), \"budget_data.json\")\n\n\ndef load_data():\n    default = {\"next_id\": 1, \"transactions\": []}\n    if os.path.exists(DATA_FILE):\n        try:\n            with open(DATA_FILE, \"r\", encoding=\"utf-8\") as f:\n                data = json.load(f)\n            if isinstance(data, dict) and \"transactions\" in data and \"next_id\" in data:\n                if isinstance(data[\"transactions\"], list) and isinstance(data[\"next_id\"], int):\n                    return data\n        except (json.JSONDecodeError, OSError, ValueError):\n            pass\n    return default\n\n\ndef save_data(data):\n    tmp = DATA_FILE + \".tmp\"\n    try:\n        with open(tmp, \"w\", encoding=\"utf-8\") as f:\n            json.dump(data, f, indent=2)\n        os.replace(tmp, DATA_FILE)\n    except OSError:\n        if os.path.exists(tmp):\n            try:\n                os.remove(tmp)\n            except OSError:\n                pass\n        with open(DATA_FILE, \"w\", encoding=\"utf-8\") as f:\n            json.dump(data, f, indent=2)\n```\n\ntracker.py\n```python\nimport datetime\nfrom models import Transaction\nimport storage\n\nKINDS = (\"expense\", \"income\", \"savings\")\n\n\nclass BudgetTracker:\n    def __init__(self):\n        self.data = storage.load_data()\n\n    def _save(self):\n        storage.save_data(self.data)\n\n    def add(self, kind, category, description, amount, date=None):\n        if kind not in KINDS:\n            raise ValueError(\"Type must be expense, income, or savings.\")\n        if amount <= 0:\n            raise ValueError(\"Amount must be positive.\")\n        date = date or datetime.date.today().isoformat()\n        try:\n            datetime.date.fromisoformat(date)\n        except ValueError:\n            raise ValueError(\"Date must be in YYYY-MM-DD format.\")\n        t = Transaction(self.data[\"next_id\"], date, kind, category or \"General\",\n                        description or \"\", round(float(amount), 2))\n        self.data[\"next_id\"] += 1\n        self.data[\"transactions\"].append(t.to_dict())\n        self._save()\n        return t\n\n    def delete(self, tid):\n        before = len(self.data[\"transactions\"])\n        self.data[\"transactions\"] = [t for t in self.data[\"transactions\"] if int(t[\"id\"]) != tid]\n        if len(self.data[\"transactions\"]) == before:\n            raise ValueError(\"Transaction not found.\")\n        self._save()\n\n    def list_all(self):\n        return sorted((Transaction.from_dict(t) for t in self.data[\"transactions\"]),\n                      key=lambda t: (t.date, t.id))\n\n    def summary(self):\n        inc = exp = sav = 0.0\n        for t in self.data[\"transactions\"]:\n            a = float(t[\"amount\"])\n            if t[\"kind\"] == \"income\":\n                inc += a\n            elif t[\"kind\"] == \"expense\":\n                exp += a\n            else:\n                sav += a\n        return {\"income\": inc, \"expenses\": exp, \"savings\": sav, \"balance\": inc - exp - sav}\n\n    def by_category(self, kind=\"expense\"):\n        cats = {}\n        for t in self.data[\"transactions\"]:\n            if t[\"kind\"] == kind:\n                cats[t[\"category\"]] = cats.get(t[\"category\"], 0.0) + float(t[\"amount\"])\n        return dict(sorted(cats.items(), key=lambda kv: -kv[1]))\n\n    def monthly(self, month=None):\n        month = month or datetime.date.today().strftime(\"%Y-%m\")\n        try:\n            datetime.datetime.strptime(month, \"%Y-%m\")\n        except ValueError:\n            raise ValueError(\"Month must be in YYYY-MM format.\")\n        inc = exp = sav = 0.0\n        for t in self.data[\"transactions\"]:\n            if str(t[\"date\"]).startswith(month):\n                a = float(t[\"amount\"])\n                if t[\"kind\"] == \"income\":\n                    inc += a\n                elif t[\"kind\"] == \"expense\":\n                    exp += a\n                else:\n                    sav += a\n        return {\"month\": month, \"income\": inc, \"expenses\": exp,\n                \"savings\": sav, \"balance\": inc - exp - sav}\n```"
+    },
+    {
+      "phase": "CodeComplete",
+      "source_snapshot": "5f36d05c21c161b41f2e41f6387b5eb9feedb92600cd2ed0fb8a738975ee5621",
+      "result": "main.py\n```python\nimport sys\nfrom tracker import BudgetTracker\n\n\ndef fmt(x):\n    return f\"${x:,.2f}\"\n\n\ndef print_transactions(ts):\n    if not ts:\n        print(\"No transactions recorded.\")\n        return\n    print(f\"{'ID':>4} {'Date':<12} {'Type':<9} {'Category':<15} {'Description':<25} {'Amount':>12}\")\n    print(\"-\" * 82)\n    for t in ts:\n        print(f\"{t.id:>4} {t.date:<12} {t.kind:<9} {t.category:<15} {t.description[:24]:<25} {fmt(t.amount):>12}\")\n\n\ndef prompt_float(msg):\n    while True:\n        try:\n            v = float(input(msg).strip())\n            if v <= 0:\n                print(\"Amount must be positive.\")\n                continue\n            return v\n        except ValueError:\n            print(\"Enter a valid number.\")\n\n\ndef prompt_date():\n    d = input(\"Date (YYYY-MM-DD, blank=today): \").strip()\n    return d or None\n\n\ndef show_summary(tr):\n    s = tr.summary()\n    print(\"\\n=== Overall Summary ===\")\n    print(f\"Income:   {fmt(s['income'])}\")\n    print(f\"Expenses: {fmt(s['expenses'])}\")\n    print(f\"Savings:  {fmt(s['savings'])}\")\n    print(f\"Available balance (income - expenses - savings): {fmt(s['balance'])}\")\n\n\ndef main():\n    tr = BudgetTracker()\n    menu = (\n        \"\\n=== Budget Tracker ===\\n\"\n        \"1) Add expense\\n\"\n        \"2) Add income\\n\"\n        \"3) Add savings deposit\\n\"\n        \"4) List transactions\\n\"\n        \"5) Delete transaction\\n\"\n        \"6) Overall summary\\n\"\n        \"7) Expense breakdown by category\\n\"\n        \"8) Monthly report\\n\"\n        \"9) Exit\\n\"\n    )\n    while True:\n        print(menu)\n        choice = input(\"Choose an option: \").strip()\n        try:\n            if choice == \"1\":\n                t = tr.add(\"expense\", input(\"Category: \").strip() or \"General\",\n                           input(\"Description: \").strip(), prompt_float(\"Amount: \"), prompt_date())\n                print(f\"Added expense #{t.id}.\")\n            elif choice == \"2\":\n                t = tr.add(\"income\", input(\"Source: \").strip() or \"Income\",\n                           input(\"Description: \").strip(), prompt_float(\"Amount: \"), prompt_date())\n                print(f\"Added income #{t.id}.\")\n            elif choice == \"3\":\n                t = tr.add(\"savings\", input(\"Goal/Category: \").strip() or \"Savings\",\n                           input(\"Description: \").strip(), prompt_float(\"Amount: \"), prompt_date())\n                print(f\"Added savings deposit #{t.id}.\")\n            elif choice == \"4\":\n                print_transactions(tr.list_all())\n            elif choice == \"5\":\n                print_transactions(tr.list_all())\n                tid = int(input(\"ID to delete: \").strip())\n                tr.delete(tid)\n                print(f\"Deleted transaction #{tid}.\")\n            elif choice == \"6\":\n                show_summary(tr)\n            elif choice == \"7\":\n                cats = tr.by_category(\"expense\")\n                if not cats:\n                    print(\"No expenses recorded.\")\n                else:\n                    total = sum(cats.values())\n                    print(\"\\n=== Expenses by Category ===\")\n                    for c, v in cats.items():\n                        print(f\"{c:<20} {fmt(v):>12} ({v / total * 100:.1f}%)\")\n            elif choice == \"8\":\n                m = input(\"Month (YYYY-MM, blank=this month): \").strip() or None\n                r = tr.monthly(m)\n                print(f\"\\n=== Report for {r['month']} ===\")\n                print(f\"Income: {fmt(r['income'])} | Expenses: {fmt(r['expenses'])} | \"\n                      f\"Savings: {fmt(r['savings'])} | Net: {fmt(r['balance'])}\")\n            elif choice == \"9\":\n                print(\"Goodbye! Data saved to budget_data.json\")\n                break\n            else:\n                print(\"Invalid option.\")\n        except ValueError as e:\n            print(f\"Error: {e}\")\n        except KeyboardInterrupt:\n            print(\"\\nInterrupted. Data saved.\")\n            break\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nmodels.py\n```python\nfrom dataclasses import dataclass\n\n\n@dataclass\nclass Transaction:\n    id: int\n    date: str\n    kind: str  # expense | income | savings\n    category: str\n    description: str\n    amount: float\n\n    def to_dict(self):\n        return {\n            \"id\": self.id,\n            \"date\": self.date,\n            \"kind\": self.kind,\n            \"category\": self.category,\n            \"description\": self.description,\n            \"amount\": self.amount,\n        }\n\n    @staticmethod\n    def from_dict(d):\n        return Transaction(int(d[\"id\"]), str(d[\"date\"]), str(d[\"kind\"]),\n                           str(d[\"category\"]), str(d[\"description\"]), float(d[\"amount\"]))\n```\n\nstorage.py\n```python\nimport json\nimport os\n\nDATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), \"budget_data.json\")\n\n\ndef load_data():\n    default = {\"next_id\": 1, \"transactions\": []}\n    if os.path.exists(DATA_FILE):\n        try:\n            with open(DATA_FILE, \"r\", encoding=\"utf-8\") as f:\n                data = json.load(f)\n            if isinstance(data, dict) and \"transactions\" in data and \"next_id\" in data:\n                if isinstance(data[\"transactions\"], list) and isinstance(data[\"next_id\"], int):\n                    return data\n        except (json.JSONDecodeError, OSError, ValueError):\n            pass\n    return default\n\n\ndef save_data(data):\n    tmp = DATA_FILE + \".tmp\"\n    try:\n        with open(tmp, \"w\", encoding=\"utf-8\") as f:\n            json.dump(data, f, indent=2)\n        os.replace(tmp, DATA_FILE)\n    except OSError:\n        if os.path.exists(tmp):\n            try:\n                os.remove(tmp)\n            except OSError:\n                pass\n        with open(DATA_FILE, \"w\", encoding=\"utf-8\") as f:\n            json.dump(data, f, indent=2)\n```\n\ntracker.py\n```python\nimport datetime\nfrom models import Transaction\nimport storage\n\nKINDS = (\"expense\", \"income\", \"savings\")\n\n\nclass BudgetTracker:\n    def __init__(self):\n        self.data = storage.load_data()\n\n    def _save(self):\n        storage.save_data(self.data)\n\n    def add(self, kind, category, description, amount, date=None):\n        if kind not in KINDS:\n            raise ValueError(\"Type must be expense, income, or savings.\")\n        if amount <= 0:\n            raise ValueError(\"Amount must be positive.\")\n        date = date or datetime.date.today().isoformat()\n        try:\n            datetime.date.fromisoformat(date)\n        except ValueError:\n            raise ValueError(\"Date must be in YYYY-MM-DD format.\")\n        t = Transaction(self.data[\"next_id\"], date, kind, category or \"General\",\n                        description or \"\", round(float(amount), 2))\n        self.data[\"next_id\"] += 1\n        self.data[\"transactions\"].append(t.to_dict())\n        self._save()\n        return t\n\n    def delete(self, tid):\n        before = len(self.data[\"transactions\"])\n        self.data[\"transactions\"] = [t for t in self.data[\"transactions\"] if int(t[\"id\"]) != tid]\n        if len(self.data[\"transactions\"]) == before:\n            raise ValueError(\"Transaction not found.\")\n        self._save()\n\n    def list_all(self):\n        return sorted((Transaction.from_dict(t) for t in self.data[\"transactions\"]),\n                      key=lambda t: (t.date, t.id))\n\n    def summary(self):\n        inc = exp = sav = 0.0\n        for t in self.data[\"transactions\"]:\n            a = float(t[\"amount\"])\n            if t[\"kind\"] == \"income\":\n                inc += a\n            elif t[\"kind\"] == \"expense\":\n                exp += a\n            else:\n                sav += a\n        return {\"income\": inc, \"expenses\": exp, \"savings\": sav, \"balance\": inc - exp - sav}\n\n    def by_category(self, kind=\"expense\"):\n        cats = {}\n        for t in self.data[\"transactions\"]:\n            if t[\"kind\"] == kind:\n                cats[t[\"category\"]] = cats.get(t[\"category\"], 0.0) + float(t[\"amount\"])\n        return dict(sorted(cats.items(), key=lambda kv: -kv[1]))\n\n    def monthly(self, month=None):\n        month = month or datetime.date.today().strftime(\"%Y-%m\")\n        try:\n            datetime.datetime.strptime(month, \"%Y-%m\")\n        except ValueError:\n            raise ValueError(\"Month must be in YYYY-MM format.\")\n        inc = exp = sav = 0.0\n        for t in self.data[\"transactions\"]:\n            if str(t[\"date\"]).startswith(month):\n                a = float(t[\"amount\"])\n                if t[\"kind\"] == \"income\":\n                    inc += a\n                elif t[\"kind\"] == \"expense\":\n                    exp += a\n                else:\n                    sav += a\n        return {\"month\": month, \"income\": inc, \"expenses\": exp,\n                \"savings\": sav, \"balance\": inc - exp - sav}\n```"
+    },
+    {
+      "phase": "CodeComplete",
+      "source_snapshot": "5f36d05c21c161b41f2e41f6387b5eb9feedb92600cd2ed0fb8a738975ee5621",
+      "result": "The user wants me to return final source files for a budget tracker in Python. The current source is already provided and looks complete. The task says \"Return the fully implemented requested file and any other changed files.\" Since the current source appears complete and functional, I should return the final files. The instruction says \"Start with main.py for initial coding.\"\n\nLooking at the current source, it's already a complete implementation. I should return all files as final source files. Let me review each file for any issues:\n\n1. main.py - CLI menu, looks complete\n2. models.py - Transaction dataclass, complete\n3. storage.py - JSON persistence, complete\n4. tracker.py - BudgetTracker logic, complete\n\nThe code looks solid. I'll return the files as-is (they're already final). The instruction says \"Return each final file once\" and \"Start with main.py\".\n\nLet me double-check for bugs:\n- main.py: prompt_float validates positive. prompt_date returns None if blank. show_summary works. Menu handles all options. Delete: `int(input(...))` could raise ValueError which is caught by the except ValueError handler - but that would print \"Error: invalid literal for int()...\" which is fine.\n- tracker.py: add validates kind, amount, date. delete raises if not found. summary, by_category, monthly all fine.\n- storage.py: load/save with atomic replace fallback. Fine.\n- models.py: fine.\n\nOne minor issue: in main.py, when deleting, if user enters non-integer, ValueError is caught and printed as \"Error: invalid literal for int() with base 10: ...\" - acceptable.\n\nEverything works. I'll return the final files.main.py\n```python\nimport sys\nfrom tracker import BudgetTracker\n\n\ndef fmt(x):\n    return f\"${x:,.2f}\"\n\n\ndef print_transactions(ts):\n    if not ts:\n        print(\"No transactions recorded.\")\n        return\n    print(f\"{'ID':>4} {'Date':<12} {'Type':<9} {'Category':<15} {'Description':<25} {'Amount':>12}\")\n    print(\"-\" * 82)\n    for t in ts:\n        print(f\"{t.id:>4} {t.date:<12} {t.kind:<9} {t.category:<15} {t.description[:24]:<25} {fmt(t.amount):>12}\")\n\n\ndef prompt_float(msg):\n    while True:\n        try:\n            v = float(input(msg).strip())\n            if v <= 0:\n                print(\"Amount must be positive.\")\n                continue\n            return v\n        except ValueError:\n            print(\"Enter a valid number.\")\n\n\ndef prompt_date():\n    d = input(\"Date (YYYY-MM-DD, blank=today): \").strip()\n    return d or None\n\n\ndef show_summary(tr):\n    s = tr.summary()\n    print(\"\\n=== Overall Summary ===\")\n    print(f\"Income:   {fmt(s['income'])}\")\n    print(f\"Expenses: {fmt(s['expenses'])}\")\n    print(f\"Savings:  {fmt(s['savings'])}\")\n    print(f\"Available balance (income - expenses - savings): {fmt(s['balance'])}\")\n\n\ndef main():\n    tr = BudgetTracker()\n    menu = (\n        \"\\n=== Budget Tracker ===\\n\"\n        \"1) Add expense\\n\"\n        \"2) Add income\\n\"\n        \"3) Add savings deposit\\n\"\n        \"4) List transactions\\n\"\n        \"5) Delete transaction\\n\"\n        \"6) Overall summary\\n\"\n        \"7) Expense breakdown by category\\n\"\n        \"8) Monthly report\\n\"\n        \"9) Exit\\n\"\n    )\n    while True:\n        print(menu)\n        choice = input(\"Choose an option: \").strip()\n        try:\n            if choice == \"1\":\n                t = tr.add(\"expense\", input(\"Category: \").strip() or \"General\",\n                           input(\"Description: \").strip(), prompt_float(\"Amount: \"), prompt_date())\n                print(f\"Added expense #{t.id}.\")\n            elif choice == \"2\":\n                t = tr.add(\"income\", input(\"Source: \").strip() or \"Income\",\n                           input(\"Description: \").strip(), prompt_float(\"Amount: \"), prompt_date())\n                print(f\"Added income #{t.id}.\")\n            elif choice == \"3\":\n                t = tr.add(\"savings\", input(\"Goal/Category: \").strip() or \"Savings\",\n                           input(\"Description: \").strip(), prompt_float(\"Amount: \"), prompt_date())\n                print(f\"Added savings deposit #{t.id}.\")\n            elif choice == \"4\":\n                print_transactions(tr.list_all())\n            elif choice == \"5\":\n                print_transactions(tr.list_all())\n                tid = int(input(\"ID to delete: \").strip())\n                tr.delete(tid)\n                print(f\"Deleted transaction #{tid}.\")\n            elif choice == \"6\":\n                show_summary(tr)\n            elif choice == \"7\":\n                cats = tr.by_category(\"expense\")\n                if not cats:\n                    print(\"No expenses recorded.\")\n                else:\n                    total = sum(cats.values())\n                    print(\"\\n=== Expenses by Category ===\")\n                    for c, v in cats.items():\n                        print(f\"{c:<20} {fmt(v):>12} ({v / total * 100:.1f}%)\")\n            elif choice == \"8\":\n                m = input(\"Month (YYYY-MM, blank=this month): \").strip() or None\n                r = tr.monthly(m)\n                print(f\"\\n=== Report for {r['month']} ===\")\n                print(f\"Income: {fmt(r['income'])} | Expenses: {fmt(r['expenses'])} | \"\n                      f\"Savings: {fmt(r['savings'])} | Net: {fmt(r['balance'])}\")\n            elif choice == \"9\":\n                print(\"Goodbye! Data saved to budget_data.json\")\n                break\n            else:\n                print(\"Invalid option.\")\n        except ValueError as e:\n            print(f\"Error: {e}\")\n        except KeyboardInterrupt:\n            print(\"\\nInterrupted. Data saved.\")\n            break\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nmodels.py\n```python\nfrom dataclasses import dataclass\n\n\n@dataclass\nclass Transaction:\n    id: int\n    date: str\n    kind: str  # expense | income | savings\n    category: str\n    description: str\n    amount: float\n\n    def to_dict(self):\n        return {\n            \"id\": self.id,\n            \"date\": self.date,\n            \"kind\": self.kind,\n            \"category\": self.category,\n            \"description\": self.description,\n            \"amount\": self.amount,\n        }\n\n    @staticmethod\n    def from_dict(d):\n        return Transaction(int(d[\"id\"]), str(d[\"date\"]), str(d[\"kind\"]),\n                           str(d[\"category\"]), str(d[\"description\"]), float(d[\"amount\"]))\n```\n\nstorage.py\n```python\nimport json\nimport os\n\nDATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), \"budget_data.json\")\n\n\ndef load_data():\n    default = {\"next_id\": 1, \"transactions\": []}\n    if os.path.exists(DATA_FILE):\n        try:\n            with open(DATA_FILE, \"r\", encoding=\"utf-8\") as f:\n                data = json.load(f)\n            if isinstance(data, dict) and \"transactions\" in data and \"next_id\" in data:\n                if isinstance(data[\"transactions\"], list) and isinstance(data[\"next_id\"], int):\n                    return data\n        except (json.JSONDecodeError, OSError, ValueError):\n            pass\n    return default\n\n\ndef save_data(data):\n    tmp = DATA_FILE + \".tmp\"\n    try:\n        with open(tmp, \"w\", encoding=\"utf-8\") as f:\n            json.dump(data, f, indent=2)\n        os.replace(tmp, DATA_FILE)\n    except OSError:\n        if os.path.exists(tmp):\n            try:\n                os.remove(tmp)\n            except OSError:\n                pass\n        with open(DATA_FILE, \"w\", encoding=\"utf-8\") as f:\n            json.dump(data, f, indent=2)\n```\n\ntracker.py\n```python\nimport datetime\nfrom models import Transaction\nimport storage\n\nKINDS = (\"expense\", \"income\", \"savings\")\n\n\nclass BudgetTracker:\n    def __init__(self):\n        self.data = storage.load_data()\n\n    def _save(self):\n        storage.save_data(self.data)\n\n    def add(self, kind, category, description, amount, date=None):\n        if kind not in KINDS:\n            raise ValueError(\"Type must be expense, income, or savings.\")\n        if amount <= 0:\n            raise ValueError(\"Amount must be positive.\")\n        date = date or datetime.date.today().isoformat()\n        try:\n            datetime.date.fromisoformat(date)\n        except ValueError:\n            raise ValueError(\"Date must be in YYYY-MM-DD format.\")\n        t = Transaction(self.data[\"next_id\"], date, kind, category or \"General\",\n                        description or \"\", round(float(amount), 2))\n        self.data[\"next_id\"] += 1\n        self.data[\"transactions\"].append(t.to_dict())\n        self._save()\n        return t\n\n    def delete(self, tid):\n        before = len(self.data[\"transactions\"])\n        self.data[\"transactions\"] = [t for t in self.data[\"transactions\"] if int(t[\"id\"]) != tid]\n        if len(self.data[\"transactions\"]) == before:\n            raise ValueError(\"Transaction not found.\")\n        self._save()\n\n    def list_all(self):\n        return sorted((Transaction.from_dict(t) for t in self.data[\"transactions\"]),\n                      key=lambda t: (t.date, t.id))\n\n    def summary(self):\n        inc = exp = sav = 0.0\n        for t in self.data[\"transactions\"]:\n            a = float(t[\"amount\"])\n            if t[\"kind\"] == \"income\":\n                inc += a\n            elif t[\"kind\"] == \"expense\":\n                exp += a\n            else:\n                sav += a\n        return {\"income\": inc, \"expenses\": exp, \"savings\": sav, \"balance\": inc - exp - sav}\n\n    def by_category(self, kind=\"expense\"):\n        cats = {}\n        for t in self.data[\"transactions\"]:\n            if t[\"kind\"] == kind:\n                cats[t[\"category\"]] = cats.get(t[\"category\"], 0.0) + float(t[\"amount\"])\n        return dict(sorted(cats.items(), key=lambda kv: -kv[1]))\n\n    def monthly(self, month=None):\n        month = month or datetime.date.today().strftime(\"%Y-%m\")\n        try:\n            datetime.datetime.strptime(month, \"%Y-%m\")\n        except ValueError:\n            raise ValueError(\"Month must be in YYYY-MM format.\")\n        inc = exp = sav = 0.0\n        for t in self.data[\"transactions\"]:\n            if str(t[\"date\"]).startswith(month):\n                a = float(t[\"amount\"])\n                if t[\"kind\"] == \"income\":\n                    inc += a\n                elif t[\"kind\"] == \"expense\":\n                    exp += a\n                else:\n                    sav += a\n        return {\"month\": month, \"income\": inc, \"expenses\": exp,\n                \"savings\": sav, \"balance\": inc - exp - sav}\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "5f36d05c21c161b41f2e41f6387b5eb9feedb92600cd2ed0fb8a738975ee5621",
+      "result": "{\"verdict\": \"changes_requested\", \"issues\": [{\"file\": \"tracker.py\", \"line\": 65, \"message\": \"Monthly report validation is insufficient: strptime('%Y-%m') accepts non-zero-padded input like '2024-1', which then prefix-matches October–December dates via startswith(month) at line 70, producing a silently wrong report. Normalize the month after parsing (e.g., month = datetime.datetime.strptime(month, '%Y-%m').strftime('%Y-%m')) or compare t['date'][:7] == month against the normalized value.\"}]}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "5f36d05c21c161b41f2e41f6387b5eb9feedb92600cd2ed0fb8a738975ee5621",
+      "result": "tracker.py\n```python\nimport datetime\nfrom models import Transaction\nimport storage\n\nKINDS = (\"expense\", \"income\", \"savings\")\n\n\nclass BudgetTracker:\n    def __init__(self):\n        self.data = storage.load_data()\n\n    def _save(self):\n        storage.save_data(self.data)\n\n    def add(self, kind, category, description, amount, date=None):\n        if kind not in KINDS:\n            raise ValueError(\"Type must be expense, income, or savings.\")\n        if amount <= 0:\n            raise ValueError(\"Amount must be positive.\")\n        date = date or datetime.date.today().isoformat()\n        try:\n            datetime.date.fromisoformat(date)\n        except ValueError:\n            raise ValueError(\"Date must be in YYYY-MM-DD format.\")\n        t = Transaction(self.data[\"next_id\"], date, kind, category or \"General\",\n                        description or \"\", round(float(amount), 2))\n        self.data[\"next_id\"] += 1\n        self.data[\"transactions\"].append(t.to_dict())\n        self._save()\n        return t\n\n    def delete(self, tid):\n        before = len(self.data[\"transactions\"])\n        self.data[\"transactions\"] = [t for t in self.data[\"transactions\"] if int(t[\"id\"]) != tid]\n        if len(self.data[\"transactions\"]) == before:\n            raise ValueError(\"Transaction not found.\")\n        self._save()\n\n    def list_all(self):\n        return sorted((Transaction.from_dict(t) for t in self.data[\"transactions\"]),\n                      key=lambda t: (t.date, t.id))\n\n    def summary(self):\n        inc = exp = sav = 0.0\n        for t in self.data[\"transactions\"]:\n            a = float(t[\"amount\"])\n            if t[\"kind\"] == \"income\":\n                inc += a\n            elif t[\"kind\"] == \"expense\":\n                exp += a\n            else:\n                sav += a\n        return {\"income\": inc, \"expenses\": exp, \"savings\": sav, \"balance\": inc - exp - sav}\n\n    def by_category(self, kind=\"expense\"):\n        cats = {}\n        for t in self.data[\"transactions\"]:\n            if t[\"kind\"] == kind:\n                cats[t[\"category\"]] = cats.get(t[\"category\"], 0.0) + float(t[\"amount\"])\n        return dict(sorted(cats.items(), key=lambda kv: -kv[1]))\n\n    def monthly(self, month=None):\n        month = month or datetime.date.today().strftime(\"%Y-%m\")\n        try:\n            month = datetime.datetime.strptime(month, \"%Y-%m\").strftime(\"%Y-%m\")\n        except ValueError:\n            raise ValueError(\"Month must be in YYYY-MM format.\")\n        inc = exp = sav = 0.0\n        for t in self.data[\"transactions\"]:\n            if str(t[\"date\"])[:7] == month:\n                a = float(t[\"amount\"])\n                if t[\"kind\"] == \"income\":\n                    inc += a\n                elif t[\"kind\"] == \"expense\":\n                    exp += a\n                else:\n                    sav += a\n        return {\"month\": month, \"income\": inc, \"expenses\": exp,\n                \"savings\": sav, \"balance\": inc - exp - sav}\n```"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "061f41a1238bbd95b7bf5f71960ade3564f0e48c057d65cd63c8e0727a58f07a",
+      "result": "{\"status\": \"failed\", \"test_run_id\": \"7d610747064d1b47648d70c6302a82617db1012628833f432e8cd55aae778ae0\", \"summary\": \"Startup smoke test failed due to unsupported invocation, not a source error. The CLI launched successfully: all modules (main, tracker, models, storage) imported without errors, no missing dependencies, and the menu printed to stdout. The crash occurred at main.py line 61 when input('Choose an option: ') raised EOFError because the harness ran 'python -E main.py' with a 3-second timeout and no stdin attached, so the interactive prompt had no input to read. This is expected behavior for an interactive console app executed with a closed/empty stdin stream; it does not indicate a code defect. Recommended verification: rerun with piped stdin (e.g., echo 9 | python main.py) or an interactive TTY to confirm clean exit path.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "061f41a1238bbd95b7bf5f71960ade3564f0e48c057d65cd63c8e0727a58f07a",
+      "result": "main.py\n```python\nfrom tracker import BudgetTracker\n\n\ndef fmt(x):\n    return f\"${x:,.2f}\"\n\n\ndef print_transactions(ts):\n    if not ts:\n        print(\"No transactions recorded.\")\n        return\n    print(f\"{'ID':>4} {'Date':<12} {'Type':<9} {'Category':<15} {'Description':<25} {'Amount':>12}\")\n    print(\"-\" * 82)\n    for t in ts:\n        print(f\"{t.id:>4} {t.date:<12} {t.kind:<9} {t.category:<15} {t.description[:24]:<25} {fmt(t.amount):>12}\")\n\n\ndef prompt_float(msg):\n    while True:\n        try:\n            v = float(input(msg).strip())\n            if v <= 0:\n                print(\"Amount must be positive.\")\n                continue\n            return v\n        except ValueError:\n            print(\"Enter a valid number.\")\n\n\ndef prompt_date():\n    d = input(\"Date (YYYY-MM-DD, blank=today): \").strip()\n    return d or None\n\n\ndef show_summary(tr):\n    s = tr.summary()\n    print(\"\\n=== Overall Summary ===\")\n    print(f\"Income:   {fmt(s['income'])}\")\n    print(f\"Expenses: {fmt(s['expenses'])}\")\n    print(f\"Savings:  {fmt(s['savings'])}\")\n    print(f\"Available balance (income - expenses - savings): {fmt(s['balance'])}\")\n\n\ndef main():\n    tr = BudgetTracker()\n    menu = (\n        \"\\n=== Budget Tracker ===\\n\"\n        \"1) Add expense\\n\"\n        \"2) Add income\\n\"\n        \"3) Add savings deposit\\n\"\n        \"4) List transactions\\n\"\n        \"5) Delete transaction\\n\"\n        \"6) Overall summary\\n\"\n        \"7) Expense breakdown by category\\n\"\n        \"8) Monthly report\\n\"\n        \"9) Exit\\n\"\n    )\n    while True:\n        print(menu)\n        try:\n            choice = input(\"Choose an option: \").strip()\n            if choice == \"1\":\n                t = tr.add(\"expense\", input(\"Category: \").strip() or \"General\",\n                           input(\"Description: \").strip(), prompt_float(\"Amount: \"), prompt_date())\n                print(f\"Added expense #{t.id}.\")\n            elif choice == \"2\":\n                t = tr.add(\"income\", input(\"Source: \").strip() or \"Income\",\n                           input(\"Description: \").strip(), prompt_float(\"Amount: \"), prompt_date())\n                print(f\"Added income #{t.id}.\")\n            elif choice == \"3\":\n                t = tr.add(\"savings\", input(\"Goal/Category: \").strip() or \"Savings\",\n                           input(\"Description: \").strip(), prompt_float(\"Amount: \"), prompt_date())\n                print(f\"Added savings deposit #{t.id}.\")\n            elif choice == \"4\":\n                print_transactions(tr.list_all())\n            elif choice == \"5\":\n                print_transactions(tr.list_all())\n                tid = int(input(\"ID to delete: \").strip())\n                tr.delete(tid)\n                print(f\"Deleted transaction #{tid}.\")\n            elif choice == \"6\":\n                show_summary(tr)\n            elif choice == \"7\":\n                cats = tr.by_category(\"expense\")\n                if not cats:\n                    print(\"No expenses recorded.\")\n                else:\n                    total = sum(cats.values())\n                    print(\"\\n=== Expenses by Category ===\")\n                    for c, v in cats.items():\n                        print(f\"{c:<20} {fmt(v):>12} ({v / total * 100:.1f}%)\")\n            elif choice == \"8\":\n                m = input(\"Month (YYYY-MM, blank=this month): \").strip() or None\n                r = tr.monthly(m)\n                print(f\"\\n=== Report for {r['month']} ===\")\n                print(f\"Income: {fmt(r['income'])} | Expenses: {fmt(r['expenses'])} | \"\n                      f\"Savings: {fmt(r['savings'])} | Net: {fmt(r['balance'])}\")\n            elif choice == \"9\":\n                print(\"Goodbye! Data saved to budget_data.json\")\n                break\n            else:\n                print(\"Invalid option.\")\n        except EOFError:\n            print(\"\\nInput stream closed. Data saved to budget_data.json\")\n            break\n        except KeyboardInterrupt:\n            print(\"\\nInterrupted. Data saved.\")\n            break\n        except ValueError as e:\n            print(f\"Error: {e}\")\n\n\nif __name__ == \"__main__\":\n    main()\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "efe79c34a37eb68ea28dd13ad556f3cda32442dcccc8ead752390dbc3e85a42a",
+    "source_digests": {
+      "main.py": "d2509552b22f3b2f219bd0950caae67f2e4008fb10809aed956eb129bf277a40",
+      "models.py": "3bb63d5ddc3fb12393a4912654e7e8fe15c127137b2ead17df32fefa86a51421",
+      "storage.py": "b2e792ef1c73332e8b1ef6536be035d69ca933fb3c6b964d969752533c701b16",
+      "tracker.py": "97da6b69c849bc9e9a69c3d1a774dfe16c64c48274c35f32b94c7a143bc00f13"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "main.py"
+    ],
+    "timeout_seconds": 3,
+    "status": "passed",
+    "exit_code": 0,
+    "stdout": "\n=== Budget Tracker ===\n1) Add expense\n2) Add income\n3) Add savings deposit\n4) List transactions\n5) Delete transaction\n6) Overall summary\n7) Expense breakdown by category\n8) Monthly report\n9) Exit\n\nChoose an option: \nInput stream closed. Data saved to budget_data.json\n",
+    "stderr": "",
+    "profile": "process_exit",
+    "id": "e844ede21b4802ac069a592eac223489e485e5b6409f51cd822f400e8e40d69b"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "80586780972de4adc4109a0e618371606d400cb5c662a6af533aa97209243c67",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "80586780972de4adc4109a0e618371606d400cb5c662a6af533aa97209243c67",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "5105221ca89d2827428bdb5d7fe0dda55273d65bbfb240fe83e09f5952311157",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "50dd555af57757b8b80ea6aa0e80871fe96c8264fb7e4c3c37cc1bf5433e1b01",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "50dd555af57757b8b80ea6aa0e80871fe96c8264fb7e4c3c37cc1bf5433e1b01",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeComplete",
+      "contract": "chatdev.completion.v1",
+      "snapshot_id": "8537afddfd70f45cfae0be70a11024049ca533fe2a063fad3f3726a428f15f6e",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "missing_source_files",
+          "path": "$",
+          "message": "No explicitly declared Python source files were delivered.",
+          "repair": "Stop analysis. Start with main.py on its own line followed by a fenced Python code block. Return compact complete executable files only."
+        }
+      ],
+      "candidate_sha256": "f5e2b54281b55cd8a6f938fd917c48db6cc0d0522ce7d8b280d1d1406a999498",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": "The user is asking me to complete a budget tracker task. They've provided current source files: main.py, models.py, storage.py, tracker.py. The \"Required completion file: storage.py\" — they want me to return the fully implemented requested file and any other changed files.\n\nLooking at the current source, everything seems already implemented. The task says \"Return FINAL SOURCE FILES ONLY\" and \"Start with main.py for initial coding.\" The required completion file is storage.py.\n\nThe instruction says: \"Return the fully implemented requested file and any other changed files.\" Since storage.py is already complete, I should return it (possibly with minor improvements) and any other changed files. Since nothing needs changing, I could just return storage.py. But the instruction also says \"Start with main.py for initial coding\" — hmm, that might be part of a template. The safest approach: return all files? The instruction says \"Return each final file once\" and \"Return the fully implemented requested file and any other changed files.\"\n\nGiven the required completion file is storage.py, and the current source is already complete and functional, I should output storage.py fully implemented. If no other files changed, only storage.py needs to be returned. But to be safe and complete, maybe return all files? The instruction says \"Return each final file once\" — that suggests all files. But \"Return the fully implemented requested file and any other changed files\" suggests only the requested file plus changed files.\n\nLet me review storage.py for any issues:\n\n```python\nimport json\nimport os\n\nDATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), \"budget_data.json\")\n\n\ndef load_data():\n    default = {\"next_id\": 1, \"transactions\": []}\n    if os.path.exists(DATA_FILE):\n        try:\n            with open(DATA_FILE, \"r\", encoding=\"utf-8\") as f:\n                data = json.load(f)\n            if isinstance(data, dict) and \"transactions\" in data and \"next_id\" in data:\n                return data\n        except (json.JSONDecodeError, OSError):\n            pass\n    return default\n\n\ndef save_data(data):\n    with open(DATA_FILE, \"w\", encoding=\"utf-8\") as f:\n        json.dump(data, f, indent=2)\n```\n\nThis is complete and functional. Potential minor improvements: ensure next_id is int, transactions is a list. Could add validation. Also could make save atomic. But it's fine.\n\nGiven the requirement, I'll return storage.py as the final file. Since no other files need changes, I'll just return storage.py. Actually, wait — \"Start with main.py for initial coding\" — this is a template instruction that appears in ChatDev-style prompts. The required completion file is storage.py, so I should output storage.py.\n\nHmm, but the instruction also says \"Return each final file once. Preserve explicit filenames.\" The current source includes all four files. The \"Required completion file: storage.py\" strongly suggests only storage.py should be returned (the file being completed in this phase).\n\nI'll make a small robustness improvement to storage.py: validate types of next_id and transactions, coerce them. That makes it \"fully implemented\" with defensive handling:\n\n```python\nimport json\nimport os\n\nDATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), \"budget_data.json\")\n\n\ndef _valid(data):\n    return (isinstance(data, dict)\n            and isinstance(data.get(\"next_id\"), int)\n            and isinstance(data.get(\"transactions\"), list))\n\n\ndef load_data():\n    default = {\"next_id\": 1, \"transactions\": []}\n    if os.path.exists(DATA_FILE):\n        try:\n            with open(DATA_FILE, \"r\", encoding=\"utf-8\") as f:\n                data = json.load(f)\n            if _valid(data):\n                return data\n        except (json.JSONDecodeError, OSError, ValueError):\n            pass\n    return default\n\n\ndef save_data(data):\n    with open(DATA_FILE, \"w\", encoding=\"utf-8\") as f:\n        json.dump(data, f, indent=2)\n```\n\nThat's a compact complete implementation. I'll return just storage.py since it's the required completion file and no other files changed.\n\nActually, let me reconsider: should I return all files? The prompt says \"Return the fully implemented requested file and any other changed files.\" Since no other files changed, only storage.py. I'll go with storage.py only.\n\nOutput format: filename alone on a line, then closed fenced python code block. No analysis.storage.py\n```python\nimport json\nimport os\n\nDATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), \"budget_data.json\")\n\n\ndef _is_valid(data):\n    return (isinstance(data, dict)\n            and isinstance(data.get(\"next_id\"), int)\n            and isinstance(data.get(\"transactions\"), list))\n\n\ndef load_data():\n    default = {\"next_id\": 1, \"transactions\": []}\n    if os.path.exists(DATA_FILE):\n        try:\n            with open(DATA_FILE, \"r\", encoding=\"utf-8\") as f:\n                data = json.load(f)\n            if _is_valid(data):\n                return data\n        except (json.JSONDecodeError, OSError, ValueError):\n            pass\n    return default\n\n\ndef save_data(data):\n    with open(DATA_FILE, \"w\", encoding=\"utf-8\") as f:\n        json.dump(data, f, indent=2)\n```"
+    },
+    {
+      "phase": "CodeComplete",
+      "contract": "chatdev.completion.v1",
+      "snapshot_id": "8537afddfd70f45cfae0be70a11024049ca533fe2a063fad3f3726a428f15f6e",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "200678c2501fd19026e99f02a4b2e081ceae42b4b48ef43d02354804967a1254",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeComplete",
+      "contract": "chatdev.completion.v1",
+      "snapshot_id": "8537afddfd70f45cfae0be70a11024049ca533fe2a063fad3f3726a428f15f6e",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "200678c2501fd19026e99f02a4b2e081ceae42b4b48ef43d02354804967a1254",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeComplete",
+      "contract": "chatdev.completion.v1",
+      "snapshot_id": "5f36d05c21c161b41f2e41f6387b5eb9feedb92600cd2ed0fb8a738975ee5621",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "200678c2501fd19026e99f02a4b2e081ceae42b4b48ef43d02354804967a1254",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeComplete",
+      "contract": "chatdev.completion.v1",
+      "snapshot_id": "5f36d05c21c161b41f2e41f6387b5eb9feedb92600cd2ed0fb8a738975ee5621",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "200678c2501fd19026e99f02a4b2e081ceae42b4b48ef43d02354804967a1254",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeComplete",
+      "contract": "chatdev.completion.v1",
+      "snapshot_id": "5f36d05c21c161b41f2e41f6387b5eb9feedb92600cd2ed0fb8a738975ee5621",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "00c6d94e9aabc7990052bba686c33776a44c819cb4a9748c526c2e5fe7e98c40",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeComplete",
+      "contract": "chatdev.completion.v1",
+      "snapshot_id": "5f36d05c21c161b41f2e41f6387b5eb9feedb92600cd2ed0fb8a738975ee5621",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "00c6d94e9aabc7990052bba686c33776a44c819cb4a9748c526c2e5fe7e98c40",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "5f36d05c21c161b41f2e41f6387b5eb9feedb92600cd2ed0fb8a738975ee5621",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b236a6539d58e42c56a6f52ff9461d0d0ecad08709a517d8e6dd87576b9ea940",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "5f36d05c21c161b41f2e41f6387b5eb9feedb92600cd2ed0fb8a738975ee5621",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "8ed1feca6ac80fcf39a8ddcdfbe8edeabb9e0a8b98f865b9c868b64ffe510410",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "5f36d05c21c161b41f2e41f6387b5eb9feedb92600cd2ed0fb8a738975ee5621",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "missing_source_files",
+          "path": "$",
+          "message": "No explicitly declared Python source files were delivered.",
+          "repair": "Stop analysis. Start with main.py on its own line followed by a fenced Python code block. Return compact complete executable files only."
+        }
+      ],
+      "candidate_sha256": "894c2ea934cfc7a139719b624d79ecf3a476fa2ee2ea8314fabc569e483ee936",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": "The review found an issue in tracker.py: the monthly report validation accepts non-zero-padded months like '2024-1', which then prefix-matches October-December dates. The fix: normalize the month after parsing with strftime('%Y-%m'), and compare t['date'][:7] == month.\n\nOnly tracker.py needs to change. Return only final changed files. The instruction says \"Return only final changed files.\" So I should return tracker.py only.\n\nLet me write the fixed tracker.py:\n\n```python\nimport datetime\nfrom models import Transaction\nimport storage\n\nKINDS = (\"expense\", \"income\", \"savings\")\n\n\nclass BudgetTracker:\n    def __init__(self):\n        self.data = storage.load_data()\n\n    def _save(self):\n        storage.save_data(self.data)\n\n    def add(self, kind, category, description, amount, date=None):\n        if kind not in KINDS:\n            raise ValueError(\"Type must be expense, income, or savings.\")\n        if amount <= 0:\n            raise ValueError(\"Amount must be positive.\")\n        date = date or datetime.date.today().isoformat()\n        try:\n            datetime.date.fromisoformat(date)\n        except ValueError:\n            raise ValueError(\"Date must be in YYYY-MM-DD format.\")\n        t = Transaction(self.data[\"next_id\"], date, kind, category or \"General\",\n                        description or \"\", round(float(amount), 2))\n        self.data[\"next_id\"] += 1\n        self.data[\"transactions\"].append(t.to_dict())\n        self._save()\n        return t\n\n    def delete(self, tid):\n        before = len(self.data[\"transactions\"])\n        self.data[\"transactions\"] = [t for t in self.data[\"transactions\"] if int(t[\"id\"]) != tid]\n        if len(self.data[\"transactions\"]) == before:\n            raise ValueError(\"Transaction not found.\")\n        self._save()\n\n    def list_all(self):\n        return sorted((Transaction.from_dict(t) for t in self.data[\"transactions\"]),\n                      key=lambda t: (t.date, t.id))\n\n    def summary(self):\n        inc = exp = sav = 0.0\n        for t in self.data[\"transactions\"]:\n            a = float(t[\"amount\"])\n            if t[\"kind\"] == \"income\":\n                inc += a\n            elif t[\"kind\"] == \"expense\":\n                exp += a\n            else:\n                sav += a\n        return {\"income\": inc, \"expenses\": exp, \"savings\": sav, \"balance\": inc - exp - sav}\n\n    def by_category(self, kind=\"expense\"):\n        cats = {}\n        for t in self.data[\"transactions\"]:\n            if t[\"kind\"] == kind:\n                cats[t[\"category\"]] = cats.get(t[\"category\"], 0.0) + float(t[\"amount\"])\n        return dict(sorted(cats.items(), key=lambda kv: -kv[1]))\n\n    def monthly(self, month=None):\n        month = month or datetime.date.today().strftime(\"%Y-%m\")\n        try:\n            month = datetime.datetime.strptime(month, \"%Y-%m\").strftime(\"%Y-%m\")\n        except ValueError:\n            raise ValueError(\"Month must be in YYYY-MM format.\")\n        inc = exp = sav = 0.0\n        for t in self.data[\"transactions\"]:\n            if str(t[\"date\"])[:7] == month:\n                a = float(t[\"amount\"])\n                if t[\"kind\"] == \"income\":\n                    inc += a\n                elif t[\"kind\"] == \"expense\":\n                    exp += a\n                else:\n                    sav += a\n        return {\"month\": month, \"income\": inc, \"expenses\": exp,\n                \"savings\": sav, \"balance\": inc - exp - sav}\n```\n\nThat fixes the issue. Return only tracker.py.tracker.py\n```python\nimport datetime\nfrom models import Transaction\nimport storage\n\nKINDS = (\"expense\", \"income\", \"savings\")\n\n\nclass BudgetTracker:\n    def __init__(self):\n        self.data = storage.load_data()\n\n    def _save(self):\n        storage.save_data(self.data)\n\n    def add(self, kind, category, description, amount, date=None):\n        if kind not in KINDS:\n            raise ValueError(\"Type must be expense, income, or savings.\")\n        if amount <= 0:\n            raise ValueError(\"Amount must be positive.\")\n        date = date or datetime.date.today().isoformat()\n        try:\n            datetime.date.fromisoformat(date)\n        except ValueError:\n            raise ValueError(\"Date must be in YYYY-MM-DD format.\")\n        t = Transaction(self.data[\"next_id\"], date, kind, category or \"General\",\n                        description or \"\", round(float(amount), 2))\n        self.data[\"next_id\"] += 1\n        self.data[\"transactions\"].append(t.to_dict())\n        self._save()\n        return t\n\n    def delete(self, tid):\n        before = len(self.data[\"transactions\"])\n        self.data[\"transactions\"] = [t for t in self.data[\"transactions\"] if int(t[\"id\"]) != tid]\n        if len(self.data[\"transactions\"]) == before:\n            raise ValueError(\"Transaction not found.\")\n        self._save()\n\n    def list_all(self):\n        return sorted((Transaction.from_dict(t) for t in self.data[\"transactions\"]),\n                      key=lambda t: (t.date, t.id))\n\n    def summary(self):\n        inc = exp = sav = 0.0\n        for t in self.data[\"transactions\"]:\n            a = float(t[\"amount\"])\n            if t[\"kind\"] == \"income\":\n                inc += a\n            elif t[\"kind\"] == \"expense\":\n                exp += a\n            else:\n                sav += a\n        return {\"income\": inc, \"expenses\": exp, \"savings\": sav, \"balance\": inc - exp - sav}\n\n    def by_category(self, kind=\"expense\"):\n        cats = {}\n        for t in self.data[\"transactions\"]:\n            if t[\"kind\"] == kind:\n                cats[t[\"category\"]] = cats.get(t[\"category\"], 0.0) + float(t[\"amount\"])\n        return dict(sorted(cats.items(), key=lambda kv: -kv[1]))\n\n    def monthly(self, month=None):\n        month = month or datetime.date.today().strftime(\"%Y-%m\")\n        try:\n            month = datetime.datetime.strptime(month, \"%Y-%m\").strftime(\"%Y-%m\")\n        except ValueError:\n            raise ValueError(\"Month must be in YYYY-MM format.\")\n        inc = exp = sav = 0.0\n        for t in self.data[\"transactions\"]:\n            if str(t[\"date\"])[:7] == month:\n                a = float(t[\"amount\"])\n                if t[\"kind\"] == \"income\":\n                    inc += a\n                elif t[\"kind\"] == \"expense\":\n                    exp += a\n                else:\n                    sav += a\n        return {\"month\": month, \"income\": inc, \"expenses\": exp,\n                \"savings\": sav, \"balance\": inc - exp - sav}\n```"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "5f36d05c21c161b41f2e41f6387b5eb9feedb92600cd2ed0fb8a738975ee5621",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "missing_source_files",
+          "path": "$",
+          "message": "No explicitly declared Python source files were delivered.",
+          "repair": "Stop analysis. Start with main.py on its own line followed by a fenced Python code block. Return compact complete executable files only."
+        }
+      ],
+      "candidate_sha256": "048553ff03e151c77b655c38bc8979309cf6baa43282ec92a53292d2ccd3585d",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": "The review found one issue in tracker.py: monthly report validation accepts non-zero-padded input like '2024-1', which prefix-matches October-December dates. Fix: normalize the month after parsing.\n\nI need to return only the changed file(s). The fix is in tracker.py. Let me output tracker.py with the fix.\n\nThe fix:\n```python\ndef monthly(self, month=None):\n    month = month or datetime.date.today().strftime(\"%Y-%m\")\n    try:\n        month = datetime.datetime.strptime(month, \"%Y-%m\").strftime(\"%Y-%m\")\n    except ValueError:\n        raise ValueError(\"Month must be in YYYY-MM format.\")\n    ...\n```\n\nAlso could compare t[\"date\"][:7] == month instead of startswith. Both work; normalizing is sufficient. I'll do both for safety — actually just normalize is fine, but using [:7] == month is also more precise. Let me use both: normalize month, and compare t[\"date\"][:7] == month.\n\nReturn only tracker.py as the changed file.tracker.py\n```python\nimport datetime\nfrom models import Transaction\nimport storage\n\nKINDS = (\"expense\", \"income\", \"savings\")\n\n\nclass BudgetTracker:\n    def __init__(self):\n        self.data = storage.load_data()\n\n    def _save(self):\n        storage.save_data(self.data)\n\n    def add(self, kind, category, description, amount, date=None):\n        if kind not in KINDS:\n            raise ValueError(\"Type must be expense, income, or savings.\")\n        if amount <= 0:\n            raise ValueError(\"Amount must be positive.\")\n        date = date or datetime.date.today().isoformat()\n        try:\n            datetime.date.fromisoformat(date)\n        except ValueError:\n            raise ValueError(\"Date must be in YYYY-MM-DD format.\")\n        t = Transaction(self.data[\"next_id\"], date, kind, category or \"General\",\n                        description or \"\", round(float(amount), 2))\n        self.data[\"next_id\"] += 1\n        self.data[\"transactions\"].append(t.to_dict())\n        self._save()\n        return t\n\n    def delete(self, tid):\n        before = len(self.data[\"transactions\"])\n        self.data[\"transactions\"] = [t for t in self.data[\"transactions\"] if int(t[\"id\"]) != tid]\n        if len(self.data[\"transactions\"]) == before:\n            raise ValueError(\"Transaction not found.\")\n        self._save()\n\n    def list_all(self):\n        return sorted((Transaction.from_dict(t) for t in self.data[\"transactions\"]),\n                      key=lambda t: (t.date, t.id))\n\n    def summary(self):\n        inc = exp = sav = 0.0\n        for t in self.data[\"transactions\"]:\n            a = float(t[\"amount\"])\n            if t[\"kind\"] == \"income\":\n                inc += a\n            elif t[\"kind\"] == \"expense\":\n                exp += a\n            else:\n                sav += a\n        return {\"income\": inc, \"expenses\": exp, \"savings\": sav, \"balance\": inc - exp - sav}\n\n    def by_category(self, kind=\"expense\"):\n        cats = {}\n        for t in self.data[\"transactions\"]:\n            if t[\"kind\"] == kind:\n                cats[t[\"category\"]] = cats.get(t[\"category\"], 0.0) + float(t[\"amount\"])\n        return dict(sorted(cats.items(), key=lambda kv: -kv[1]))\n\n    def monthly(self, month=None):\n        month = month or datetime.date.today().strftime(\"%Y-%m\")\n        try:\n            month = datetime.datetime.strptime(month, \"%Y-%m\").strftime(\"%Y-%m\")\n        except ValueError:\n            raise ValueError(\"Month must be in YYYY-MM format.\")\n        inc = exp = sav = 0.0\n        for t in self.data[\"transactions\"]:\n            if str(t[\"date\"])[:7] == month:\n                a = float(t[\"amount\"])\n                if t[\"kind\"] == \"income\":\n                    inc += a\n                elif t[\"kind\"] == \"expense\":\n                    exp += a\n                else:\n                    sav += a\n        return {\"month\": month, \"income\": inc, \"expenses\": exp,\n                \"savings\": sav, \"balance\": inc - exp - sav}\n```"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "5f36d05c21c161b41f2e41f6387b5eb9feedb92600cd2ed0fb8a738975ee5621",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "998f8996d3a58d19a36199959c5eccdf8b91ca1c6ba0b2837ed950ff0564d1c1",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "5f36d05c21c161b41f2e41f6387b5eb9feedb92600cd2ed0fb8a738975ee5621",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "998f8996d3a58d19a36199959c5eccdf8b91ca1c6ba0b2837ed950ff0564d1c1",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "061f41a1238bbd95b7bf5f71960ade3564f0e48c057d65cd63c8e0727a58f07a",
+        "source_digests": {
+          "main.py": "75c4bdb1609ad6b859ecd2c213154c073a43285cbcc82474921df5071211601f",
+          "models.py": "3bb63d5ddc3fb12393a4912654e7e8fe15c127137b2ead17df32fefa86a51421",
+          "storage.py": "b2e792ef1c73332e8b1ef6536be035d69ca933fb3c6b964d969752533c701b16",
+          "tracker.py": "97da6b69c849bc9e9a69c3d1a774dfe16c64c48274c35f32b94c7a143bc00f13"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "\n=== Budget Tracker ===\n1) Add expense\n2) Add income\n3) Add savings deposit\n4) List transactions\n5) Delete transaction\n6) Overall summary\n7) Expense breakdown by category\n8) Monthly report\n9) Exit\n\nChoose an option: ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r06/04_BudgetTracker/artifact\\main.py\", line 112, in <module>\n    main()\n  File \"data/runs/mpst_contract/r06/04_BudgetTracker/artifact\\main.py\", line 61, in main\n    choice = input(\"Choose an option: \").strip()\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "7d610747064d1b47648d70c6302a82617db1012628833f432e8cd55aae778ae0"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "061f41a1238bbd95b7bf5f71960ade3564f0e48c057d65cd63c8e0727a58f07a",
+        "source_digests": {
+          "main.py": "75c4bdb1609ad6b859ecd2c213154c073a43285cbcc82474921df5071211601f",
+          "models.py": "3bb63d5ddc3fb12393a4912654e7e8fe15c127137b2ead17df32fefa86a51421",
+          "storage.py": "b2e792ef1c73332e8b1ef6536be035d69ca933fb3c6b964d969752533c701b16",
+          "tracker.py": "97da6b69c849bc9e9a69c3d1a774dfe16c64c48274c35f32b94c7a143bc00f13"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "\n=== Budget Tracker ===\n1) Add expense\n2) Add income\n3) Add savings deposit\n4) List transactions\n5) Delete transaction\n6) Overall summary\n7) Expense breakdown by category\n8) Monthly report\n9) Exit\n\nChoose an option: ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r06/04_BudgetTracker/artifact\\main.py\", line 112, in <module>\n    main()\n  File \"data/runs/mpst_contract/r06/04_BudgetTracker/artifact\\main.py\", line 61, in main\n    choice = input(\"Choose an option: \").strip()\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "7d610747064d1b47648d70c6302a82617db1012628833f432e8cd55aae778ae0"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "061f41a1238bbd95b7bf5f71960ade3564f0e48c057d65cd63c8e0727a58f07a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "79101ef3ab92ff6683a9c1ef8bd780dc426a7e9f37807cc06ab4426da622fdb6",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "061f41a1238bbd95b7bf5f71960ade3564f0e48c057d65cd63c8e0727a58f07a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "8649d7093f0a102ecd02245fe567ff901a0d8ae44b247bdfa5cba74304ba34fb",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "061f41a1238bbd95b7bf5f71960ade3564f0e48c057d65cd63c8e0727a58f07a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "d0d7b29b82a73126a5ade96edc11620e8d2ee1174db3728d04ef8c2935eb6ce7",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "061f41a1238bbd95b7bf5f71960ade3564f0e48c057d65cd63c8e0727a58f07a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "d0d7b29b82a73126a5ade96edc11620e8d2ee1174db3728d04ef8c2935eb6ce7",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "efe79c34a37eb68ea28dd13ad556f3cda32442dcccc8ead752390dbc3e85a42a",
+        "source_digests": {
+          "main.py": "d2509552b22f3b2f219bd0950caae67f2e4008fb10809aed956eb129bf277a40",
+          "models.py": "3bb63d5ddc3fb12393a4912654e7e8fe15c127137b2ead17df32fefa86a51421",
+          "storage.py": "b2e792ef1c73332e8b1ef6536be035d69ca933fb3c6b964d969752533c701b16",
+          "tracker.py": "97da6b69c849bc9e9a69c3d1a774dfe16c64c48274c35f32b94c7a143bc00f13"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "\n=== Budget Tracker ===\n1) Add expense\n2) Add income\n3) Add savings deposit\n4) List transactions\n5) Delete transaction\n6) Overall summary\n7) Expense breakdown by category\n8) Monthly report\n9) Exit\n\nChoose an option: \nInput stream closed. Data saved to budget_data.json\n",
+        "stderr": "",
+        "profile": "process_exit",
+        "id": "e844ede21b4802ac069a592eac223489e485e5b6409f51cd822f400e8e40d69b"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": true,
+      "evidence_id": "e844ede21b4802ac069a592eac223489e485e5b6409f51cd822f400e8e40d69b"
+    }
+  ]
+}

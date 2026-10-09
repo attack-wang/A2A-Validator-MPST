@@ -1,0 +1,97 @@
+{
+  "task_index": 22,
+  "project_name": "MonopolyGo",
+  "framework": "ChatDev",
+  "workflow_status": "completed",
+  "workspace": "data/runs/mpst/r03/22_MonopolyGo/artifact",
+  "source_file_count": 9,
+  "python_compile": {
+    "checked": 9,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-02T01:25:56+0800",
+  "judge": {
+    "verdict": "fail",
+    "functional_completeness": 0.6,
+    "executable_likelihood": 0.2,
+    "implemented_requirements": [
+      {
+        "requirement": "Dice rolling",
+        "fulfilled": true,
+        "evidence": "dice.py defines a Dice class with roll(), last_total and is_double properties."
+      },
+      {
+        "requirement": "Player movement around the board",
+        "fulfilled": true,
+        "evidence": "Game.move_player updates a player's position and pays GO salary when passing."
+      },
+      {
+        "requirement": "Buying properties",
+        "fulfilled": true,
+        "evidence": "Game.prompt_buy_property and PropertyTile.land_on contain logic to purchase unowned tiles."
+      },
+      {
+        "requirement": "Collecting rent",
+        "fulfilled": true,
+        "evidence": "PropertyTile.land_on calls Game.transfer to move rent from tenant to owner."
+      },
+      {
+        "requirement": "Chance events",
+        "fulfilled": true,
+        "evidence": "chance.py defines ChanceCard and ChanceDeck; Game.draw_chance applies each effect."
+      },
+      {
+        "requirement": "Tracking player money",
+        "fulfilled": true,
+        "evidence": "Player class stores money and provides receive() and pay() methods."
+      },
+      {
+        "requirement": "Property ownership tracking",
+        "fulfilled": true,
+        "evidence": "PropertyTile.owner and Player.properties maintain ownership state."
+      },
+      {
+        "requirement": "Displaying game information",
+        "fulfilled": true,
+        "evidence": "Board.display prints a table of tiles, owners and player tokens."
+      },
+      {
+        "requirement": "Prompting players for decisions",
+        "fulfilled": true,
+        "evidence": "input() calls in prompt_buy_property and handle_jail_turn ask players for choices."
+      },
+      {
+        "requirement": "Jail rules",
+        "fulfilled": true,
+        "evidence": "GoToJailTile, Game.send_player_to_jail, and Game.handle_jail_turn implement jail mechanics."
+      },
+      {
+        "requirement": "Free Parking handling",
+        "fulfilled": true,
+        "evidence": "FreeParkingTile.land_on and Game.pay_to_pot manage the Free Parking pot."
+      },
+      {
+        "requirement": "Simplified chance cards",
+        "fulfilled": true,
+        "evidence": "ChanceDeck contains a list of 12 cards with simple effects (collect, pay, move, etc.)."
+      }
+    ],
+    "critical_issues": [
+      "Game class lacks a run() method that drives the turn loop; main.py calls game.run() which will raise AttributeError.",
+      "No function named resolve_landing exists, yet Game.draw_chance references it for the \"advance_3\" effect.",
+      "move_player updates position but never invokes the landed‑on tile's land_on() method, so property purchase, rent, chance, etc. never trigger during normal movement.",
+      "Double‑roll handling, extra turn logic, and game‑over detection are missing, making the core turn cycle incomplete.",
+      "Duplicate and incomplete chancedeck.py file shadows the correct ChanceDeck implementation but is never imported; it contains placeholder syntax."
+    ],
+    "summary": "The codebase contains most of the individual mechanics required for a simplified Monopoly Go! – dice, board layout, property purchase, rent, chance cards, jail, and free parking are all defined and functional in isolation. However, the central game loop and landing resolution are missing, and references to undefined functions cause runtime errors. Because the program cannot be executed end‑to‑end, the submission fails the acceptance criteria.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": false
+}

@@ -1,0 +1,1 @@
+transaction = Transaction(transaction_type=ttype, **data)

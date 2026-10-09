@@ -1,0 +1,43 @@
+// Isolated ChatDev 1.0 content-contract profile. Contracts are bound in the
+// sidecar chatdev-contracts.json, preserving the existing GT parser grammar.
+Coordinator -> ChiefProductOfficer : demand.
+ChiefProductOfficer -> Coordinator : demandResult.
+Coordinator -> ChiefTechnologyOfficer : language.
+ChiefTechnologyOfficer -> Coordinator : languageResult.
+Coordinator -> Programmer : coding.
+Programmer -> Coordinator : codingResult.
+mu t.
+(
+  Coordinator -> Programmer : codeComplete.
+  Programmer -> Coordinator : codeCompleteResult.
+  t
+  +
+  Coordinator -> CodeReviewer : review.
+  CodeReviewer -> Coordinator : reviewResult.
+  Coordinator -> Programmer : reviewFix.
+  Programmer -> Coordinator : reviewFixResult.
+  mu tests.
+  (
+    Coordinator -> SoftwareTestEngineer : test.
+    SoftwareTestEngineer -> Coordinator : testReport.
+    (
+      Coordinator -> Programmer : testSummary.
+      Programmer -> Coordinator : testSummaryResult.
+      (
+        Coordinator -> Programmer : testFix.
+        Programmer -> Coordinator : testFixResult.
+        tests
+        +
+        Coordinator -> SoftwareTestEngineer : test.
+        SoftwareTestEngineer -> Coordinator : testReport.
+        Coordinator -> WorkflowEnd : done.
+        WorkflowEnd -> Coordinator : doneAck.
+        0
+      )
+      +
+      Coordinator -> WorkflowEnd : done.
+      WorkflowEnd -> Coordinator : doneAck.
+      0
+    )
+  )
+)

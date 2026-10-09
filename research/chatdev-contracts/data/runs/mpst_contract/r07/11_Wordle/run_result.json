@@ -1,0 +1,43 @@
+{
+  "task_index": 11,
+  "project_name": "Wordle",
+  "description": "Design a standard wordle game by providing a daily 5-letter English language word. The game should allow a player to take 6 turns to guess the word. Correct guess for each letter is colored by green (correct letter in correct position), grey for invalid letter, or yellow for correct letter in wrong position. It should be playable from Linux Terminal, and does not require me to access a dedicated UX or GUI platform, i.e. print the results on terminal at each stage and let me play it there by entering inputs. If the player guesses the word within the allowed number of attempts, they win. If not, the solution is revealed. Validate each guess for proper feedback.",
+  "framework": "ChatDev1.0",
+  "model": "glm-5.3-flash:cloud",
+  "content_contracts_enabled": true,
+  "session_type_enabled": true,
+  "status": "failed",
+  "error": "exit code 1",
+  "failure_type": "content_contract",
+  "project_path": "data/runs/mpst_contract/r07/11_Wordle/artifact",
+  "elapsed_seconds": 143.266,
+  "contract_rejections": 3,
+  "violated_rules": [
+    "output_truncated",
+    "missing_source_files",
+    "current_startup_passed"
+  ],
+  "last_diagnostic": "saint\nsalad salon sauce scale scarf scene scent scope score scout scrap screw sense serve seven shade\nshaft shake shall shame shape share shark sharp shave sheep sheet shelf shell shift shine shirt\nshock shoot shore short shout shown sight silly since sixth sixty skill skirt skull slate sleep\nslice slide slope small smart smell smile smoke snack snake sneak solar solid solve sorry sound\nsouth space spare spark speak speed spell spend spice spike spine spite split spoke spoon sport\nspray squad stack staff stage stain stair stake stale stall stamp stand stare start state steam\nsteel steep steer stern stick stiff still sting stock stone stood stool store storm story stove\nstrap straw strip study stuff style sugar suite sunny super surge swear sweat sweep sweet swept\nswift swing sword table taken taste teach teeth tempo tenth thank theft their theme there these\nthick thief thing think third those three threw throw thumb tiger tight times tired title toast\ntoday token tooth topic torch total touch tough towel tower toxic trace track trade trail train\ntrait treat trend trial tribe trick tried tries troop trout truck truly trunk trust truth twice\ntwist ultra uncle under union unite unity until upper upset urban usage usual vague valid value\nvalve video virus visit vital vivid vocal voice voter wagon waist waste watch water weary wheat\nwheel where which while white whole whose widow width witch woman women world worry worse worst\nworth would wound wrist write wrong yacht yield young youth zebra\"\"\"\n\n\ndef load_extra():\n    path = \"/usr/share/dict/words\"\n    if os.path.exists(path):\n        try:\n            with open(path, encoding=\"utf-8\") as fh:\n                return {w.strip().lower() for w in fh\n                        if len(w.strip()) == 5 and w.strip().isalpha() and w.strip().islower()}\n        except OSError:\n            pass\n    return set()\n\n\ndef daily_word(base):\n    return base[datetime.date.today().toordinal() % len(base)]\n\n\ndef feedback(guess, target):\n    marks = [GREY] * 5\n    counts = {}\n    for i, ch in enumerate(target):\n        if guess[i] == ch:\n            marks[i] = GREEN\n        else:\n            counts[ch] = counts.get(ch, 0) + 1\n    for i, ch in enumerate(guess):\n        if marks[i] != GREEN and counts.get(ch, 0) > 0:\n            marks[i] = YELLOW\n            counts[ch] -= 1\n    return marks\n\n\ndef render(guess, marks):\n    return \" \".join(f\"{m}{ch.upper()}{RESET}\" for ch, m in zip(guess, marks))\n\n\ndef read_guess(wordset):\n    while True:\n        try:\n            guess = input(\"Guess: \").strip().lower()\n        except (EOFError, KeyboardInterrupt):\n            print(\"\\nBye!\")\n            raise SystemExit(1)\n        if len(guess) != 5 or not guess.isalpha():\n            print(\"Enter exactly 5 letters.\")\n        elif guess not in wordset:\n            print(\"Not in word list.\")\n        else:\n            return guess\n\n\ndef main():\n    base = FALLBACK.split()\n    wordset = set(base) | load_extra()\n    target = daily_word(base)\n    board = []\n    print(BOLD + \"WORDLE\" + RESET + \" - guess the 5-letter word in 6 tries.\")\n    print(\"Green = right letter, right spot. Yellow = right letter, wrong spot.\")\n    print(\"Grey = letter not in word. A new word is chosen each day.\\n\")\n    for attempt in range(1, 7):\n        guess = read_guess(wordset)\n        board.append(render(guess, feedback(guess, target)))\n        print(\"\\n\" + \"\\n\".join(board) + \"\\n\")\n        if guess == target:\n            print(GREEN + BOLD + f\"You win! Solved in {attempt}/6.\" + RESET)\n            return\n    print(RED + BOLD + f\"You lose. The word was {target.upper()}.\" + RESET)\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\ndir: data/runs/mpst_contract/r07/11_Wordle/artifact\n**[Software Info]**:\n\n \n\n💰**cost**=unknown\n\n🔨**version_updates**=-1\n\n📃**num_code_files**=1\n\n🏞**num_png_files**=0\n\n📚**num_doc_files**=5\n\n📃**code_lines**=113\n\n📋**env_lines**=-1\n\n📒**manual_lines**=-1\n\n🗣**num_utterances**=20\n\n🤔**num_self_reflections**=0\n\n❓**num_prompt_tokens**=20899\n\n❗**num_completion_tokens**=34099\n\n🌟**num_total_tokens**=54998\n\nTraceback (most recent call last):\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\run.py\", line 136, in <module>\n    chat_chain.execute_chain()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\chat_chain.py\", line 183, in execute_chain\n    content_guard.finish()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\content_guard.py\", line 134, in finish\n    raise ContentViolation(\"chatdev.stage_exit.v1\", findings)\ncontent_lab.chatdev_contracts.ContentViolation: {\"contract\": \"chatdev.stage_exit.v1\", \"violations\": [{\"layer\": \"A\", \"rule\": \"current_startup_passed\", \"path\": \"$\", \"message\": \"Current startup did not pass.\", \"repair\": \"Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior.\"}]}\n",
+  "artifact_pass": true,
+  "evaluation_error": null,
+  "result_path": "data/runs/mpst_contract/r07/11_Wordle\\run_result.json",
+  "model_decision_enabled": false,
+  "model_decision_calls": 0,
+  "terminal_contract": "chatdev.stage_exit.v1",
+  "terminal_rules": [
+    "current_startup_passed"
+  ],
+  "audit_checks": 26,
+  "delivered_phases": [
+    "DemandAnalysis",
+    "LanguageChoose",
+    "Coding",
+    "CodeComplete",
+    "CodeComplete",
+    "CodeComplete",
+    "CodeReviewComment",
+    "CodeReviewModification",
+    "TestErrorSummary",
+    "TestModification"
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "task_index": 16,
+  "project_name": "ConnectFour",
+  "description": "Implement a standard Connect Four game. Two players alternate placing discs into a seven-column, six-row grid. The objective is to form a horizontal, vertical, or diagonal line of four discs. Players choose columns by typing a number, and the board updates after each move until a win or draw. Validate column choices and end the game when a winning line is detected or the grid is full.",
+  "framework": "ChatDev1.0",
+  "model": "glm-5.3-flash:cloud",
+  "content_contracts_enabled": true,
+  "session_type_enabled": true,
+  "status": "failed",
+  "error": "exit code 1",
+  "failure_type": "content_contract",
+  "project_path": "data/runs/mpst_contract/r09/16_ConnectFour/artifact",
+  "elapsed_seconds": 87.5,
+  "contract_rejections": 1,
+  "violated_rules": [
+    "current_startup_passed"
+  ],
+  "last_diagnostic": " * sign\n                    c += dc * sign\n            if count >= 4:\n                return True\n        return False\n\n    def is_full(self):\n        \"\"\"The grid is full when every top-row cell is occupied.\"\"\"\n        return all(self.board[0][c] != EMPTY for c in range(COLS))\n\n    def switch_player(self):\n        \"\"\"Hand the turn to the other player.\"\"\"\n        self.current = \"O\" if self.current == \"X\" else \"X\"\n```\n\n**[Seminar Conclusion]**:\n\n main.py\n```python\n\"\"\"Connect Four - two-player console game.\"\"\"\nfrom connect_four import COLS, ConnectFour\n\n\ndef read_column(game):\n    \"\"\"Prompt until the current player enters a valid, non-full column.\"\"\"\n    while True:\n        raw = input(f\"Player {game.current}, choose a column (1-{COLS}): \").strip()\n        if not raw.isdigit():\n            print(\"Invalid input: please type a number.\")\n            continue\n        col = int(raw) - 1\n        if not game.is_valid_column(col):\n            print(\"Invalid column: out of range or already full. Try again.\")\n            continue\n        return col\n\n\ndef main():\n    game = ConnectFour()\n    print(\"=== Connect Four ===\")\n    print(\"Players X and O alternate turns; type a column number to drop a disc.\")\n    print(\"First to line up four discs horizontally, vertically, or diagonally wins.\")\n    game.display()\n    while True:\n        col = read_column(game)\n        row = game.drop_disc(col)\n        game.display()\n        if game.check_win(row, col):\n            print(f\"Player {game.current} wins! Four discs in a line.\")\n            break\n        if game.is_full():\n            print(\"It's a draw! The grid is full.\")\n            break\n        game.switch_player()\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nconnect_four.py\n```python\n\"\"\"Connect Four game logic: board state, move handling, and win detection.\"\"\"\n\nROWS, COLS = 6, 7\nEMPTY = \".\"\n\n\nclass ConnectFour:\n    \"\"\"Seven-column, six-row grid where two players drop alternating discs.\"\"\"\n\n    def __init__(self):\n        self.board = [[EMPTY] * COLS for _ in range(ROWS)]\n        self.current = \"X\"\n\n    def display(self):\n        \"\"\"Print the board with column numbers beneath it.\"\"\"\n        print()\n        for row in self.board:\n            print(\" \".join(row))\n        print(\" \".join(str(c) for c in range(1, COLS + 1)))\n        print()\n\n    def is_valid_column(self, col):\n        \"\"\"A column is valid if it is in range and its top cell is empty.\"\"\"\n        return 0 <= col < COLS and self.board[0][col] == EMPTY\n\n    def drop_disc(self, col):\n        \"\"\"Place the current player's disc in the lowest empty row of col.\"\"\"\n        for r in range(ROWS - 1, -1, -1):\n            if self.board[r][col] == EMPTY:\n                self.board[r][col] = self.current\n                return r\n        return -1\n\n    def check_win(self, row, col):\n        \"\"\"True if the disc at (row, col) completes a line of four or more.\"\"\"\n        player = self.board[row][col]\n        for dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):\n            count = 1\n            for sign in (1, -1):\n                r, c = row + dr * sign, col + dc * sign\n                while 0 <= r < ROWS and 0 <= c < COLS and self.board[r][c] == player:\n                    count += 1\n                    r += dr * sign\n                    c += dc * sign\n            if count >= 4:\n                return True\n        return False\n\n    def is_full(self):\n        \"\"\"The grid is full when every top-row cell is occupied.\"\"\"\n        return all(self.board[0][c] != EMPTY for c in range(COLS))\n\n    def switch_player(self):\n        \"\"\"Hand the turn to the other player.\"\"\"\n        self.current = \"O\" if self.current == \"X\" else \"X\"\n```\n\ndir: data/runs/mpst_contract/r09/16_ConnectFour/artifact\n**[Software Info]**:\n\n \n\n💰**cost**=unknown\n\n🔨**version_updates**=-1\n\n📃**num_code_files**=2\n\n🏞**num_png_files**=0\n\n📚**num_doc_files**=5\n\n📃**code_lines**=78\n\n📋**env_lines**=-1\n\n📒**manual_lines**=-1\n\n🗣**num_utterances**=14\n\n🤔**num_self_reflections**=0\n\n❓**num_prompt_tokens**=8781\n\n❗**num_completion_tokens**=10746\n\n🌟**num_total_tokens**=19527\n\nTraceback (most recent call last):\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\run.py\", line 136, in <module>\n    chat_chain.execute_chain()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\chat_chain.py\", line 183, in execute_chain\n    content_guard.finish()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\content_guard.py\", line 134, in finish\n    raise ContentViolation(\"chatdev.stage_exit.v1\", findings)\ncontent_lab.chatdev_contracts.ContentViolation: {\"contract\": \"chatdev.stage_exit.v1\", \"violations\": [{\"layer\": \"A\", \"rule\": \"current_startup_passed\", \"path\": \"$\", \"message\": \"Current startup did not pass.\", \"repair\": \"Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior.\"}]}\n",
+  "artifact_pass": true,
+  "evaluation_error": null,
+  "result_path": "data/runs/mpst_contract/r09/16_ConnectFour\\run_result.json",
+  "model_decision_enabled": false,
+  "model_decision_calls": 0,
+  "terminal_contract": "chatdev.stage_exit.v1",
+  "terminal_rules": [
+    "current_startup_passed"
+  ],
+  "audit_checks": 18,
+  "delivered_phases": [
+    "DemandAnalysis",
+    "LanguageChoose",
+    "Coding",
+    "CodeReviewComment",
+    "CodeReviewModification",
+    "TestErrorSummary",
+    "TestModification"
+  ]
+}

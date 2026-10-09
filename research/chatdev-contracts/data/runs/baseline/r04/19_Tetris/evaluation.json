@@ -1,0 +1,75 @@
+{
+  "task_index": 19,
+  "project_name": "Tetris",
+  "framework": "ChatDev",
+  "workflow_status": "completed",
+  "workspace": "data/runs/baseline/r04/19_Tetris/artifact",
+  "source_file_count": 6,
+  "python_compile": {
+    "checked": 6,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-02T22:43:09+0800",
+  "judge": {
+    "verdict": "fail",
+    "functional_completeness": 0.85,
+    "executable_likelihood": 0.6,
+    "implemented_requirements": [
+      {
+        "requirement": "All seven standard Tetromino shapes are defined",
+        "fulfilled": true,
+        "evidence": "tetromino.py defines SHAPES for I, O, T, S, Z, J, L and SHAPE_TYPES list."
+      },
+      {
+        "requirement": "Tetrominoes fall from the top and can be moved/rotated before landing",
+        "fulfilled": true,
+        "evidence": "Game.spawn_tetromino creates a Tetromino at y=0; Game.move_horizontal and Game.rotate provide movement and rotation logic; Game.update implements gravity drops."
+      },
+      {
+        "requirement": "Completed lines are cleared",
+        "fulfilled": true,
+        "evidence": "Board.clear_lines removes full rows and returns the count; Game._lock_current calls this after locking a piece."
+      },
+      {
+        "requirement": "Scoring increases for line clears, soft drops, hard drops",
+        "fulfilled": true,
+        "evidence": "constants.py defines SCORE_* values; Game._apply_line_score updates score based on cleared lines; Game.soft_drop and Game.hard_drop add SCORE_SOFT_DROP and SCORE_HARD_DROP per cell."
+      },
+      {
+        "requirement": "Game ends when no more pieces can be placed",
+        "fulfilled": true,
+        "evidence": "Game.spawn_tetromino sets game_over=True if board.is_valid_position fails for the new piece."
+      },
+      {
+        "requirement": "Board updates after each move or drop",
+        "fulfilled": true,
+        "evidence": "Board.lock_tetromino writes cells into grid; Board.clear_lines updates grid; Renderer.draw_board renders the current grid each frame."
+      },
+      {
+        "requirement": "Drop speed increases as the game progresses",
+        "fulfilled": true,
+        "evidence": "Game.get_drop_interval computes interval using BASE_DROP_INTERVAL, SPEED_FACTOR, and current level; level is increased in Game._apply_line_score."
+      },
+      {
+        "requirement": "A runnable game loop with input handling",
+        "fulfilled": false,
+        "evidence": "No file provides a main loop that creates a pygame window, processes keyboard events, calls Game.update, and invokes Renderer.render. main.py only contains a draw_hud helper."
+      }
+    ],
+    "critical_issues": [
+      "Missing entry‑point / main game loop that initializes pygame, creates Game and Renderer instances, handles user input, and drives the update/render cycle.",
+      "Input handling (key presses for move, rotate, drop, pause, restart) is not present, so the player cannot actually control the pieces.",
+      "The provided main.py fragment does not import or use the other modules, leaving the program incomplete."
+    ],
+    "summary": "The codebase implements the core Tetris mechanics: shape definitions, board management, gravity, movement, rotation, line clearing, scoring, level‑based speed increase, and rendering of the board and pieces. However, it lacks a top‑level script that ties these components together and processes player input, meaning the supplied files cannot be executed as a complete game. Consequently, the submission fails the acceptance criteria despite high functional completeness.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": false
+}

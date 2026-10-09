@@ -1,0 +1,306 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "...\"\n\nSo I should express my opinion first, and since this is a turn-based conversation, I should give my recommendation and wait for the other party's response. I shouldn't terminate immediately unless we've both agreed. But since I'm responding first, I should state my opinion and invite the other party to share theirs.\n\nLet me write a response as the CPO recommending \"Application\" as the product modality, since the task is an interactive game requiring keyboard input, real-time rendering, and game logic - which fits perfectly with a Python application (e.g., pygame). I'll ask for the CEO's opinion.As the Chief Product Officer, I've analyzed the customer's requirements for this task. Let me share my thoughts on the most suitable product modality.\n\n**Task Analysis:**\nThe customer wants a fully interactive 2048 game with the following key characteristics:\n- **Real-time interactivity**: Players press arrow keys to slide tiles, requiring continuous keyboard input handling\n- **Dynamic visual feedback**: Tiles must slide, merge, and new tiles must appear after each move\n- **Game logic**: Merging mechanics, random tile generation, game-over detection\n- **Live data display**: Current score and highest tile must update in real-time\n\n**My Recommendation: Application**\n\nHere's my reasoning:\n1. **Interactivity requirement**: The game demands continuous keyboard input and real-time rendering. Static formats (Image, Document, PDF, PowerPoint, Excel, Mind Map) cannot deliver an interactive gaming experience.\n2. **Proven capability**: ChatDev has successfully delivered visualized games via Python applications before (e.g., using Pygame), which perfectly supports 2D grid rendering, keyboard event handling, animations, and score display.\n3. **User experience**: A standalone desktop application provides smooth performance, responsive controls, and a polished gaming interface — exactly what a 2048 player expects.\n4. **Feasibility**: Implementing a 4x4 grid, tile merging logic, random tile spawning, and score tracking is well within the capability of a Python-based application.\n\nWhile a Website (HTML/JavaScript) could also technically support this game, I believe the **Application** modality is the most robust and reliable choice for delivering a standard, fully-functional 2048 game as requested.\n\nWhat's your opinion on this? Do you agree that Application is the best fit, or would you prefer another modality?"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\nfrom game import Game2048\nfrom ui import get_key, render\n\nDIRECTIONS = {\"left\": 0, \"up\": 1, \"right\": 2, \"down\": 3}\n\n\ndef main():\n    game = Game2048()\n    render(game)\n    while True:\n        key = get_key()\n        if key == \"quit\":\n            print(\"Thanks for playing! Score: {} | Highest tile: {}\".format(game.score, game.highest))\n            break\n        if key in DIRECTIONS and game.move(DIRECTIONS[key]):\n            render(game)\n            if game.game_over():\n                print(\"Game over! Final score: {} | Highest tile: {}\".format(game.score, game.highest))\n                break\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\ngame.py\n```python\nimport random\n\nSIZE = 4\n\n\nclass Game2048:\n    def __init__(self):\n        self.board = [[0] * SIZE for _ in range(SIZE)]\n        self.score = 0\n        self.highest = 0\n        self.spawn()\n        self.spawn()\n\n    def empty_cells(self):\n        return [(r, c) for r in range(SIZE) for c in range(SIZE) if self.board[r][c] == 0]\n\n    def spawn(self):\n        cells = self.empty_cells()\n        if not cells:\n            return False\n        r, c = random.choice(cells)\n        self.board[r][c] = 4 if random.random() < 0.1 else 2\n        self.highest = max(self.highest, self.board[r][c])\n        return True\n\n    @staticmethod\n    def _slide_left(row):\n        tiles = [v for v in row if v]\n        merged = []\n        gained = 0\n        i = 0\n        while i < len(tiles):\n            if i + 1 < len(tiles) and tiles[i] == tiles[i + 1]:\n                value = tiles[i] * 2\n                merged.append(value)\n                gained += value\n                i += 2\n            else:\n                merged.append(tiles[i])\n                i += 1\n        merged += [0] * (SIZE - len(merged))\n        return merged, gained\n\n    def _move(self, board, direction):\n        # direction: 0=left, 1=up, 2=right, 3=down\n        if direction in (1, 3):\n            board = [list(col) for col in zip(*board)]\n            if direction == 3:\n                board = [row[::-1] for row in board]\n        elif direction == 2:\n            board = [row[::-1] for row in board]\n        moved = False\n        gained_total = 0\n        new_board = []\n        for row in board:\n            merged, gained = self._slide_left(row)\n            gained_total += gained\n            if merged != row:\n                moved = True\n            new_board.append(merged)\n        if direction == 2:\n            new_board = [row[::-1] for row in new_board]\n        if direction in (1, 3):\n            if direction == 3:\n                new_board = [row[::-1] for row in new_board]\n            new_board = [list(col) for col in zip(*new_board)]\n        return new_board, moved, gained_total\n\n    def move(self, direction):\n        new_board, moved, gained = self._move(self.board, direction)\n        if moved:\n            self.board = new_board\n            self.score += gained\n            self.highest = max(self.highest, max(v for row in self.board for v in row))\n            self.spawn()\n        return moved\n\n    def can_move(self):\n        for r in range(SIZE):\n            for c in range(SIZE):\n                v = self.board[r][c]\n                if v == 0:\n                    return True\n                if c + 1 < SIZE and self.board[r][c + 1] == v:\n                    return True\n                if r + 1 < SIZE and self.board[r + 1][c] == v:\n                    return True\n        return False\n\n    def game_over(self):\n        return not self.can_move()\n```\n\nui.py\n```python\nimport sys\n\nCOLORS = {\n    2: \"242\", 4: \"230\", 8: \"222\", 16: \"208\", 32: \"203\", 64: \"196\",\n    128: \"51\", 256: \"50\", 512: \"49\", 1024: \"48\", 2048: \"47\",\n}\n\n\ndef get_key():\n    \"\"\"Return 'up'/'down'/'left'/'right'/'quit', or None for ignored keys.\"\"\"\n    if sys.platform == \"win32\":\n        import msvcrt\n        ch = msvcrt.getwch()\n        if ch in (\"\\x00\", \"\\xe0\"):\n            ch = msvcrt.getwch()\n            return {\"H\": \"up\", \"P\": \"down\", \"K\": \"left\", \"M\": \"right\"}.get(ch)\n        return \"quit\" if ch in (\"q\", \"Q\", \"\\x03\") else None\n    import termios\n    import tty\n    fd = sys.stdin.fileno()\n    old = termios.tcgetattr(fd)\n    try:\n        tty.setraw(fd)\n        ch = sys.stdin.read(1)\n        if ch == \"\\x1b\":\n            seq = sys.stdin.read(2)\n            if len(seq) == 2:\n                return {\"A\": \"up\", \"B\": \"down\", \"C\": \"right\", \"D\": \"left\"}.get(seq[1])\n            return None\n        return \"quit\" if ch in (\"q\", \"Q\", \"\\x03\") else None\n    finally:\n        termios.tcsetattr(fd, termios.TCSADRAIN, old)\n\n\ndef render(game):\n    lines = [\"\\033[2J\\033[H2048\",\n             \"Score: {}   Highest tile: {}\".format(game.score, game.highest),\n             \"+\" + \"------+\" * 4]\n    for row in game.board:\n        cells = []\n        for v in row:\n            if v:\n                cells.append(\"\\033[48;5;{};30m{:>5} \\033[0m\".format(COLORS.get(v, \"37\"), v))\n            else:\n                cells.append(\"      \")\n        lines.append(\"|\" + \"|\".join(cells) + \"|\")\n        lines.append(\"+\" + \"------+\" * 4)\n    lines.append(\"Arrow keys: move | q: quit\")\n    print(\"\\n\".join(lines))\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "a642a7a45cee3706181f348d7d0e7a817bd64b82ceeeef395fa6a4bc379b4a84",
+      "result": "{\"verdict\": \"finished\", \"issues\": []}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "a642a7a45cee3706181f348d7d0e7a817bd64b82ceeeef395fa6a4bc379b4a84",
+      "result": " Finished"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "a642a7a45cee3706181f348d7d0e7a817bd64b82ceeeef395fa6a4bc379b4a84",
+      "result": "{\"status\": \"inconclusive\", \"test_run_id\": \"7e3143815be5dae1e9dd99e75916df99e99b7b5f2d118967bfd0da5174ff9d88\", \"summary\": \"Startup smoke (python -E main.py, 3s limit) timed out with no stdout/stderr and exit_code null. This is expected for this source: main.py enters an interactive loop whose get_key() blocks on terminal/keyboard input (msvcrt on Windows, termios elsewhere), so the process legitimately stays alive past a process_exit-profile timeout. No import errors, tracebacks, or missing third-party dependencies are indicated; the code uses only the standard library. The timeout is an artifact of testing an interactive terminal app under a non-interactive smoke profile, not evidence of a source defect, and it also does not establish successful execution. To validate, run main.py in a real terminal with arrow keys/q, or feed scripted stdin (e.g., 'q') so the process exits promptly.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "a642a7a45cee3706181f348d7d0e7a817bd64b82ceeeef395fa6a4bc379b4a84",
+      "result": "main.py\n```python\nfrom game import Game2048\nfrom ui import get_key, render\n\nDIRECTIONS = {\"left\": 0, \"up\": 1, \"right\": 2, \"down\": 3}\n\n\ndef main():\n    game = Game2048()\n    render(game)\n    try:\n        while True:\n            key = get_key()\n            if key == \"quit\":\n                print(\"Thanks for playing! Score: {} | Highest tile: {}\".format(game.score, game.highest))\n                break\n            if key in DIRECTIONS and game.move(DIRECTIONS[key]):\n                render(game)\n                if game.game_over():\n                    print(\"Game over! Final score: {} | Highest tile: {}\".format(game.score, game.highest))\n                    break\n    except KeyboardInterrupt:\n        print(\"\\nInterrupted! Score: {} | Highest tile: {}\".format(game.score, game.highest))\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nui.py\n```python\nimport os\nimport sys\n\nif sys.platform == \"win32\":\n    os.system(\"\")  # enable ANSI escape sequence processing on Windows consoles\n\nCOLORS = {\n    2: \"242\", 4: \"230\", 8: \"222\", 16: \"208\", 32: \"203\", 64: \"196\",\n    128: \"51\", 256: \"50\", 512: \"49\", 1024: \"48\", 2048: \"47\",\n}\n\nARROWS = {\"A\": \"up\", \"B\": \"down\", \"C\": \"right\", \"D\": \"left\"}\n\n\ndef _map_escape(seq):\n    if len(seq) == 2:\n        return ARROWS.get(seq[1], \"\")\n    return \"\"\n\n\ndef get_key():\n    \"\"\"Return 'up'/'down'/'left'/'right'/'quit', or '' for ignored keys.\"\"\"\n    if sys.platform == \"win32\" and sys.stdin.isatty():\n        import msvcrt\n        try:\n            ch = msvcrt.getwch()\n            if ch in (\"\\x00\", \"\\xe0\"):\n                ch = msvcrt.getwch()\n                return {\"H\": \"up\", \"P\": \"down\", \"K\": \"left\", \"M\": \"right\"}.get(ch, \"\")\n        except (EOFError, OSError):\n            return \"quit\"\n        return \"quit\" if ch in (\"q\", \"Q\", \"\\x03\") else \"\"\n    if sys.stdin.isatty():\n        import termios\n        import tty\n        fd = sys.stdin.fileno()\n        old = termios.tcgetattr(fd)\n        try:\n            tty.setraw(fd)\n            ch = sys.stdin.read(1)\n            if ch == \"\\x1b\":\n                return _map_escape(sys.stdin.read(2))\n        except (EOFError, OSError):\n            return \"quit\"\n        finally:\n            termios.tcsetattr(fd, termios.TCSADRAIN, old)\n    else:\n        # Non-interactive stdin (e.g., piped/scripted input): plain reads so\n        # input like \"q\" or end-of-stream exits promptly.\n        try:\n            ch = sys.stdin.read(1)\n            if ch == \"\\x1b\":\n                return _map_escape(sys.stdin.read(2))\n        except (EOFError, OSError):\n            return \"quit\"\n    if ch == \"\":\n        return \"quit\"\n    return \"quit\" if ch in (\"q\", \"Q\", \"\\x03\") else \"\"\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "110bb84b5942e9a0b4cd78a0f3be50212f36536b6c9f4fd9c5e8ac4fcf59281b",
+    "source_digests": {
+      "game.py": "ef40f7ed5741b7345e2cdba519fc9bd932cfb8342332e1adce80cd7526f5bb0d",
+      "main.py": "e336e92cd996c911b8843b4d84d406140c9af98f8ba8c0b985a1eb1b3afdaa5e",
+      "ui.py": "614e87b79190d4ae4c179c350fd64ca3e690e53eb58b46fa0abc2be24c875e2a"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "main.py"
+    ],
+    "timeout_seconds": 3,
+    "status": "failed",
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r07/09_2048/artifact\\main.py\", line 2, in <module>\n    from ui import get_key, render\nImportError: cannot import name 'render' from 'ui' (data/runs/mpst_contract/r07/09_2048/artifact\\ui.py)\n",
+    "profile": "process_exit",
+    "id": "9890e63d36e16e7bb41c6edc8dd3339bb2e7282678260f5f291412e0f84da57b"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "799a0cb61758754cddff1fad921ce454cf8e5ecbe9bf1195ead3e8b90a8290e0",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "f88b4fd73c5bea5224975890bae1e719043f3d7b8fa4d4d316086f0af7ef251a",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2909d096afb1d600c38fe6415a7677c6cc6619c2318def581a502de37a508e22",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "ca3e0a3b43af0e86f0e5d2512eee2c1db7893dcf6f327c85567f0b3a702e6921",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "ca3e0a3b43af0e86f0e5d2512eee2c1db7893dcf6f327c85567f0b3a702e6921",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "a642a7a45cee3706181f348d7d0e7a817bd64b82ceeeef395fa6a4bc379b4a84",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "41a4b7cba60fe48a82dea68df25c150b1c1a538a99dbfb89714d4f298e56bd57",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "a642a7a45cee3706181f348d7d0e7a817bd64b82ceeeef395fa6a4bc379b4a84",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2e268ff0cef63580c64233b07e8fd026c494a543f47a7717f2245832819f24fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "a642a7a45cee3706181f348d7d0e7a817bd64b82ceeeef395fa6a4bc379b4a84",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "76ed6adff4c7a2e52776f56d896998bad47a30442ec24178a06c6f1b05a5a521",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "a642a7a45cee3706181f348d7d0e7a817bd64b82ceeeef395fa6a4bc379b4a84",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3713dc9d1785c47081ef36c7e993dd51ecf9c4913bd8e04500b2a4717fc9a3a0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "a642a7a45cee3706181f348d7d0e7a817bd64b82ceeeef395fa6a4bc379b4a84",
+        "source_digests": {
+          "game.py": "ef40f7ed5741b7345e2cdba519fc9bd932cfb8342332e1adce80cd7526f5bb0d",
+          "main.py": "9d43e41bb087d98eb024b868a63e9eda54cb02c5db0b671f0594e3fae62650ed",
+          "ui.py": "b2b5946f4549d6981f5d4ae0943b7ae719f0639e5999a72a10820496db5595cf"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "inconclusive",
+        "exit_code": null,
+        "stdout": "",
+        "stderr": "Startup exceeded the time limit; success has not been established.",
+        "profile": "process_exit",
+        "id": "7e3143815be5dae1e9dd99e75916df99e99b7b5f2d118967bfd0da5174ff9d88"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "a642a7a45cee3706181f348d7d0e7a817bd64b82ceeeef395fa6a4bc379b4a84",
+        "source_digests": {
+          "game.py": "ef40f7ed5741b7345e2cdba519fc9bd932cfb8342332e1adce80cd7526f5bb0d",
+          "main.py": "9d43e41bb087d98eb024b868a63e9eda54cb02c5db0b671f0594e3fae62650ed",
+          "ui.py": "b2b5946f4549d6981f5d4ae0943b7ae719f0639e5999a72a10820496db5595cf"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "inconclusive",
+        "exit_code": null,
+        "stdout": "",
+        "stderr": "Startup exceeded the time limit; success has not been established.",
+        "profile": "process_exit",
+        "id": "7e3143815be5dae1e9dd99e75916df99e99b7b5f2d118967bfd0da5174ff9d88"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "a642a7a45cee3706181f348d7d0e7a817bd64b82ceeeef395fa6a4bc379b4a84",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "9c8da38a6c0e8de006db923a9b6f852bbc823c0b3b0eb34699c6986867eef481",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "a642a7a45cee3706181f348d7d0e7a817bd64b82ceeeef395fa6a4bc379b4a84",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "39476b727631719ddcadc19545279711b4c861e277d4d8faab97e1f8fe83d92a",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "a642a7a45cee3706181f348d7d0e7a817bd64b82ceeeef395fa6a4bc379b4a84",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "63a803b4f5c20747441cd78c82ee0bf5f1c0de17899a65cad9d8e26e3441e8aa",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "a642a7a45cee3706181f348d7d0e7a817bd64b82ceeeef395fa6a4bc379b4a84",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "63a803b4f5c20747441cd78c82ee0bf5f1c0de17899a65cad9d8e26e3441e8aa",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "110bb84b5942e9a0b4cd78a0f3be50212f36536b6c9f4fd9c5e8ac4fcf59281b",
+        "source_digests": {
+          "game.py": "ef40f7ed5741b7345e2cdba519fc9bd932cfb8342332e1adce80cd7526f5bb0d",
+          "main.py": "e336e92cd996c911b8843b4d84d406140c9af98f8ba8c0b985a1eb1b3afdaa5e",
+          "ui.py": "614e87b79190d4ae4c179c350fd64ca3e690e53eb58b46fa0abc2be24c875e2a"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r07/09_2048/artifact\\main.py\", line 2, in <module>\n    from ui import get_key, render\nImportError: cannot import name 'render' from 'ui' (data/runs/mpst_contract/r07/09_2048/artifact\\ui.py)\n",
+        "profile": "process_exit",
+        "id": "9890e63d36e16e7bb41c6edc8dd3339bb2e7282678260f5f291412e0f84da57b"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": false,
+      "evidence_id": "9890e63d36e16e7bb41c6edc8dd3339bb2e7282678260f5f291412e0f84da57b",
+      "violations": [
+        {
+          "layer": "A",
+          "rule": "current_startup_passed",
+          "path": "$",
+          "message": "Current startup did not pass.",
+          "repair": "Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior."
+        }
+      ]
+    }
+  ]
+}

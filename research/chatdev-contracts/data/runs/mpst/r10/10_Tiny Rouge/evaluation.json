@@ -1,0 +1,77 @@
+{
+  "task_index": 10,
+  "project_name": "Tiny Rouge",
+  "framework": "ChatDev",
+  "workflow_status": "completed",
+  "workspace": "data/runs/mpst/r10/10_Tiny Rouge/artifact",
+  "source_file_count": 7,
+  "python_compile": {
+    "checked": 7,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-05T02:48:58+0800",
+  "judge": {
+    "verdict": "fail",
+    "functional_completeness": 0.4,
+    "executable_likelihood": 0.2,
+    "implemented_requirements": [
+      {
+        "requirement": "Fixed 80x80 grid map",
+        "fulfilled": true,
+        "evidence": "config.py defines GRID_WIDTH = 80 and GRID_HEIGHT = 80."
+      },
+      {
+        "requirement": "Player movement using W/A/S/D keys",
+        "fulfilled": false,
+        "evidence": "Game.handle_move expects direction strings ('up','left','down','right'), and ui.py binds <Key> to an on_key method, but the on_key implementation is missing, so there is no evidence that W/A/S/D keys are actually processed."
+      },
+      {
+        "requirement": "Movement only on floor tiles and blocked by walls",
+        "fulfilled": true,
+        "evidence": "game.py checks game_map.is_wall(nx, ny) before allowing a move; GameMap.is_wall returns True when the tile equals config.TILE_WALL."
+      },
+      {
+        "requirement": "Goal is to reach a door to proceed to the next level",
+        "fulfilled": true,
+        "evidence": "game.py: if self.game_map.is_door(nx, ny): level is increased, a new map is generated and a log message is added."
+      },
+      {
+        "requirement": "Monsters cause damage equal to their HP",
+        "fulfilled": true,
+        "evidence": "entities.py: Monster.damage property returns self.hp; game.py: player.take_damage(entity.damage) is called when a Monster is encountered."
+      },
+      {
+        "requirement": "Treasure chests heal 20‑30 HP",
+        "fulfilled": true,
+        "evidence": "entities.py: TreasureChest.heal_amount = random.randint(config.CHEST_HEAL_MIN, config.CHEST_HEAL_MAX); game.py: player.heal(entity.heal_amount) when a chest is touched."
+      },
+      {
+        "requirement": "At least one valid path from start to door",
+        "fulfilled": false,
+        "evidence": "MapGenerator.generate claims to guarantee a path, but the helper methods (_carve_rooms_and_corridors, _pick_start_and_door, _place_entities, _fallback_map) are not defined in the provided map_generator.py, so no path can be verified."
+      },
+      {
+        "requirement": "Minimal UI showing player HP and monster stats",
+        "fulfilled": false,
+        "evidence": "ui.py creates hp_label, monster_label, etc., but there is no code that updates these widgets (update_info method body is missing) and no rendering of monster stats is shown."
+      }
+    ],
+    "critical_issues": [
+      "map_generator.py references undefined helper methods, making map generation fail at runtime.",
+      "Two files (map_generator.py and mapgenerator.py) define a class named MapGenerator, causing import ambiguity.",
+      "ui.py binds key events to an on_key method that is never defined, so player input cannot be processed.",
+      "draw_full and update_info methods referenced in GameUI.__init__ are missing, so the grid and UI never render.",
+      "No explicit floor tile handling; only wall checks are performed, but floor tiles are never guaranteed to exist."
+    ],
+    "summary": "The project contains core data structures (config, entities, Game logic) that outline the required mechanics, and the UI scaffolding is present. However, essential parts of the implementation are missing: map generation algorithms, key‑handling code, and UI update/rendering functions. Because of these gaps the game cannot be executed and does not fully satisfy the specification, resulting in a FAIL verdict.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": false
+}

@@ -1,0 +1,40 @@
+{
+  "task_index": 20,
+  "project_name": "ReversiOthello",
+  "description": "Develop a Reversi (Othello) board game. Two players alternate placing discs on an 8x8 grid, flipping the opponent’s discs that lie between the newly placed piece and existing pieces of the same color. The game ends when the board is full or no valid moves remain. The program should automatically identify valid moves, flip discs, and display the current score.",
+  "framework": "ChatDev1.0",
+  "model": "glm-5.3-flash:cloud",
+  "content_contracts_enabled": true,
+  "session_type_enabled": true,
+  "status": "failed",
+  "error": "exit code 1",
+  "failure_type": "content_contract",
+  "project_path": "data/runs/mpst_contract/r10/20_ReversiOthello/artifact",
+  "elapsed_seconds": 92.125,
+  "contract_rejections": 3,
+  "violated_rules": [
+    "duplicate_source_file",
+    "missing_source_files",
+    "current_startup_passed"
+  ],
+  "last_diagnostic": "' + ' '.join(cells))\n    return '\\n'.join(lines)\n\n\ndef parse(text):\n    text = text.strip().lower()\n    if len(text) == 2 and text[0] in COLS and text[1] in '12345678':\n        return int(text[1]) - 1, COLS.index(text[0])\n    return None\n\n\ndef main():\n    game = Reversi()\n    print('Reversi (Othello) - B=Black, W=White, *=valid move')\n    print('Enter moves as column+row, e.g. d3. Type q to quit.')\n    while not game.over():\n        black, white = game.score()\n        name = 'Black' if game.current == BLACK else 'White'\n        print(f'\\n{render(game)}')\n        print(f'Score - Black: {black}  White: {white}')\n        if not game.valid_moves(game.current):\n            print(f'{name} has no valid move. Turn passes.')\n            game.pass_turn()\n            continue\n        move = input(f'{name} to move (e.g. d3): ').strip().lower()\n        if move in ('q', 'quit', 'exit'):\n            print('Game aborted.')\n            return\n        pos = parse(move)\n        if pos is None:\n            print('Invalid input. Use a letter a-h and a number 1-8.')\n            continue\n        row, col = pos\n        if game.play(row, col) is None:\n            print('Invalid move there. Choose a square marked *.')\n    print(f'\\n{render(game)}')\n    black, white = game.score()\n    print(f'Final score - Black: {black}  White: {white}')\n    if black > white:\n        print('Black wins!')\n    elif white > black:\n        print('White wins!')\n    else:\n        print(\"It's a draw!\")\n\n\nif __name__ == '__main__':\n    main()\n```\n\ngame.py\n```python\n\"\"\"Reversi (Othello) game logic.\"\"\"\n\nSIZE = 8\nEMPTY, BLACK, WHITE = 0, 1, 2\nDIRECTIONS = [(-1, -1), (-1, 0), (-1, 1), (0, -1),\n              (0, 1), (1, -1), (1, 0), (1, 1)]\n\n\nclass Reversi:\n    def __init__(self):\n        self.board = [[EMPTY] * SIZE for _ in range(SIZE)]\n        self.board[3][3] = WHITE\n        self.board[3][4] = BLACK\n        self.board[4][3] = BLACK\n        self.board[4][4] = WHITE\n        self.current = BLACK\n\n    @staticmethod\n    def opponent(color):\n        return BLACK if color == WHITE else WHITE\n\n    def flips_for(self, row, col, color):\n        \"\"\"Return discs flipped if color plays at (row, col); empty list if illegal.\"\"\"\n        if self.board[row][col] != EMPTY:\n            return []\n        opp = self.opponent(color)\n        flips = []\n        for dr, dc in DIRECTIONS:\n            line = []\n            r, c = row + dr, col + dc\n            while 0 <= r < SIZE and 0 <= c < SIZE and self.board[r][c] == opp:\n                line.append((r, c))\n                r += dr\n                c += dc\n            if line and 0 <= r < SIZE and 0 <= c < SIZE and self.board[r][c] == color:\n                flips.extend(line)\n        return flips\n\n    def valid_moves(self, color):\n        return [(r, c) for r in range(SIZE) for c in range(SIZE)\n                if self.board[r][c] == EMPTY and self.flips_for(r, c, color)]\n\n    def play(self, row, col):\n        \"\"\"Place current player's disc and flip; returns flips or None if illegal.\"\"\"\n        flips = self.flips_for(row, col, self.current)\n        if not flips:\n            return None\n        self.board[row][col] = self.current\n        for r, c in flips:\n            self.board[r][c] = self.current\n        self.current = self.opponent(self.current)\n        return flips\n\n    def pass_turn(self):\n        self.current = self.opponent(self.current)\n\n    def score(self):\n        black = sum(row.count(BLACK) for row in self.board)\n        white = sum(row.count(WHITE) for row in self.board)\n        return black, white\n\n    def over(self):\n        return not self.valid_moves(BLACK) and not self.valid_moves(WHITE)\n```\n\ndir: data/runs/mpst_contract/r10/20_ReversiOthello/artifact\n**[Software Info]**:\n\n \n\n💰**cost**=unknown\n\n🔨**version_updates**=-1\n\n📃**num_code_files**=2\n\n🏞**num_png_files**=0\n\n📚**num_doc_files**=5\n\n📃**code_lines**=109\n\n📋**env_lines**=-1\n\n📒**manual_lines**=-1\n\n🗣**num_utterances**=14\n\n🤔**num_self_reflections**=0\n\n❓**num_prompt_tokens**=13651\n\n❗**num_completion_tokens**=13552\n\n🌟**num_total_tokens**=27203\n\nTraceback (most recent call last):\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\run.py\", line 136, in <module>\n    chat_chain.execute_chain()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\chat_chain.py\", line 183, in execute_chain\n    content_guard.finish()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\content_guard.py\", line 134, in finish\n    raise ContentViolation(\"chatdev.stage_exit.v1\", findings)\ncontent_lab.chatdev_contracts.ContentViolation: {\"contract\": \"chatdev.stage_exit.v1\", \"violations\": [{\"layer\": \"A\", \"rule\": \"current_startup_passed\", \"path\": \"$\", \"message\": \"Current startup did not pass.\", \"repair\": \"Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior.\"}]}\n",
+  "artifact_pass": true,
+  "evaluation_error": null,
+  "result_path": "data/runs/mpst_contract/r10/20_ReversiOthello\\run_result.json",
+  "model_decision_enabled": false,
+  "model_decision_calls": 0,
+  "terminal_contract": "chatdev.stage_exit.v1",
+  "terminal_rules": [
+    "current_startup_passed"
+  ],
+  "audit_checks": 20,
+  "delivered_phases": [
+    "DemandAnalysis",
+    "LanguageChoose",
+    "Coding",
+    "CodeReviewComment",
+    "CodeReviewModification",
+    "TestErrorSummary",
+    "TestModification"
+  ]
+}

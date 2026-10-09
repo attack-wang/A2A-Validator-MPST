@@ -1,0 +1,317 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "As the Chief Product Officer, I've analyzed the customer's requirements for this trivia quiz program. Let me share my thoughts on the product modality:\n\n**My recommendation: Application**\n\nHere's my reasoning:\n\n1. **Interactivity is essential**: The core requirement is that \"the user enters answers\" — this demands real-time user input and response handling, which only an Application can properly support. Static formats like Documents, PDFs, or PowerPoint cannot capture user input.\n\n2. **Dynamic score tracking**: The program must track the score as the user progresses through questions and display the total correct answers at the end. This requires runtime logic and state management, which is natural for an Application.\n\n3. **Configurable question banks**: The customer wants the ability to configure question banks. An Application (implemented in Python) can easily load questions from external files (e.g., JSON or CSV), making it simple for users to customize topics, add/remove questions, and switch between multiple-choice and short-answer formats.\n\n4. **Post-quiz answer review**: The option to display correct answers after completing the quiz is a programmatic feature best handled within an interactive application flow.\n\nWhile a Website could theoretically offer interactivity via JavaScript, the customer explicitly asked for a \"program,\" which aligns most naturally with the Application modality via Python — it's also robust, easily runnable, and well-suited for a console/GUI-based quiz experience.\n\nWhat's your opinion on this? Do you agree that Application is the right choice?"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\n\"\"\"Trivia quiz entry point.\n\nUsage:\n    python main.py                      # built-in bank (questions.py)\n    python main.py --bank mybank.json   # custom JSON question bank\n    python main.py --shuffle --limit 5 --show-answers\n\"\"\"\n\nimport argparse\nimport sys\n\nfrom quiz import Quiz, Question, load_bank\nfrom questions import QUESTION_BANK\n\n\ndef build_parser():\n    parser = argparse.ArgumentParser(description=\"Configurable trivia quiz game.\")\n    parser.add_argument(\"--bank\", metavar=\"FILE.json\",\n                        help=\"Path to a JSON question bank (list of question objects).\")\n    parser.add_argument(\"--shuffle\", action=\"store_true\", help=\"Shuffle question order.\")\n    parser.add_argument(\"--limit\", type=int, metavar=\"N\",\n                        help=\"Ask only the first N questions.\")\n    parser.add_argument(\"--show-answers\", action=\"store_true\",\n                        help=\"Display correct answers in the review after the quiz.\")\n    return parser\n\n\ndef main(argv=None):\n    args = build_parser().parse_args(argv)\n    try:\n        if args.bank:\n            questions = load_bank(args.bank)\n        else:\n            questions = [Question.from_dict(item) for item in QUESTION_BANK]\n    except (OSError, ValueError, KeyError, TypeError) as exc:\n        print(\"Failed to load question bank: %s\" % exc)\n        return 1\n    if not questions:\n        print(\"Question bank is empty.\")\n        return 1\n    Quiz(questions, shuffle=args.shuffle, limit=args.limit,\n         show_answers=args.show_answers).run()\n    return 0\n\n\nif __name__ == \"__main__\":\n    sys.exit(main())\n```\n\nquiz.py\n```python\n\"\"\"Core quiz engine: question model, answer checking, scoring, and review.\"\"\"\n\nimport json\nimport random\nimport re\n\n\ndef normalize(text):\n    return re.sub(r\"\\s+\", \" \", str(text).strip().lower())\n\n\nclass Question:\n    def __init__(self, topic, text, answer, choices=None, qtype=\"mc\"):\n        self.topic = topic\n        self.text = text\n        self.choices = choices or []\n        self.qtype = qtype\n        self.answer = answer\n        self.user_answer = None\n        self.correct = False\n\n    @classmethod\n    def from_dict(cls, data):\n        qtype = data.get(\"type\", \"mc\")\n        if qtype == \"mc\":\n            return cls(data.get(\"topic\", \"General\"), data[\"question\"],\n                       data[\"answer\"], data.get(\"choices\", []), \"mc\")\n        answers = data[\"answer\"] if isinstance(data[\"answer\"], list) else [data[\"answer\"]]\n        return cls(data.get(\"topic\", \"General\"), data[\"question\"], answers, None, \"sa\")\n\n    def check(self, raw):\n        self.user_answer = raw.strip()\n        guess = normalize(raw)\n        if self.qtype == \"mc\":\n            for i, choice in enumerate(self.choices):\n                if guess == normalize(choice) or guess == chr(65 + i).lower():\n                    self.correct = normalize(choice) == normalize(self.answer)\n                    return self.correct\n            self.correct = False\n        else:\n            self.correct = any(guess == normalize(a) for a in self.answer)\n        return self.correct\n\n    def prompt(self, index):\n        lines = [\"Q%d [%s] %s\" % (index, self.topic, self.text)]\n        if self.qtype == \"mc\":\n            for i, choice in enumerate(self.choices):\n                lines.append(\"  %s) %s\" % (chr(65 + i), choice))\n        return \"\\n\".join(lines)\n\n    def display_answer(self):\n        if self.qtype == \"mc\":\n            return self.answer\n        return \" / \".join(self.answer)\n\n\nclass Quiz:\n    def __init__(self, questions, shuffle=False, limit=None, show_answers=False):\n        self.questions = questions\n        if shuffle:\n            random.shuffle(self.questions)\n        if limit is not None and limit > 0:\n            self.questions = self.questions[:limit]\n        self.show_answers = show_answers\n        self.score = 0\n\n    def run(self):\n        total = len(self.questions)\n        print(\"=\" * 60)\n        print(\"TRIVIA QUIZ  -  %d questions (mc = multiple choice, sa = short answer)\" % total)\n        print(\"=\" * 60)\n        for i, q in enumerate(self.questions, 1):\n            print()\n            print(q.prompt(i))\n            while True:\n                raw = input(\"Your answer: \").strip()\n                if raw:\n                    break\n                print(\"Please enter an answer.\")\n            if q.check(raw):\n                self.score += 1\n                print(\"Correct!\")\n            else:\n                print(\"Wrong.\")\n        self.report()\n\n    def report(self):\n        total = len(self.questions)\n        pct = (100.0 * self.score / total) if total else 0.0\n        print()\n        print(\"=\" * 60)\n        print(\"QUIZ COMPLETE\")\n        print(\"Total questions : %d\" % total)\n        print(\"Correct answers : %d\" % self.score)\n        print(\"Final score     : %d/%d (%.0f%%)\" % (self.score, total, pct))\n        print(\"=\" * 60)\n        if self.show_answers:\n            print()\n            print(\"ANSWER REVIEW\")\n            for i, q in enumerate(self.questions, 1):\n                status = \"CORRECT\" if q.correct else \"WRONG  \"\n                yours = q.user_answer if q.user_answer is not None else \"(no answer)\"\n                print(\"%d. [%s] %s\" % (i, status, q.text))\n                print(\"   Your answer    : %s\" % yours)\n                print(\"   Correct answer : %s\" % q.display_answer())\n\n\ndef load_bank(path):\n    \"\"\"Load a JSON question bank: a list of question objects,\n    or an object with a 'questions' key holding that list.\"\"\"\n    with open(path, \"r\", encoding=\"utf-8\") as fh:\n        data = json.load(fh)\n    items = data.get(\"questions\", data) if isinstance(data, dict) else data\n    return [Question.from_dict(item) for item in items]\n```\n\nquestions.py\n```python\n\"\"\"Built-in configurable question bank.\n\nEach entry:\n  {\"topic\": str, \"type\": \"mc\", \"question\": str, \"choices\": [str, ...], \"answer\": str}\n  {\"topic\": str, \"type\": \"sa\", \"question\": str, \"answer\": str or [str, ...]}\n\nEdit this list or supply a JSON file via: python main.py --bank mybank.json\n\"\"\"\n\nQUESTION_BANK = [\n    {\"topic\": \"Geography\", \"type\": \"mc\", \"question\": \"What is the capital of Australia?\",\n     \"choices\": [\"Sydney\", \"Melbourne\", \"Canberra\", \"Perth\"], \"answer\": \"Canberra\"},\n    {\"topic\": \"Geography\", \"type\": \"sa\", \"question\": \"What is the longest river in the world?\",\n     \"answer\": [\"nile\", \"the nile\"]},\n    {\"topic\": \"Science\", \"type\": \"mc\", \"question\": \"What is the chemical symbol for gold?\",\n     \"choices\": [\"Go\", \"Gd\", \"Au\", \"Ag\"], \"answer\": \"Au\"},\n    {\"topic\": \"Science\", \"type\": \"sa\", \"question\": \"How many planets are in our solar system?\",\n     \"answer\": [\"8\", \"eight\"]},\n    {\"topic\": \"History\", \"type\": \"mc\", \"question\": \"In which year did World War II end?\",\n     \"choices\": [\"1943\", \"1945\", \"1947\", \"1950\"], \"answer\": \"1945\"},\n    {\"topic\": \"History\", \"type\": \"sa\", \"question\": \"Who was the first President of the United States?\",\n     \"answer\": [\"george washington\", \"washington\"]},\n    {\"topic\": \"Literature\", \"type\": \"mc\", \"question\": \"Who wrote 'Romeo and Juliet'?\",\n     \"choices\": [\"Charles Dickens\", \"William Shakespeare\", \"Jane Austen\", \"Mark Twain\"],\n     \"answer\": \"William Shakespeare\"},\n    {\"topic\": \"Literature\", \"type\": \"sa\", \"question\": \"What is the first book of the 'Lord of the Rings' trilogy?\",\n     \"answer\": [\"the fellowship of the ring\", \"fellowship of the ring\"]},\n    {\"topic\": \"Math\", \"type\": \"sa\", \"question\": \"What is 12 x 8?\",\n     \"answer\": [\"96\"]},\n    {\"topic\": \"Math\", \"type\": \"mc\", \"question\": \"What is the value of pi to two decimal places?\",\n     \"choices\": [\"3.12\", \"3.14\", \"3.16\", \"3.18\"], \"answer\": \"3.14\"},\n    {\"topic\": \"Technology\", \"type\": \"mc\", \"question\": \"What does 'CPU' stand for?\",\n     \"choices\": [\"Central Process Unit\", \"Computer Personal Unit\",\n                 \"Central Processing Unit\", \"Core Program Utility\"],\n     \"answer\": \"Central Processing Unit\"},\n    {\"topic\": \"Technology\", \"type\": \"sa\", \"question\": \"Which programming language is named after a TV comedy group?\",\n     \"answer\": [\"python\"]},\n    {\"topic\": \"Sports\", \"type\": \"mc\", \"question\": \"How many players are on a soccer team on the field?\",\n     \"choices\": [\"9\", \"10\", \"11\", \"12\"], \"answer\": \"11\"},\n    {\"topic\": \"Music\", \"type\": \"sa\", \"question\": \"How many strings does a standard guitar have?\",\n     \"answer\": [\"6\", \"six\"]},\n]\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "0fdc3bab21b9478486339c08fdebe6ae5d7d3ef3d1686231b202906c8e35c1b2",
+      "result": "{\"verdict\": \"changes_requested\", \"issues\": [{\"file\": \"quiz.py\", \"line\": 113, \"message\": \"load_bank does not validate bank structure: if the JSON top level is an object without a 'questions' key (or the list contains non-object entries), items becomes a dict/str iterable and Question.from_dict (quiz.py line 24) raises AttributeError ('str' object has no attribute 'get'), which is not among the exceptions caught in main.py, so a malformed custom bank crashes with a traceback instead of the intended friendly 'Failed to load question bank' message. Fix: in load_bank, verify items is a list and each entry is a dict, raising ValueError with a clear message so main.py's existing handler reports it gracefully.\"}]}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "0fdc3bab21b9478486339c08fdebe6ae5d7d3ef3d1686231b202906c8e35c1b2",
+      "result": "quiz.py\n```python\n\"\"\"Core quiz engine: question model, answer checking, scoring, and review.\"\"\"\n\nimport json\nimport random\nimport re\n\n\ndef normalize(text):\n    return re.sub(r\"\\s+\", \" \", str(text).strip().lower())\n\n\nclass Question:\n    def __init__(self, topic, text, answer, choices=None, qtype=\"mc\"):\n        self.topic = topic\n        self.text = text\n        self.choices = choices or []\n        self.qtype = qtype\n        self.answer = answer\n        self.user_answer = None\n        self.correct = False\n\n    @classmethod\n    def from_dict(cls, data):\n        qtype = data.get(\"type\", \"mc\")\n        if qtype == \"mc\":\n            return cls(data.get(\"topic\", \"General\"), data[\"question\"],\n                       data[\"answer\"], data.get(\"choices\", []), \"mc\")\n        answers = data[\"answer\"] if isinstance(data[\"answer\"], list) else [data[\"answer\"]]\n        return cls(data.get(\"topic\", \"General\"), data[\"question\"], answers, None, \"sa\")\n\n    def check(self, raw):\n        self.user_answer = raw.strip()\n        guess = normalize(raw)\n        if self.qtype == \"mc\":\n            for i, choice in enumerate(self.choices):\n                if guess == normalize(choice) or guess == chr(65 + i).lower():\n                    self.correct = normalize(choice) == normalize(self.answer)\n                    return self.correct\n            self.correct = False\n        else:\n            self.correct = any(guess == normalize(a) for a in self.answer)\n        return self.correct\n\n    def prompt(self, index):\n        lines = [\"Q%d [%s] %s\" % (index, self.topic, self.text)]\n        if self.qtype == \"mc\":\n            for i, choice in enumerate(self.choices):\n                lines.append(\"  %s) %s\" % (chr(65 + i), choice))\n        return \"\\n\".join(lines)\n\n    def display_answer(self):\n        if self.qtype == \"mc\":\n            return self.answer\n        return \" / \".join(self.answer)\n\n\nclass Quiz:\n    def __init__(self, questions, shuffle=False, limit=None, show_answers=False):\n        self.questions = questions\n        if shuffle:\n            random.shuffle(self.questions)\n        if limit is not None and limit > 0:\n            self.questions = self.questions[:limit]\n        self.show_answers = show_answers\n        self.score = 0\n\n    def run(self):\n        total = len(self.questions)\n        print(\"=\" * 60)\n        print(\"TRIVIA QUIZ  -  %d questions (mc = multiple choice, sa = short answer)\" % total)\n        print(\"=\" * 60)\n        for i, q in enumerate(self.questions, 1):\n            print()\n            print(q.prompt(i))\n            while True:\n                raw = input(\"Your answer: \").strip()\n                if raw:\n                    break\n                print(\"Please enter an answer.\")\n            if q.check(raw):\n                self.score += 1\n                print(\"Correct!\")\n            else:\n                print(\"Wrong.\")\n        self.report()\n\n    def report(self):\n        total = len(self.questions)\n        pct = (100.0 * self.score / total) if total else 0.0\n        print()\n        print(\"=\" * 60)\n        print(\"QUIZ COMPLETE\")\n        print(\"Total questions : %d\" % total)\n        print(\"Correct answers : %d\" % self.score)\n        print(\"Final score     : %d/%d (%.0f%%)\" % (self.score, total, pct))\n        print(\"=\" * 60)\n        if self.show_answers:\n            print()\n            print(\"ANSWER REVIEW\")\n            for i, q in enumerate(self.questions, 1):\n                status = \"CORRECT\" if q.correct else \"WRONG  \"\n                yours = q.user_answer if q.user_answer is not None else \"(no answer)\"\n                print(\"%d. [%s] %s\" % (i, status, q.text))\n                print(\"   Your answer    : %s\" % yours)\n                print(\"   Correct answer : %s\" % q.display_answer())\n\n\ndef load_bank(path):\n    \"\"\"Load a JSON question bank: a list of question objects,\n    or an object with a 'questions' key holding that list.\"\"\"\n    with open(path, \"r\", encoding=\"utf-8\") as fh:\n        data = json.load(fh)\n    items = data.get(\"questions\", data) if isinstance(data, dict) else data\n    if not isinstance(items, list):\n        raise ValueError(\"question bank must be a list of question objects \"\n                         \"or an object with a 'questions' list.\")\n    for i, item in enumerate(items, 1):\n        if not isinstance(item, dict):\n            raise ValueError(\"question #%d is not an object (got %s).\"\n                             % (i, type(item).__name__))\n    return [Question.from_dict(item) for item in items]\n```"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "0860c321ef03dd6b01426723afca97c1ef27791ad919cab0ae8c9636d48b0ebc",
+      "result": "{\"status\": \"failed\", \"test_run_id\": \"ce7476f13ce7f34b040b30c04e9d04ddeb538b84bd59fc31474c339c220e41e6\", \"summary\": \"Startup smoke run exited 1 with EOFError at quiz.py:76 on input('Your answer: ') because the harness invoked the interactive CLI with closed stdin and a 3s timeout. Evidence shows no source defect: all modules imported cleanly, the 14-question bank loaded, and the first MC question rendered correctly before the prompt. This is an unsupported non-interactive invocation of an interactive program, not a missing dependency or code error; a conclusive verdict requires a run with stdin supplied (e.g., piped answers) or an EOF-tolerant input path.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "0860c321ef03dd6b01426723afca97c1ef27791ad919cab0ae8c9636d48b0ebc",
+      "result": "main.py\n```python\n\"\"\"Trivia quiz entry point.\n\nUsage:\n    python main.py                      # built-in bank (questions.py)\n    python main.py --bank mybank.json   # custom JSON question bank\n    python main.py --shuffle --limit 5 --show-answers\n\"\"\"\n\nimport argparse\nimport sys\n\nfrom quiz import Quiz, Question, load_bank\nfrom questions import QUESTION_BANK\n\n\ndef build_parser():\n    parser = argparse.ArgumentParser(description=\"Configurable trivia quiz game.\")\n    parser.add_argument(\"--bank\", metavar=\"FILE.json\",\n                        help=\"Path to a JSON question bank (list of question objects).\")\n    parser.add_argument(\"--shuffle\", action=\"store_true\", help=\"Shuffle question order.\")\n    parser.add_argument(\"--limit\", type=int, metavar=\"N\",\n                        help=\"Ask only the first N questions.\")\n    parser.add_argument(\"--show-answers\", action=\"store_true\",\n                        help=\"Display correct answers in the review after the quiz.\")\n    return parser\n\n\ndef main(argv=None):\n    args = build_parser().parse_args(argv)\n    try:\n        if args.bank:\n            questions = load_bank(args.bank)\n        else:\n            questions = [Question.from_dict(item) for item in QUESTION_BANK]\n    except (OSError, ValueError, KeyError, TypeError) as exc:\n        print(\"Failed to load question bank: %s\" % exc)\n        return 1\n    if not questions:\n        print(\"Question bank is empty.\")\n        return 1\n    Quiz(questions, shuffle=args.shuffle, limit=args.limit,\n         show_answers=args.show_answers).run()\n    return 0\n\n\nif __name__ == \"__main__\":\n    sys.exit(main())\n```\n\nquiz.py\n```python\n\"\"\"Core quiz engine: question model, answer checking, scoring, and review.\"\"\"\n\nimport json\nimport random\nimport re\n\n\ndef normalize(text):\n    return re.sub(r\"\\s+\", \" \", str(text).strip().lower())\n\n\ndef read_answer(prompt_text):\n    \"\"\"Read one line of user input; return None on EOF (closed stdin).\"\"\"\n    try:\n        return input(prompt_text)\n    except EOFError:\n        return None\n    except KeyboardInterrupt:\n        return None\n\n\nclass Question:\n    def __init__(self, topic, text, answer, choices=None, qtype=\"mc\"):\n        self.topic = topic\n        self.text = text\n        self.choices = choices or []\n        self.qtype = qtype\n        self.answer = answer\n        self.user_answer = None\n        self.correct = False\n\n    @classmethod\n    def from_dict(cls, data):\n        qtype = data.get(\"type\", \"mc\")\n        if qtype == \"mc\":\n            return cls(data.get(\"topic\", \"General\"), data[\"question\"],\n                       data[\"answer\"], data.get(\"choices\", []), \"mc\")\n        answers = data[\"answer\"] if isinstance(data[\"answer\"], list) else [data[\"answer\"]]\n        return cls(data.get(\"topic\", \"General\"), data[\"question\"], answers, None, \"sa\")\n\n    def check(self, raw):\n        self.user_answer = raw.strip()\n        guess = normalize(raw)\n        if self.qtype == \"mc\":\n            for i, choice in enumerate(self.choices):\n                if guess == normalize(choice) or guess == chr(65 + i).lower():\n                    self.correct = normalize(choice) == normalize(self.answer)\n                    return self.correct\n            self.correct = False\n        else:\n            self.correct = any(guess == normalize(a) for a in self.answer)\n        return self.correct\n\n    def prompt(self, index):\n        lines = [\"Q%d [%s] %s\" % (index, self.topic, self.text)]\n        if self.qtype == \"mc\":\n            for i, choice in enumerate(self.choices):\n                lines.append(\"  %s) %s\" % (chr(65 + i), choice))\n        return \"\\n\".join(lines)\n\n    def display_answer(self):\n        if self.qtype == \"mc\":\n            return self.answer\n        return \" / \".join(self.answer)\n\n\nclass Quiz:\n    def __init__(self, questions, shuffle=False, limit=None, show_answers=False):\n        self.questions = questions\n        if shuffle:\n            random.shuffle(self.questions)\n        if limit is not None and limit > 0:\n            self.questions = self.questions[:limit]\n        self.show_answers = show_answers\n        self.score = 0\n\n    def run(self):\n        total = len(self.questions)\n        print(\"=\" * 60)\n        print(\"TRIVIA QUIZ  -  %d questions (mc = multiple choice, sa = short answer)\" % total)\n        print(\"=\" * 60)\n        for i, q in enumerate(self.questions, 1):\n            print()\n            print(q.prompt(i))\n            raw = None\n            while True:\n                raw = read_answer(\"Your answer: \")\n                if raw is None:\n                    break\n                if raw.strip():\n                    break\n                print(\"Please enter an answer.\")\n            if raw is None:\n                print()\n                print(\"Input stream ended; scoring answers given so far.\")\n                break\n            if q.check(raw):\n                self.score += 1\n                print(\"Correct!\")\n            else:\n                print(\"Wrong.\")\n        self.report()\n\n    def report(self):\n        total = len(self.questions)\n        pct = (100.0 * self.score / total) if total else 0.0\n        print()\n        print(\"=\" * 60)\n        print(\"QUIZ COMPLETE\")\n        print(\"Total questions : %d\" % total)\n        print(\"Correct answers : %d\" % self.score)\n        print(\"Final score     : %d/%d (%.0f%%)\" % (self.score, total, pct))\n        print(\"=\" * 60)\n        if self.show_answers:\n            print()\n            print(\"ANSWER REVIEW\")\n            for i, q in enumerate(self.questions, 1):\n                status = \"CORRECT\" if q.correct else \"WRONG  \"\n                yours = q.user_answer if q.user_answer is not None else \"(no answer)\"\n                print(\"%d. [%s] %s\" % (i, status, q.text))\n                print(\"   Your answer    : %s\" % yours)\n                print(\"   Correct answer : %s\" % q.display_answer())\n\n\ndef load_bank(path):\n    \"\"\"Load a JSON question bank: a list of question objects,\n    or an object with a 'questions' key holding that list.\"\"\"\n    with open(path, \"r\", encoding=\"utf-8\") as fh:\n        data = json.load(fh)\n    items = data.get(\"questions\", data) if isinstance(data, dict) else data\n    if not isinstance(items, list):\n        raise ValueError(\"question bank must be a list of question objects \"\n                         \"or an object with a 'questions' list.\")\n    for i, item in enumerate(items, 1):\n        if not isinstance(item, dict):\n            raise ValueError(\"question #%d is not an object (got %s).\"\n                             % (i, type(item).__name__))\n    return [Question.from_dict(item) for item in items]\n```\n\nquestions.py\n```python\n\"\"\"Built-in configurable question bank.\n\nEach entry:\n  {\"topic\": str, \"type\": \"mc\", \"question\": str, \"choices\": [str, ...], \"answer\": str}\n  {\"topic\": str, \"type\": \"sa\", \"question\": str, \"answer\": str or [str, ...]}\n\nEdit this list or supply a JSON file via: python main.py --bank mybank.json\n\"\"\"\n\nQUESTION_BANK = [\n    {\"topic\": \"Geography\", \"type\": \"mc\", \"question\": \"What is the capital of Australia?\",\n     \"choices\": [\"Sydney\", \"Melbourne\", \"Canberra\", \"Perth\"], \"answer\": \"Canberra\"},\n    {\"topic\": \"Geography\", \"type\": \"sa\", \"question\": \"What is the longest river in the world?\",\n     \"answer\": [\"nile\", \"the nile\"]},\n    {\"topic\": \"Science\", \"type\": \"mc\", \"question\": \"What is the chemical symbol for gold?\",\n     \"choices\": [\"Go\", \"Gd\", \"Au\", \"Ag\"], \"answer\": \"Au\"},\n    {\"topic\": \"Science\", \"type\": \"sa\", \"question\": \"How many planets are in our solar system?\",\n     \"answer\": [\"8\", \"eight\"]},\n    {\"topic\": \"History\", \"type\": \"mc\", \"question\": \"In which year did World War II end?\",\n     \"choices\": [\"1943\", \"1945\", \"1947\", \"1950\"], \"answer\": \"1945\"},\n    {\"topic\": \"History\", \"type\": \"sa\", \"question\": \"Who was the first President of the United States?\",\n     \"answer\": [\"george washington\", \"washington\"]},\n    {\"topic\": \"Literature\", \"type\": \"mc\", \"question\": \"Who wrote 'Romeo and Juliet'?\",\n     \"choices\": [\"Charles Dickens\", \"William Shakespeare\", \"Jane Austen\", \"Mark Twain\"],\n     \"answer\": \"William Shakespeare\"},\n    {\"topic\": \"Literature\", \"type\": \"sa\", \"question\": \"What is the first book of the 'Lord of the Rings' trilogy?\",\n     \"answer\": [\"the fellowship of the ring\", \"fellowship of the ring\"]},\n    {\"topic\": \"Math\", \"type\": \"sa\", \"question\": \"What is 12 x 8?\",\n     \"answer\": [\"96\"]},\n    {\"topic\": \"Math\", \"type\": \"mc\", \"question\": \"What is the value of pi to two decimal places?\",\n     \"choices\": [\"3.12\", \"3.14\", \"3.16\", \"3.18\"], \"answer\": \"3.14\"},\n    {\"topic\": \"Technology\", \"type\": \"mc\", \"question\": \"What does 'CPU' stand for?\",\n     \"choices\": [\"Central Process Unit\", \"Computer Personal Unit\",\n                 \"Central Processing Unit\", \"Core Program Utility\"],\n     \"answer\": \"Central Processing Unit\"},\n    {\"topic\": \"Technology\", \"type\": \"sa\", \"question\": \"Which programming language is named after a TV comedy group?\",\n     \"answer\": [\"python\"]},\n    {\"topic\": \"Sports\", \"type\": \"mc\", \"question\": \"How many players are on a soccer team on the field?\",\n     \"choices\": [\"9\", \"10\", \"11\", \"12\"], \"answer\": \"11\"},\n    {\"topic\": \"Music\", \"type\": \"sa\", \"question\": \"How many strings does a standard guitar have?\",\n     \"answer\": [\"6\", \"six\"]},\n]\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "1cae590f663a657542c7f199a86cff2358377d58f0299e7d3cd2a5fdd92fb733",
+    "source_digests": {
+      "main.py": "d158503891d8a7f343fa1567d68a9ac3824a667ad40776959e46659ecea824fb",
+      "questions.py": "3afc34816fd6eb6f76cbb64fd90863ca5b063aa4407b4b36c04e3b924ee1666c",
+      "quiz.py": "8625e94ec0c6db6b8c65b54360e9afe7aef937297d6c52824bb7c22df144df2f"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "main.py"
+    ],
+    "timeout_seconds": 3,
+    "status": "passed",
+    "exit_code": 0,
+    "stdout": "============================================================\nTRIVIA QUIZ  -  14 questions (mc = multiple choice, sa = short answer)\n============================================================\n\nQ1 [Geography] What is the capital of Australia?\n  A) Sydney\n  B) Melbourne\n  C) Canberra\n  D) Perth\nYour answer: \nInput stream ended; scoring answers given so far.\n\n============================================================\nQUIZ COMPLETE\nTotal questions : 14\nCorrect answers : 0\nFinal score     : 0/14 (0%)\n============================================================\n",
+    "stderr": "",
+    "profile": "process_exit",
+    "id": "24055be100ae79298d341bed265a21db4f56b56fee6e050c1f1bbb851d1eb649"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "7eb874a909fdedf2683e7c8c5212c03f294b6213c9d32f409d0826cd275e7a29",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "7eb874a909fdedf2683e7c8c5212c03f294b6213c9d32f409d0826cd275e7a29",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "dd30cace71ba2eb759331a9cbaf038884c264b71b620ae6f07870394d0abddf0",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "46645f04da96ddc996935ae1da244a44d299cafb8c4bf9efe53b4f0c72de1335",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "46645f04da96ddc996935ae1da244a44d299cafb8c4bf9efe53b4f0c72de1335",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "0fdc3bab21b9478486339c08fdebe6ae5d7d3ef3d1686231b202906c8e35c1b2",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "c7c2cb4ce7a719463f6190343dd04e7b259b23b129db8644ac4b7e437dce827b",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "0fdc3bab21b9478486339c08fdebe6ae5d7d3ef3d1686231b202906c8e35c1b2",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "9436df90a4b99527961543d2887eab6bb6cce60eab796062331897f5de44d935",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "0fdc3bab21b9478486339c08fdebe6ae5d7d3ef3d1686231b202906c8e35c1b2",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "4651dad7d7f38e63a74e56a514d999a8140be54f60ace97f0aaaf678e2e319fd",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "0fdc3bab21b9478486339c08fdebe6ae5d7d3ef3d1686231b202906c8e35c1b2",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "4651dad7d7f38e63a74e56a514d999a8140be54f60ace97f0aaaf678e2e319fd",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "0860c321ef03dd6b01426723afca97c1ef27791ad919cab0ae8c9636d48b0ebc",
+        "source_digests": {
+          "main.py": "d158503891d8a7f343fa1567d68a9ac3824a667ad40776959e46659ecea824fb",
+          "questions.py": "3afc34816fd6eb6f76cbb64fd90863ca5b063aa4407b4b36c04e3b924ee1666c",
+          "quiz.py": "04540348e0e3c759ae0da497a686ef1d92340660eb84e791bd2d959d8f18ed7a"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "============================================================\nTRIVIA QUIZ  -  14 questions (mc = multiple choice, sa = short answer)\n============================================================\n\nQ1 [Geography] What is the capital of Australia?\n  A) Sydney\n  B) Melbourne\n  C) Canberra\n  D) Perth\nYour answer: ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r01/17_TriviaQuiz/artifact\\main.py\", line 47, in <module>\n    sys.exit(main())\n             ^^^^^^\n  File \"data/runs/mpst_contract/r01/17_TriviaQuiz/artifact\\main.py\", line 42, in main\n    show_answers=args.show_answers).run()\n                                    ^^^^^\n  File \"data/runs/mpst_contract/r01/17_TriviaQuiz/artifact\\quiz.py\", line 76, in run\n    raw = input(\"Your answer: \").strip()\n          ^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "ce7476f13ce7f34b040b30c04e9d04ddeb538b84bd59fc31474c339c220e41e6"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "0860c321ef03dd6b01426723afca97c1ef27791ad919cab0ae8c9636d48b0ebc",
+        "source_digests": {
+          "main.py": "d158503891d8a7f343fa1567d68a9ac3824a667ad40776959e46659ecea824fb",
+          "questions.py": "3afc34816fd6eb6f76cbb64fd90863ca5b063aa4407b4b36c04e3b924ee1666c",
+          "quiz.py": "04540348e0e3c759ae0da497a686ef1d92340660eb84e791bd2d959d8f18ed7a"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "============================================================\nTRIVIA QUIZ  -  14 questions (mc = multiple choice, sa = short answer)\n============================================================\n\nQ1 [Geography] What is the capital of Australia?\n  A) Sydney\n  B) Melbourne\n  C) Canberra\n  D) Perth\nYour answer: ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r01/17_TriviaQuiz/artifact\\main.py\", line 47, in <module>\n    sys.exit(main())\n             ^^^^^^\n  File \"data/runs/mpst_contract/r01/17_TriviaQuiz/artifact\\main.py\", line 42, in main\n    show_answers=args.show_answers).run()\n                                    ^^^^^\n  File \"data/runs/mpst_contract/r01/17_TriviaQuiz/artifact\\quiz.py\", line 76, in run\n    raw = input(\"Your answer: \").strip()\n          ^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "ce7476f13ce7f34b040b30c04e9d04ddeb538b84bd59fc31474c339c220e41e6"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "0860c321ef03dd6b01426723afca97c1ef27791ad919cab0ae8c9636d48b0ebc",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "46d5ec733a4a587b4e803bb7a9ce44b9c97ddacb68e563998efa1bfca24644af",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "0860c321ef03dd6b01426723afca97c1ef27791ad919cab0ae8c9636d48b0ebc",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "6449f4d1b406da8671996dad9ba3c9ce08739de8e1fb8f3aac2b31b6b90568b1",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "0860c321ef03dd6b01426723afca97c1ef27791ad919cab0ae8c9636d48b0ebc",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "missing_source_files",
+          "path": "$",
+          "message": "No explicitly declared Python source files were delivered.",
+          "repair": "Stop analysis. Start with main.py on its own line followed by a fenced Python code block. Return compact complete executable files only."
+        }
+      ],
+      "candidate_sha256": "70af65f9f6363ac38368344f446f800df597ccdc37f1653423b5ec777314208c",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": "The host evidence shows an EOFError when stdin is closed. The error summary says this is an unsupported non-interactive invocation, not a source defect. However, the instruction says \"Repair source defects supported by host evidence\" and \"Do not add auto-exit behavior merely to satisfy an unsuitable test.\"\n\nThe evidence shows the program works correctly until it needs input. The EOFError is because stdin is closed. The summary says \"a conclusive verdict requires a run with stdin supplied (e.g., piped answers) or an EOF-tolerant input path.\"\n\nSo the fix should be to make the input path EOF-tolerant — handle EOFError gracefully rather than crashing with a traceback. This is a reasonable robustness fix: catch EOFError (and KeyboardInterrupt) in the input loop and treat it as end-of-quiz, showing the report with answers so far. That's not \"auto-exit to satisfy an unsuitable test\" — it's graceful handling of EOF, which is a legitimate robustness improvement. The program should still work interactively.\n\nLet me modify quiz.py's run() to handle EOFError/KeyboardInterrupt: when input raises EOFError, print a message and break to report. Also main.py could catch EOFError but the graceful path in quiz.py is enough.\n\nAlso, when EOF occurs, we should still show the report (score so far) and possibly the answer review. That's reasonable behavior.\n\nLet me write the updated quiz.py:\n\n```python\ndef run(self):\n    total = len(self.questions)\n    print(\"=\" * 60)\n    print(\"TRIVIA QUIZ  -  %d questions (mc = multiple choice, sa = short answer)\" % total)\n    print(\"=\" * 60)\n    for i, q in enumerate(self.questions, 1):\n        print()\n        print(q.prompt(i))\n        while True:\n            try:\n                raw = input(\"Your answer: \").strip()\n            except (EOFError, KeyboardInterrupt):\n                print()\n                print(\"Input ended early; finishing quiz with answers given so far.\")\n                self.report()\n                return\n            if raw:\n                break\n            print(\"Please enter an answer.\")\n        if q.check(raw):\n            self.score += 1\n            print(\"Correct!\")\n        else:\n            print(\"Wrong.\")\n    self.report()\n```\n\nWait — but if EOF happens, report() would be called with self.questions being all questions but only some answered. The report shows total questions and score. The answer review would show \"(no answer)\" for unanswered ones. That's fine.\n\nActually, maybe better: track answered questions. But keep it simple — report shows total and correct count; review shows \"(no answer)\" for unanswered. That's acceptable.\n\nAlso main.py: should it catch EOFError? The Quiz.run handles it, so main doesn't need to. But to be safe, main could also wrap Quiz run in try/except for KeyboardInterrupt... The quiz handles it. Fine.\n\nShould I also handle EOFError in main.py? Not necessary.\n\nThe instruction: \"Return only final changed files.\" So only quiz.py changed. But also \"Start with main.py for initial coding.\" Hmm — \"Start with main.py for initial coding\" — that's from the original task instruction template. The repair instruction says \"Return only final changed files.\" There's tension. The safest: return only the changed file (quiz.py). But the instruction \"Start with main.py for initial coding\" might require main.py first. Since only quiz.py changed, returning just quiz.py seems right per \"Return only final changed files.\"\n\nActually, re-reading: \"Return FINAL SOURCE FILES ONLY... For each file, output its filename alone on a line, then a closed fenced Python code block. Return each final file once.\" And \"Return only final changed files.\" I'll return just quiz.py since it's the only changed file.\n\nHmm, but \"Start with main.py for initial coding\" — that applies to initial coding phase, not repair. The repair instruction overrides: \"Return only final changed files.\"\n\nLet me finalize quiz.py with the EOF-tolerant input. Keep everything else identical.\n\nAlso consider: KeyboardInterrupt during input — catching it and finishing gracefully is good. But KeyboardInterrupt typically should propagate? For a CLI quiz, catching it and showing the report is friendly. I'll catch both EOFError and KeyboardInterrupt.\n\nOne more consideration: the harness runs with 3s timeout and closed stdin. With EOF handling, the program will print the report and exit 0 quickly. That's not \"auto-exit to satisfy an unsuitable test\" — it's graceful EOF handling, which the error summary explicitly suggests (\"an EOF-tolerant input path\"). Good.\n\nFinal quiz.py:\n\n```python\n\"\"\"Core quiz engine: question model, answer checking, scoring, and review.\"\"\"\n\nimport json\nimport random\nimport re\n\n\ndef normalize(text):\n    return re.sub(r\"\\s+\", \" \", str(text).strip().lower())\n\n\nclass Question:\n    ... (same)\n\n\nclass Quiz:\n    def __init__(...): same\n\n    def run(self):\n        total = len(self.questions)\n        print(\"=\" * 60)\n        print(\"TRIVIA QUIZ  -  %d questions (mc = multiple choice, sa = short answer)\" % total)\n        print(\"=\" * 60)\n        for i, q in enumerate(self.questions, 1):\n            print()\n            print(q.prompt(i))\n            while True:\n                try:\n                    raw = input(\"Your answer: \").strip()\n                except (EOFError, KeyboardInterrupt):\n                    print()\n                    print(\"Input stream closed; ending quiz early.\")\n                    self.report()\n                    return\n                if raw:\n                    break\n                print(\"Please enter an answer.\")\n            if q.check(raw):\n                self.score += 1\n                print(\"Correct!\")\n            else:\n                print(\"Wrong.\")\n        self.report()\n```\n\nEverything else unchanged. Output only quiz.py.quiz.py\n```python\n\"\"\"Core quiz engine: question model, answer checking, scoring, and review.\"\"\"\n\nimport json\nimport random\nimport re\n\n\ndef normalize(text):\n    return re.sub(r\"\\s+\", \" \", str(text).strip().lower())\n\n\nclass Question:\n    def __init__(self, topic, text, answer, choices=None, qtype=\"mc\"):\n        self.topic = topic\n        self.text = text\n        self.choices = choices or []\n        self.qtype = qtype\n        self.answer = answer\n        self.user_answer = None\n        self.correct = False\n\n    @classmethod\n    def from_dict(cls, data):\n        qtype = data.get(\"type\", \"mc\")\n        if qtype == \"mc\":\n            return cls(data.get(\"topic\", \"General\"), data[\"question\"],\n                       data[\"answer\"], data.get(\"choices\", []), \"mc\")\n        answers = data[\"answer\"] if isinstance(data[\"answer\"], list) else [data[\"answer\"]]\n        return cls(data.get(\"topic\", \"General\"), data[\"question\"], answers, None, \"sa\")\n\n    def check(self, raw):\n        self.user_answer = raw.strip()\n        guess = normalize(raw)\n        if self.qtype == \"mc\":\n            for i, choice in enumerate(self.choices):\n                if guess == normalize(choice) or guess == chr(65 + i).lower():\n                    self.correct = normalize(choice) == normalize(self.answer)\n                    return self.correct\n            self.correct = False\n        else:\n            self.correct = any(guess == normalize(a) for a in self.answer)\n        return self.correct\n\n    def prompt(self, index):\n        lines = [\"Q%d [%s] %s\" % (index, self.topic, self.text)]\n        if self.qtype == \"mc\":\n            for i, choice in enumerate(self.choices):\n                lines.append(\"  %s) %s\" % (chr(65 + i), choice))\n        return \"\\n\".join(lines)\n\n    def display_answer(self):\n        if self.qtype == \"mc\":\n            return self.answer\n        return \" / \".join(self.answer)\n\n\nclass Quiz:\n    def __init__(self, questions, shuffle=False, limit=None, show_answers=False):\n        self.questions = questions\n        if shuffle:\n            random.shuffle(self.questions)\n        if limit is not None and limit > 0:\n            self.questions = self.questions[:limit]\n        self.show_answers = show_answers\n        self.score = 0\n\n    def read_answer(self):\n        \"\"\"Read one non-empty answer line; return None on EOF/interrupt.\"\"\"\n        while True:\n            try:\n                raw = input(\"Your answer: \").strip()\n            except (EOFError, KeyboardInterrupt):\n                print()\n                return None\n            if raw:\n                return raw\n            print(\"Please enter an answer.\")\n\n    def run(self):\n        total = len(self.questions)\n        print(\"=\" * 60)\n        print(\"TRIVIA QUIZ  -  %d questions (mc = multiple choice, sa = short answer)\" % total)\n        print(\"=\" * 60)\n        for i, q in enumerate(self.questions, 1):\n            print()\n            print(q.prompt(i))\n            raw = self.read_answer()\n            if raw is None:\n                print(\"Input ended early; scoring the answers given so far.\")\n                break\n            if q.check(raw):\n                self.score += 1\n                print(\"Correct!\")\n            else:\n                print(\"Wrong.\")\n        self.report()\n\n    def report(self):\n        total = len(self.questions)\n        pct = (100.0 * self.score / total) if total else 0.0\n        print()\n        print(\"=\" * 60)\n        print(\"QUIZ COMPLETE\")\n        print(\"Total questions : %d\" % total)\n        print(\"Correct answers : %d\" % self.score)\n        print(\"Final score     : %d/%d (%.0f%%)\" % (self.score, total, pct))\n        print(\"=\" * 60)\n        if self.show_answers:\n            print()\n            print(\"ANSWER REVIEW\")\n            for i, q in enumerate(self.questions, 1):\n                status = \"CORRECT\" if q.correct else \"WRONG  \"\n                yours = q.user_answer if q.user_answer is not None else \"(no answer)\"\n                print(\"%d. [%s] %s\" % (i, status, q.text))\n                print(\"   Your answer    : %s\" % yours)\n                print(\"   Correct answer : %s\" % q.display_answer())\n\n\ndef load_bank(path):\n    \"\"\"Load a JSON question bank: a list of question objects,\n    or an object with a 'questions' key holding that list.\"\"\"\n    with open(path, \"r\", encoding=\"utf-8\") as fh:\n        data = json.load(fh)\n    items = data.get(\"questions\", data) if isinstance(data, dict) else data\n    if not isinstance(items, list):\n        raise ValueError(\"question bank must be a list of question objects \"\n                         \"or an object with a 'questions' list.\")\n    for i, item in enumerate(items, 1):\n        if not isinstance(item, dict):\n            raise ValueError(\"question #%d is not an object (got %s).\"\n                             % (i, type(item).__name__))\n    return [Question.from_dict(item) for item in items]\n```"
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "0860c321ef03dd6b01426723afca97c1ef27791ad919cab0ae8c9636d48b0ebc",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "04526eb26b3c2a0140e7294aa2034b9d13deb7cff9850e749c00f3ebc259b322",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "0860c321ef03dd6b01426723afca97c1ef27791ad919cab0ae8c9636d48b0ebc",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "04526eb26b3c2a0140e7294aa2034b9d13deb7cff9850e749c00f3ebc259b322",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "1cae590f663a657542c7f199a86cff2358377d58f0299e7d3cd2a5fdd92fb733",
+        "source_digests": {
+          "main.py": "d158503891d8a7f343fa1567d68a9ac3824a667ad40776959e46659ecea824fb",
+          "questions.py": "3afc34816fd6eb6f76cbb64fd90863ca5b063aa4407b4b36c04e3b924ee1666c",
+          "quiz.py": "8625e94ec0c6db6b8c65b54360e9afe7aef937297d6c52824bb7c22df144df2f"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "============================================================\nTRIVIA QUIZ  -  14 questions (mc = multiple choice, sa = short answer)\n============================================================\n\nQ1 [Geography] What is the capital of Australia?\n  A) Sydney\n  B) Melbourne\n  C) Canberra\n  D) Perth\nYour answer: \nInput stream ended; scoring answers given so far.\n\n============================================================\nQUIZ COMPLETE\nTotal questions : 14\nCorrect answers : 0\nFinal score     : 0/14 (0%)\n============================================================\n",
+        "stderr": "",
+        "profile": "process_exit",
+        "id": "24055be100ae79298d341bed265a21db4f56b56fee6e050c1f1bbb851d1eb649"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": true,
+      "evidence_id": "24055be100ae79298d341bed265a21db4f56b56fee6e050c1f1bbb851d1eb649"
+    }
+  ]
+}

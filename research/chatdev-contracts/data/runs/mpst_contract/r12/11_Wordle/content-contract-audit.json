@@ -1,0 +1,282 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "As the Chief Product Officer, I've carefully analyzed the customer's requirements for this task. Let me share my thoughts on the product modality:\n\n**My Recommendation: Application**\n\nHere's my reasoning:\n\n1. **Terminal-based gameplay**: The customer explicitly stated the game must be playable from the Linux Terminal without any dedicated UX or GUI platform. This immediately rules out Website, PowerPoint, PDF, and other document-based modalities.\n\n2. **Interactive input/output loop**: The game requires real-time interaction — the player enters guesses, and the terminal prints color-coded feedback (green/yellow/grey) at each stage. Only an Application (implemented via Python) can deliver this dynamic, turn-based interactive experience.\n\n3. **Color rendering in terminal**: Python can easily render colored text in the Linux terminal (e.g., using ANSI escape codes or libraries like `colorama`), which perfectly satisfies the green/grey/yellow feedback requirement.\n\n4. **Game logic requirements**: Features like word validation, 6-attempt limits, win/lose conditions, and revealing the solution are best handled by a self-contained Python script that runs directly in the terminal.\n\n5. **Precedent**: Our Application modality has successfully delivered visualized games, software, and tools via Python before — this Wordle game fits squarely within that proven capability.\n\nIn summary, an **Application** (Python-based terminal game) is the only modality that fully aligns with the customer's demand for a terminal-playable, interactive Wordle game.\n\nDo you agree with this choice? If so, we can finalize the product modality and move forward."
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\n#!/usr/bin/env python3\n\"\"\"Terminal Wordle: guess the daily 5-letter word in 6 tries.\"\"\"\nimport datetime\nimport random\n\nWORDS = set(\"\"\"about above abuse actor acute admit adopt adult after again agent agree ahead alarm\nalbum alert alike alive allow alone along alter among anger angle angry apart apple apply arena\nargue arise armor aroma array arrow aside asset audio audit avoid award aware badly baker basic\nbasis beach began begin being below bench birth black blade blame blank blast blind block blood\nboard boost booth bound brain brand bread break breed brief bring broad broke brown brush build\nbuilt bunch burst buyer cabin cable candy canoe cargo carry catch cause chain chair chalk charm\nchart chase cheap check cheek cheer chess chest chief child chill choir chose civil claim clash\nclass clean clear clerk click cliff climb cling clock close cloth cloud coach coast color comet\ncomic coral couch could count court cover crack craft crash crawl crazy cream creek crime crisp\ncross crowd crown crush curve cycle daily dairy dance dealt death debut decay delay depth diary\ndirty dodge doubt dozen draft drain drama drank dream dress drift drink drive drove eager eagle\nearly earth eight elbow elder elect elite empty enemy enjoy enter entry equal error event every\nexact exist extra faith false fault favor feast fence ferry fetch fever fewer fiber field fifth\nfifty fight final first flame flash fleet flesh float flood floor flour fluid flute focus force\nforge forth forty forum found frame fraud fresh front frost fruit fully funny giant given glass\nglobe glory glove going goose grace grade grain grand grant grape graph grasp grass grave great\ngreen greet grill grind group guard guess guest guide habit happy harsh heart heavy hello hence\nhobby honey honor horse hotel house human humor hurry ideal image imply index inner input issue\nivory jelly jewel joint judge juice kneel knife knock known label labor large laser later laugh\nlayer learn lease least leave legal lemon level light limit linen liver local lodge logic loose\nlower loyal lucky lunar lunch lyric magic major maker maple march match mayor meant medal media\nmercy merge merit merry metal meter might minor minus mixed model money month moral motor mount\nmouse mouth movie music naive naval nerve never newly night noble noise north novel nurse occur\nocean offer often olive onion onset opera orbit order organ other ounce outer owner paint panel\npaper party pasta patch pause peace peach pearl pedal penny phase phone photo piano piece pilot\npinch pitch pizza place plain plane plant plate plaza point polar porch pound power press price\npride prime print prize proof proud prove pulse punch pupil queen quest queue quick quiet quilt\nquote radar radio raise rally ranch range rapid ratio reach ready realm rebel refer reign relax\nreply rhyme rider ridge rifle right rigid risky rival river roast robin robot rocky roman rough\nround route royal rural salad salon sauce scale scene scent scope score scout scrap screw sense\nserve seven shade shaft shake shall shame shape share shark sharp sheep sheet shelf shell shift\nshine shirt shock shoot shore short shown sight silly since sixth sixty skill skirt sleep slice\nslide slope small smart smell smile smoke snack snake solar solid solve sorry sound south space\nspare spark speak speed spell spend spice spike split spoke sport spray squad staff stage stain\nstair stake stand start state steam steel steep steer stick still stock stone stood store storm\nstory stove strap straw strip study stuff style sugar suite sunny super sweet sweep swift swing\nsword table taken taste teach teeth tempo tenth thank theft their theme there these thick thief\nthing think third those three threw throw thumb tiger tight timer title toast today token tooth\ntopic total touch tough towel tower toxic trace track trade trail train treat trend trial tribe\ntrick tried truck truly trunk trust truth tulip tutor twist ultra uncle under union unite unity\nuntil upper upset urban usage usual valid value video virus visit vital vivid vocal voice vowel\nwagon waste watch water wheel where which while white whole whose widow width witch woman world\nworry worse worst worth would wound wrist write wrong wrote yacht yield young youth zebra\"\"\".split())\n\nMAX_ATTEMPTS = 6\nWORD_LEN = 5\nGREEN = \"\\033[1;37;42m\"\nYELLOW = \"\\033[1;37;43m\"\nGREY = \"\\033[1;37;100m\"\nRESET = \"\\033[0m\"\nRANK = {GREY: 0, YELLOW: 1, GREEN: 2}\n\n\ndef daily_word():\n    rng = random.Random(datetime.date.today().isoformat())\n    return sorted(WORDS)[rng.randrange(len(WORDS))]\n\n\ndef feedback(guess, answer):\n    marks = [GREY] * WORD_LEN\n    counts = {}\n    for i in range(WORD_LEN):\n        if guess[i] == answer[i]:\n            marks[i] = GREEN\n        else:\n            counts[answer[i]] = counts.get(answer[i], 0) + 1\n    for i in range(WORD_LEN):\n        if marks[i] != GREEN and counts.get(guess[i], 0) > 0:\n            marks[i] = YELLOW\n            counts[guess[i]] -= 1\n    return marks\n\n\ndef render(guess, marks):\n    return \" \".join(\"%s %s %s\" % (m, g, RESET) for g, m in zip(guess, marks))\n\n\ndef update_keyboard(kb, guess, marks):\n    for g, m in zip(guess, marks):\n        if RANK[m] > RANK[kb.get(g, GREY)]:\n            kb[g] = m\n\n\ndef show_keyboard(kb):\n    print(\" \" + \" \".join(\"%s %s %s\" % (kb.get(c, GREY), c.upper(), RESET) for c in \"qwertyuiop\"))\n    print(\"   \" + \" \".join(\"%s %s %s\" % (kb.get(c, GREY), c.upper(), RESET) for c in \"asdfghjkl\"))\n    print(\"     \" + \" \".join(\"%s %s %s\" % (kb.get(c, GREY), c.upper(), RESET) for c in \"zxcvbnm\"))\n\n\ndef show_board(guesses):\n    print()\n    for g, m in guesses:\n        print(\"  \" + render(g, m))\n    for _ in range(MAX_ATTEMPTS - len(guesses)):\n        print(\"  \" + \" \".join(\"·\" for _ in range(WORD_LEN)))\n\n\ndef main():\n    answer = daily_word()\n    print(\"=\" * 40)\n    print(\" WORDLE - \" + datetime.date.today().strftime(\"%Y-%m-%d\"))\n    print(\" Guess the 5-letter word in 6 tries.\")\n    print(\" \" + GREEN + \" G \" + RESET + \" right spot   \" + YELLOW + \" Y \" + RESET +\n          \" wrong spot   \" + GREY + \" X \" + RESET + \" not in word\")\n    print(\" Enter a 5-letter word, or 'q' to quit.\")\n    print(\"=\" * 40)\n    guesses, kb = [], {}\n    while len(guesses) < MAX_ATTEMPTS:\n        show_board(guesses)\n        show_keyboard(kb)\n        try:\n            guess = input(\"\\nGuess %d/%d: \" % (len(guesses) + 1, MAX_ATTEMPTS)).strip().lower()\n        except (EOFError, KeyboardInterrupt):\n            print(\"\\nBye! The word was %s.\" % answer)\n            return\n        if guess == \"q\":\n            print(\"The word was %s.\" % answer)\n            return\n        if len(guess) != WORD_LEN or not guess.isalpha():\n            print(\"Invalid guess: enter exactly 5 letters.\")\n            continue\n        if guess not in WORDS:\n            print(\"Invalid guess: not in the word list.\")\n            continue\n        marks = feedback(guess, answer)\n        guesses.append((guess, marks))\n        update_keyboard(kb, guess, marks)\n        if guess == answer:\n            show_board(guesses)\n            print(\"\\nYou won in %d/%d! The word was %s.\" % (len(guesses), MAX_ATTEMPTS, answer))\n            return\n    show_board(guesses)\n    show_keyboard(kb)\n    print(\"\\nOut of attempts. The word was %s.\" % answer)\n\n\nif __name__ == \"__main__\":\n    main()\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "1c4d5fee5a12f1900a3043e917cf07732f4fb6d6b80356c094c4eae09c911e3e",
+      "result": "{\"verdict\": \"finished\", \"issues\": []}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "1c4d5fee5a12f1900a3043e917cf07732f4fb6d6b80356c094c4eae09c911e3e",
+      "result": " Finished"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "1c4d5fee5a12f1900a3043e917cf07732f4fb6d6b80356c094c4eae09c911e3e",
+      "result": "{\"status\": \"passed\", \"test_run_id\": \"f484c1b6d3285bf16bbc8169ed239d9968cb180358bf66562de0ca507bf7489f\", \"summary\": \"Startup smoke test passed with exit code 0. main.py launched cleanly, printed the Wordle header, colored legend, empty 6-row board, QWERTY keyboard, and guess prompt, then exited gracefully on EOF revealing the daily word ('after'). No source errors, no missing dependencies; ANSI color codes rendered as expected in captured output.\"}"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "1c4d5fee5a12f1900a3043e917cf07732f4fb6d6b80356c094c4eae09c911e3e",
+    "source_digests": {
+      "main.py": "652ac30f2099e6b5eb6f02d8227df8df67d5712979362b2a474ae3cdcde82562"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "main.py"
+    ],
+    "timeout_seconds": 3,
+    "status": "passed",
+    "exit_code": 0,
+    "stdout": "========================================\n WORDLE - 2026-10-07\n Guess the 5-letter word in 6 tries.\n \u001b[1;37;42m G \u001b[0m right spot   \u001b[1;37;43m Y \u001b[0m wrong spot   \u001b[1;37;100m X \u001b[0m not in word\n Enter a 5-letter word, or 'q' to quit.\n========================================\n\n  �� �� �� �� ��\n  �� �� �� �� ��\n  �� �� �� �� ��\n  �� �� �� �� ��\n  �� �� �� �� ��\n  �� �� �� �� ��\n \u001b[1;37;100m Q \u001b[0m \u001b[1;37;100m W \u001b[0m \u001b[1;37;100m E \u001b[0m \u001b[1;37;100m R \u001b[0m \u001b[1;37;100m T \u001b[0m \u001b[1;37;100m Y \u001b[0m \u001b[1;37;100m U \u001b[0m \u001b[1;37;100m I \u001b[0m \u001b[1;37;100m O \u001b[0m \u001b[1;37;100m P \u001b[0m\n   \u001b[1;37;100m A \u001b[0m \u001b[1;37;100m S \u001b[0m \u001b[1;37;100m D \u001b[0m \u001b[1;37;100m F \u001b[0m \u001b[1;37;100m G \u001b[0m \u001b[1;37;100m H \u001b[0m \u001b[1;37;100m J \u001b[0m \u001b[1;37;100m K \u001b[0m \u001b[1;37;100m L \u001b[0m\n     \u001b[1;37;100m Z \u001b[0m \u001b[1;37;100m X \u001b[0m \u001b[1;37;100m C \u001b[0m \u001b[1;37;100m V \u001b[0m \u001b[1;37;100m B \u001b[0m \u001b[1;37;100m N \u001b[0m \u001b[1;37;100m M \u001b[0m\n\nGuess 1/6: \nBye! The word was after.\n",
+    "stderr": "",
+    "profile": "process_exit",
+    "id": "f484c1b6d3285bf16bbc8169ed239d9968cb180358bf66562de0ca507bf7489f"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "5f1220da54e85f66dde3a695460fd7fa77d759e581627cb4bcb322f1e0e91fdc",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "5f1220da54e85f66dde3a695460fd7fa77d759e581627cb4bcb322f1e0e91fdc",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "694727febe0da2b3189164abc1aaf73bed6bf9a49fefed87cf2dee67010438be",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "output_truncated",
+          "path": "$",
+          "message": "Model output reached its generation/context limit.",
+          "repair": "Output budget was exhausted. Omit analysis, architecture descriptions and drafts. Return a smaller complete implementation satisfying the task, with explicit filenames and closed code fences."
+        }
+      ],
+      "candidate_sha256": "1f21b38e8db04b8c4734ad914f359c45fe967f4dfa7c7a0cf10ec63b81d86fa7",
+      "termination_reasons": [
+        "length"
+      ],
+      "rejected_candidate": "main.py\n```python\n\"\"\"Terminal Wordle: guess the daily 5-letter word in 6 tries.\n\nRun with: python3 main.py\n\"\"\"\n\nimport datetime\nimport sys\n\nfrom wordle import (BOLD, GREEN, GREY, MAX_ATTEMPTS, RESET, WORD_LENGTH, YELLOW,\n                    render_keyboard, render_row, score_guess, update_keyboard)\nfrom words import WORD_LIST, daily_word\n\n\ndef read_guess(attempt, word_set):\n    \"\"\"Prompt until a valid 5-letter dictionary word is entered.\"\"\"\n    while True:\n        try:\n            raw = input(f\"Attempt {attempt}/{MAX_ATTEMPTS} - enter a 5-letter word: \")\n        except (EOFError, KeyboardInterrupt):\n            print(\"\\nGame aborted.\")\n            sys.exit(0)\n        guess = raw.strip().lower()\n        if len(guess) != WORD_LENGTH:\n            print(f\"Invalid guess: must be exactly {WORD_LENGTH} letters.\")\n        elif not guess.isalpha():\n            print(\"Invalid guess: letters only.\")\n        elif guess not in word_set:\n            print(\"Invalid guess: not in the word list.\")\n        else:\n            return guess\n\n\ndef main():\n    answer = daily_word()\n    word_set = set(WORD_LIST)\n    states = {}\n    print(f\"{BOLD}=== WORDLE ({datetime.date.today().isoformat()}) ==={RESET}\")\n    print(f\"Guess the 5-letter word in {MAX_ATTEMPTS} tries.\")\n    print(f\"{GREEN}Green{RESET}=right spot  {YELLOW}Yellow{RESET}=wrong spot  \"\n          f\"{GREY}Grey{RESET}=not in word\\n\")\n    for attempt in range(1, MAX_ATTEMPTS + 1):\n        guess = read_guess(attempt, word_set)\n        scored = score_guess(guess, answer)\n        print(render_row(scored))\n        update_keyboard(states, scored)\n        print(render_keyboard(states))\n        if guess == answer:\n            print(f\"\\n{GREEN}{BOLD}You win! Solved in {attempt}/{MAX_ATTEMPTS} attempts.{RESET}\")\n            return\n    print(f\"\\n{BOLD}Out of attempts. The word was:{RESET} \"\n          f\"{GREEN}{BOLD}{answer.upper()}{RESET}\")\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nwordle.py\n```python\n\"\"\"Core Wordle logic: scoring, rendering, and ANSI terminal colors.\"\"\"\n\nGREEN = \"\\033[92m\"\nYELLOW = \"\\033[93m\"\nGREY = \"\\033[90m\"\nBOLD = \"\\033[1m\"\nRESET = \"\\033[0m\"\n\nMAX_ATTEMPTS = 6\nWORD_LENGTH = 5\n\nKEY_ROWS = (\"qwertyuiop\", \"asdfghjkl\", \"zxcvbnm\")\n\n\ndef score_guess(guess, answer):\n    \"\"\"Return [(letter, color)] using standard Wordle two-pass rules.\"\"\"\n    colors = [GREY] * WORD_LENGTH\n    counts = {}\n    for i, ch in enumerate(answer):\n        if guess[i] == ch:\n            colors[i] = GREEN\n        else:\n            counts[ch] = counts.get(ch, 0) + 1\n    for i, ch in enumerate(guess):\n        if colors[i] != GREEN and counts.get(ch, 0) > 0:\n            colors[i] = YELLOW\n            counts[ch] -= 1\n    return list(zip(guess, colors))\n\n\ndef render_row(scored):\n    \"\"\"Render one scored guess as a colored terminal row.\"\"\"\n    return \" \".join(f\"{color}{BOLD}{letter.upper()}{RESET}\"\n                    for letter, color in scored)\n\n\ndef update_keyboard(states, scored):\n    \"\"\"Merge a scored guess into letter states (green > yellow > grey).\"\"\"\n    rank = {GREY: 0, YELLOW: 1, GREEN: 2}\n    for letter, color in scored:\n        if rank[color] > rank.get(states.get(letter), -1):\n            states[letter] = color\n\n\ndef render_keyboard(states):\n    \"\"\"Render the on-screen keyboard with accumulated letter colors.\"\"\"\n    lines = []\n    for row in KEY_ROWS:\n        pad = \" \" * ((len(KEY_ROWS[0]) - len(row)) // 2)\n        cells = [f\"{states.get(letter, RESET)}{BOLD}{letter.upper()}{RESET}\"\n                 for letter in row]\n        lines.append(pad + \" \".join(cells))\n    return \"\\n\".join(lines)\n```\n\nwords.py\n```python\n\"\"\"Five-letter word list and daily word selection.\"\"\"\n\nimport datetime\n\nWORD_LIST = [\n    \"about\", \"above\", \"abuse\", \"actor\", \"acute\", \"admit\", \"adopt\", \"adult\",\n    \"after\", \"again\", \"agent\", \"agree\", \"ahead\", \"alarm\", \"album\", \"alert\",\n    \"alike\", \"alive\", \"allow\", \"alone\", \"along\", \"alter\", \"among\", \"angel\",\n    \"anger\", \"angle\", \"angry\", \"apart\", \"apple\", \"apply\", \"arena\", \"argue\",\n    \"arise\", \"armor\", \"aroma\", \"array\", \"arrow\", \"aside\", \"asset\", \"audio\",\n    \"audit\", \"avoid\", \"award\", \"aware\", \"badly\", \"baker\", \"basic\", \"basis\",\n    \"beach\", \"began\", \"begin\", \"being\", \"below\", \"bench\", \"birth\", \"black\",\n    \"blame\", \"blank\", \"blast\", \"blind\", \"block\", \"blood\", \"board\", \"boost\",\n    \"booth\", \"bound\", \"brain\", \"brand\", \"bread\", \"break\", \"breed\", \"brief\",\n    \"bring\", \"broad\", \"broke\", \"brown\", \"build\", \"built\", \"buyer\", \"cable\",\n    \"candy\", \"carry\", \"catch\", \"cause\", \"chain\", \"chair\", \"chalk\", \"charm\",\n    \"chart\", \"chase\", \"cheap\", \"check\", \"chest\", \"chief\", \"child\", \"china\",\n    \"chose\", \"civil\", \"claim\", \"class\", \"clean\", \"clear\", \"clerk\", \"click\",\n    \"cliff\", \"climb\", \"clock\", \"close\", \"cloud\", \"coach\", \"coast\", \"color\",\n    \"comic\", \"coral\", \"couch\", \"could\", \"count\", \"court\", \"cover\", \"crane\",\n    \"crash\", \"cream\", \"crime\", \"cross\", \"crowd\", \"crown\", \"crude\", \"curve\",\n    \"cycle\", \"daily\", \"dance\", \"dealt\", \"death\", \"debut\", \"delay\", \"depth\",\n    \"doing\", \"doubt\", \"dozen\", \"draft\", \"drama\", \"drank\", \"dream\", \"dress\",\n    \"drill\", \"drink\", \"drive\", \"drove\", \"eager\", \"eagle\", \"early\", \"earth\",\n    \"eight\", \"elite\", \"empty\", \"enemy\", \"enjoy\", \"enter\", \"entry\", \"equal\",\n    \"error\", \"event\", \"every\", \"exact\", \"exist\", \"extra\", \"faith\", \"false\",\n    \"fault\", \"fiber\", \"field\", \"fifth\", \"fifty\", \"fight\", \"final\", \"first\",\n    \"fixed\", \"flash\", \"fleet\", \"floor\", \"fluid\", \"focus\", \"force\", \"forth\",\n    \"forty\", \"forum\", \"found\", \"frame\", \"fraud\", \"fresh\", \"front\", \"fruit\",\n    \"fully\", \"funny\", \"giant\", \"given\", \"glass\", \"globe\", \"glory\", \"glove\",\n    \"going\", \"grace\", \"grade\", \"grand\", \"grant\", \"grape\", \"graph\", \"grasp\",\n    \"grass\", \"grave\", \"great\", \"green\", \"greet\", \"group\", \"grown\", \"guard\",\n    \"guess\", \"guest\", \"guide\", \"happy\", \"harsh\", \"heart\", \"heavy\", \"hello\",\n    \"hence\", \"hobby\", \"honey\", \"honor\", \"horse\", \"hotel\", \"house\", \"human\",\n    \"humor\", \"ideal\", \"image\", \"index\", \"inner\", \"input\", \"issue\", \"ivory\",\n    \"jelly\", \"jewel\", \"joint\", \"judge\", \"juice\", \"kneel\", \"knife\", \"knock\",\n    \"known\", \"label\", \"labor\", \"large\", \"later\", \"laugh\", \"layer\", \"learn\",\n    \"lemon\", \"level\", \"light\", \"limit\", \"linen\", \"liver\", \"local\", \"lodge\",\n    \"logic\", \"loose\", \"lower\", \"loyal\", \"lucky\", \"lunar\", \"lunch\", \"magic\",\n    \"major\", \"maker\", \"maple\", \"march\", \"match\", \"maybe\", \"mayor\", \"meant\",\n    \"medal\", \"media\", \"metal\", \"might\", \"minor\", \"minus\", \"mixed\", \"model\",\n    \"money\", \"month\", \"moral\", \"motor\", \"mount\", \"mouse\", \"mouth\", \"movie\",\n    \"naval\", \"nerve\", \"never\", \"newly\", \"night\", \"noble\", \"noise\", \"north\",\n    \"noted\", \"novel\", \"nurse\", \"ocean\", \"offer\", \"often\", \"olive\", \"onion\",\n    \"onset\", \"opera\", \"orbit\", \"order\", \"organ\", \"other\", \"ought\", \"ounce\",\n    \"outer\", \"owner\", \"paint\", \"panel\", \"paper\", \"party\", \"pasta\", \"patch\",\n    \"pause\", \"peace\", \"peach\", \"pearl\", \"pedal\", \"penny\", \"phase\", \"phone\",\n    \"photo\", \"piano\", \"piece\", \"pilot\", \"pitch\", \"pizza\", \"place\", \"plain\",\n    \"plane\", \"plant\", \"plate\", \"plaza\", \"plead\", \"point\", \"polar\", \"porch\",\n    \"pound\", \"power\", \"press\", \"price\", \"pride\", \"prime\", \"print\", \"prior\",\n    \"prize\", \"proof\", \"proud\", \"prove\", \"pulse\", \"punch\", \"pupil\", \"queen\",\n    \"query\", \"quest\", \"queue\", \"quick\", \"quiet\", \"quilt\", \"quite\", \"quote\",\n    \"radar\", \"radio\", \"raise\", \"rally\", \"ranch\", \"range\", \"rapid\", \"ratio\",\n    \"reach\", \"ready\", \"realm\", \"rebel\", \"refer\", \"reign\", \"relax\", \"reply\",\n    \"rhyme\", \"rider\", \"ridge\", \"right\","
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "77957a6b07d722296da293bc82bc5763a167e4e5e7f47eab24a66c8e9a49ad7f",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "77957a6b07d722296da293bc82bc5763a167e4e5e7f47eab24a66c8e9a49ad7f",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "1c4d5fee5a12f1900a3043e917cf07732f4fb6d6b80356c094c4eae09c911e3e",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "9df4e8ce57e8786c07592e7afbe3b193e955712d8a396650db2ce50d84fc4757",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "1c4d5fee5a12f1900a3043e917cf07732f4fb6d6b80356c094c4eae09c911e3e",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2e268ff0cef63580c64233b07e8fd026c494a543f47a7717f2245832819f24fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "1c4d5fee5a12f1900a3043e917cf07732f4fb6d6b80356c094c4eae09c911e3e",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "9e425aab695db7d613f4d3046e8fa8acf17ecd7acf548a0a694d22254c1b2599",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "1c4d5fee5a12f1900a3043e917cf07732f4fb6d6b80356c094c4eae09c911e3e",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3713dc9d1785c47081ef36c7e993dd51ecf9c4913bd8e04500b2a4717fc9a3a0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "1c4d5fee5a12f1900a3043e917cf07732f4fb6d6b80356c094c4eae09c911e3e",
+        "source_digests": {
+          "main.py": "652ac30f2099e6b5eb6f02d8227df8df67d5712979362b2a474ae3cdcde82562"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "========================================\n WORDLE - 2026-10-07\n Guess the 5-letter word in 6 tries.\n \u001b[1;37;42m G \u001b[0m right spot   \u001b[1;37;43m Y \u001b[0m wrong spot   \u001b[1;37;100m X \u001b[0m not in word\n Enter a 5-letter word, or 'q' to quit.\n========================================\n\n  �� �� �� �� ��\n  �� �� �� �� ��\n  �� �� �� �� ��\n  �� �� �� �� ��\n  �� �� �� �� ��\n  �� �� �� �� ��\n \u001b[1;37;100m Q \u001b[0m \u001b[1;37;100m W \u001b[0m \u001b[1;37;100m E \u001b[0m \u001b[1;37;100m R \u001b[0m \u001b[1;37;100m T \u001b[0m \u001b[1;37;100m Y \u001b[0m \u001b[1;37;100m U \u001b[0m \u001b[1;37;100m I \u001b[0m \u001b[1;37;100m O \u001b[0m \u001b[1;37;100m P \u001b[0m\n   \u001b[1;37;100m A \u001b[0m \u001b[1;37;100m S \u001b[0m \u001b[1;37;100m D \u001b[0m \u001b[1;37;100m F \u001b[0m \u001b[1;37;100m G \u001b[0m \u001b[1;37;100m H \u001b[0m \u001b[1;37;100m J \u001b[0m \u001b[1;37;100m K \u001b[0m \u001b[1;37;100m L \u001b[0m\n     \u001b[1;37;100m Z \u001b[0m \u001b[1;37;100m X \u001b[0m \u001b[1;37;100m C \u001b[0m \u001b[1;37;100m V \u001b[0m \u001b[1;37;100m B \u001b[0m \u001b[1;37;100m N \u001b[0m \u001b[1;37;100m M \u001b[0m\n\nGuess 1/6: \nBye! The word was after.\n",
+        "stderr": "",
+        "profile": "process_exit",
+        "id": "f484c1b6d3285bf16bbc8169ed239d9968cb180358bf66562de0ca507bf7489f"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "1c4d5fee5a12f1900a3043e917cf07732f4fb6d6b80356c094c4eae09c911e3e",
+        "source_digests": {
+          "main.py": "652ac30f2099e6b5eb6f02d8227df8df67d5712979362b2a474ae3cdcde82562"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "========================================\n WORDLE - 2026-10-07\n Guess the 5-letter word in 6 tries.\n \u001b[1;37;42m G \u001b[0m right spot   \u001b[1;37;43m Y \u001b[0m wrong spot   \u001b[1;37;100m X \u001b[0m not in word\n Enter a 5-letter word, or 'q' to quit.\n========================================\n\n  �� �� �� �� ��\n  �� �� �� �� ��\n  �� �� �� �� ��\n  �� �� �� �� ��\n  �� �� �� �� ��\n  �� �� �� �� ��\n \u001b[1;37;100m Q \u001b[0m \u001b[1;37;100m W \u001b[0m \u001b[1;37;100m E \u001b[0m \u001b[1;37;100m R \u001b[0m \u001b[1;37;100m T \u001b[0m \u001b[1;37;100m Y \u001b[0m \u001b[1;37;100m U \u001b[0m \u001b[1;37;100m I \u001b[0m \u001b[1;37;100m O \u001b[0m \u001b[1;37;100m P \u001b[0m\n   \u001b[1;37;100m A \u001b[0m \u001b[1;37;100m S \u001b[0m \u001b[1;37;100m D \u001b[0m \u001b[1;37;100m F \u001b[0m \u001b[1;37;100m G \u001b[0m \u001b[1;37;100m H \u001b[0m \u001b[1;37;100m J \u001b[0m \u001b[1;37;100m K \u001b[0m \u001b[1;37;100m L \u001b[0m\n     \u001b[1;37;100m Z \u001b[0m \u001b[1;37;100m X \u001b[0m \u001b[1;37;100m C \u001b[0m \u001b[1;37;100m V \u001b[0m \u001b[1;37;100m B \u001b[0m \u001b[1;37;100m N \u001b[0m \u001b[1;37;100m M \u001b[0m\n\nGuess 1/6: \nBye! The word was after.\n",
+        "stderr": "",
+        "profile": "process_exit",
+        "id": "f484c1b6d3285bf16bbc8169ed239d9968cb180358bf66562de0ca507bf7489f"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "1c4d5fee5a12f1900a3043e917cf07732f4fb6d6b80356c094c4eae09c911e3e",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "51d0d301a34b88d59df891c603afc2f4124c0e8c79727088317b8cf107f5957a",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "1c4d5fee5a12f1900a3043e917cf07732f4fb6d6b80356c094c4eae09c911e3e",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "50c77043f60b4acd0c0e19f53f2a0fbc4b48e68870d4d353c08542b3bb818edd",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "1c4d5fee5a12f1900a3043e917cf07732f4fb6d6b80356c094c4eae09c911e3e",
+        "source_digests": {
+          "main.py": "652ac30f2099e6b5eb6f02d8227df8df67d5712979362b2a474ae3cdcde82562"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "========================================\n WORDLE - 2026-10-07\n Guess the 5-letter word in 6 tries.\n \u001b[1;37;42m G \u001b[0m right spot   \u001b[1;37;43m Y \u001b[0m wrong spot   \u001b[1;37;100m X \u001b[0m not in word\n Enter a 5-letter word, or 'q' to quit.\n========================================\n\n  �� �� �� �� ��\n  �� �� �� �� ��\n  �� �� �� �� ��\n  �� �� �� �� ��\n  �� �� �� �� ��\n  �� �� �� �� ��\n \u001b[1;37;100m Q \u001b[0m \u001b[1;37;100m W \u001b[0m \u001b[1;37;100m E \u001b[0m \u001b[1;37;100m R \u001b[0m \u001b[1;37;100m T \u001b[0m \u001b[1;37;100m Y \u001b[0m \u001b[1;37;100m U \u001b[0m \u001b[1;37;100m I \u001b[0m \u001b[1;37;100m O \u001b[0m \u001b[1;37;100m P \u001b[0m\n   \u001b[1;37;100m A \u001b[0m \u001b[1;37;100m S \u001b[0m \u001b[1;37;100m D \u001b[0m \u001b[1;37;100m F \u001b[0m \u001b[1;37;100m G \u001b[0m \u001b[1;37;100m H \u001b[0m \u001b[1;37;100m J \u001b[0m \u001b[1;37;100m K \u001b[0m \u001b[1;37;100m L \u001b[0m\n     \u001b[1;37;100m Z \u001b[0m \u001b[1;37;100m X \u001b[0m \u001b[1;37;100m C \u001b[0m \u001b[1;37;100m V \u001b[0m \u001b[1;37;100m B \u001b[0m \u001b[1;37;100m N \u001b[0m \u001b[1;37;100m M \u001b[0m\n\nGuess 1/6: \nBye! The word was after.\n",
+        "stderr": "",
+        "profile": "process_exit",
+        "id": "f484c1b6d3285bf16bbc8169ed239d9968cb180358bf66562de0ca507bf7489f"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": true,
+      "evidence_id": "f484c1b6d3285bf16bbc8169ed239d9968cb180358bf66562de0ca507bf7489f"
+    }
+  ]
+}

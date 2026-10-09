@@ -1,0 +1,33 @@
+'''Constants and configuration for the match-3 game.'''
+import pygame
+# Window
+WINDOW_WIDTH = 800
+WINDOW_HEIGHT = 640
+FPS = 60
+TITLE = "Candy Crush Saga-like — Match 3"
+# Board
+GRID_SIZE = 8
+CELL_SIZE = 64
+BOARD_SIZE = GRID_SIZE * CELL_SIZE  # 512
+BOARD_X = 24
+BOARD_Y = (WINDOW_HEIGHT - BOARD_SIZE) // 2
+# Panel
+PANEL_X = BOARD_X + BOARD_SIZE + 24
+PANEL_WIDTH = WINDOW_WIDTH - PANEL_X - 24
+# Candies
+CANDY_TYPES = 6
+CANDY_COLORS = [...]
+# Gameplay
+MOVES_PER_LEVEL = 30
+LEVEL_TARGET_BASE = 1500
+LEVEL_TARGET_STEP = 1200
+POINTS_PER_CANDY = 60
+SPECIAL_BONUS = 100
+MAX_CASCADE_BONUS = 5
+# Animation speeds
+SWAP_DURATION = 0.18
+CLEAR_DURATION = 0.25
+FALL_ACCEL = 4000.0
+FALL_MAX_SPEED = 1400.0
+# Colors for UI
+...

@@ -1,0 +1,334 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Application"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\nimport tkinter as tk\nimport random\n\nW, H, CELL = 10, 20, 28\nSHAPES = {\n    'I': [[1, 1, 1, 1]],\n    'O': [[1, 1], [1, 1]],\n    'T': [[1, 1, 1], [0, 1, 0]],\n    'S': [[0, 1, 1], [1, 1, 0]],\n    'Z': [[1, 1, 0], [0, 1, 1]],\n    'J': [[1, 0, 0], [1, 1, 1]],\n    'L': [[0, 0, 1], [1, 1, 1]],\n}\nCOLORS = {'I': 'cyan', 'O': 'yellow', 'T': 'purple', 'S': 'green',\n          'Z': 'red', 'J': 'blue', 'L': 'orange'}\n\n\ndef rotate(m):\n    return [list(r) for r in zip(*m[::-1])]\n\n\nclass Tetris:\n    def __init__(self, root):\n        self.root = root\n        self.canvas = tk.Canvas(root, width=W * CELL, height=H * CELL, bg='black')\n        self.canvas.pack()\n        self.info = tk.Label(root, text='')\n        self.info.pack()\n        root.bind('<Left>', lambda e: self.move(-1))\n        root.bind('<Right>', lambda e: self.move(1))\n        root.bind('<Down>', lambda e: self.step(True))\n        root.bind('<Up>', lambda e: self.rotate_piece())\n        root.bind('<space>', lambda e: self.hard_drop())\n        root.bind('<p>', lambda e: self.toggle_pause())\n        self.new_game()\n        self.tick()\n\n    def new_game(self):\n        self.board = [[None] * W for _ in range(H)]\n        self.score = 0\n        self.lines = 0\n        self.level = 1\n        self.paused = False\n        self.game_over = False\n        self.spawn()\n        self.draw()\n\n    def spawn(self):\n        self.name = random.choice(list(SHAPES))\n        self.piece = [row[:] for row in SHAPES[self.name]]\n        self.x = (W - len(self.piece[0])) // 2\n        self.y = 0\n        if self.collides(self.piece, self.x, self.y):\n            self.game_over = True\n\n    def collides(self, piece, px, py):\n        for r, row in enumerate(piece):\n            for c, v in enumerate(row):\n                if v:\n                    nx, ny = px + c, py + r\n                    if nx < 0 or nx >= W or ny >= H:\n                        return True\n                    if ny >= 0 and self.board[ny][nx]:\n                        return True\n        return False\n\n    def move(self, dx):\n        if self.game_over or self.paused:\n            return\n        if not self.collides(self.piece, self.x + dx, self.y):\n            self.x += dx\n        self.draw()\n\n    def rotate_piece(self):\n        if self.game_over or self.paused:\n            return\n        rp = rotate(self.piece)\n        for dx in (0, -1, 1, -2, 2):\n            if not self.collides(rp, self.x + dx, self.y):\n                self.piece, self.x = rp, self.x + dx\n                break\n        self.draw()\n\n    def step(self, manual=False):\n        if self.game_over or self.paused:\n            return\n        if not self.collides(self.piece, self.x, self.y + 1):\n            self.y += 1\n            if manual:\n                self.score += 1\n        else:\n            self.lock()\n        self.draw()\n\n    def hard_drop(self):\n        if self.game_over or self.paused:\n            return\n        while not self.collides(self.piece, self.x, self.y + 1):\n            self.y += 1\n            self.score += 2\n        self.lock()\n        self.draw()\n\n    def lock(self):\n        for r, row in enumerate(self.piece):\n            for c, v in enumerate(row):\n                if v and 0 <= self.y + r < H:\n                    self.board[self.y + r][self.x + c] = self.name\n        self.clear_lines()\n        self.spawn()\n\n    def clear_lines(self):\n        full = [r for r in range(H) if all(self.board[r])]\n        for r in full:\n            del self.board[r]\n            self.board.insert(0, [None] * W)\n        if full:\n            self.lines += len(full)\n            self.score += [0, 100, 300, 500, 800][len(full)] * self.level\n            self.level = 1 + self.lines // 10\n\n    def speed(self):\n        return max(120, 800 - (self.level - 1) * 70)\n\n    def tick(self):\n        self.step()\n        self.root.after(self.speed(), self.tick)\n\n    def toggle_pause(self):\n        self.paused = not self.paused\n        self.draw()\n\n    def draw(self):\n        self.canvas.delete('all')\n        for r in range(H):\n            for c in range(W):\n                if self.board[r][c]:\n                    self.cell(c, r, COLORS[self.board[r][c]])\n        if not self.game_over:\n            for r, row in enumerate(self.piece):\n                for c, v in enumerate(row):\n                    if v:\n                        self.cell(self.x + c, self.y + r, COLORS[self.name])\n        if self.game_over:\n            self.canvas.create_text(W * CELL // 2, H * CELL // 2, text='GAME OVER',\n                                    fill='white', font=('Arial', 24, 'bold'))\n        elif self.paused:\n            self.canvas.create_text(W * CELL // 2, H * CELL // 2, text='PAUSED',\n                                    fill='white', font=('Arial', 24, 'bold'))\n        self.info.config(text='Score: %d  Lines: %d  Level: %d' %\n                                (self.score, self.lines, self.level))\n\n    def cell(self, c, r, color):\n        x1, y1 = c * CELL, r * CELL\n        self.canvas.create_rectangle(x1, y1, x1 + CELL, y1 + CELL,\n                                     fill=color, outline='gray')\n\n\ndef main():\n    root = tk.Tk()\n    root.title('Tetris')\n    Tetris(root)\n    root.mainloop()\n\n\nif __name__ == '__main__':\n    main()\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "f1b4cdfb0f6280971a45cb869ab157e4bce830d6cb9d8335ad20eea119b658c8",
+      "result": "{\"verdict\": \"finished\", \"issues\": []}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "f1b4cdfb0f6280971a45cb869ab157e4bce830d6cb9d8335ad20eea119b658c8",
+      "result": " Finished"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "f1b4cdfb0f6280971a45cb869ab157e4bce830d6cb9d8335ad20eea119b658c8",
+      "result": "{\"status\": \"passed\", \"test_run_id\": \"ea2b535530e27c09410e897c1239143efc2efc9d7292e2e81ef1c56225bb4a15\", \"summary\": \"Startup smoke test passed for main.py (Tetris game, tkinter profile): process exited with code 0 within the 3-second timeout, the tkinter event loop was observed running, a window was successfully mapped with 2 widgets (canvas and info label), and no callback errors were reported. No source errors or missing dependencies detected; the game initializes and enters its main loop as expected.\"}"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "f1b4cdfb0f6280971a45cb869ab157e4bce830d6cb9d8335ad20eea119b658c8",
+    "source_digests": {
+      "main.py": "881d65955817e161b4f00725e0610b02e4ce516d1a30b0a4a4639d861f962c07"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "source/pure-contract\\content_lab\\startup_probe.py",
+      "data/runs/mpst_contract/r08/19_Tetris/artifact\\main.py",
+      "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-r2ck7rge\\probe.json"
+    ],
+    "timeout_seconds": 3,
+    "status": "passed",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "profile": "tkinter_event_loop",
+    "observation": {
+      "event_loop_observed": true,
+      "mapped_window": true,
+      "widget_count": 2,
+      "callback_errors": []
+    },
+    "id": "1df2fb7461e949e566ef2b1b4d1c658c1a3383a2057c14594f33170b716e8518"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "74fefe65224faeb330cca1271314fbacd861937503a986abddfb8fb2175927b4",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "57d005c3b71920cefd5b63883aac3200365d1f8a4aa4b23a48238444adb055e7",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "694727febe0da2b3189164abc1aaf73bed6bf9a49fefed87cf2dee67010438be",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "output_truncated",
+          "path": "$",
+          "message": "Model output reached its generation/context limit.",
+          "repair": "Output budget was exhausted. Omit analysis, architecture descriptions and drafts. Return a smaller complete implementation satisfying the task, with explicit filenames and closed code fences."
+        }
+      ],
+      "candidate_sha256": "0d1aba1b1945d84b29876cd32e819f2e9197b7b1ee4a0a77d73a6da2ce9cd70f",
+      "termination_reasons": [
+        "length"
+      ],
+      "rejected_candidate": "main.py\n```python\nimport pygame\n\nfrom constants import WIDTH, HEIGHT, FPS\nfrom game import TetrisGame\nfrom ui import draw_game\n\n\ndef main():\n    pygame.init()\n    screen = pygame.display.set_mode((WIDTH, HEIGHT))\n    pygame.display.set_caption(\"Tetris\")\n    clock = pygame.time.Clock()\n    font = pygame.font.SysFont(\"consolas\", 26, bold=True)\n    small = pygame.font.SysFont(\"consolas\", 16)\n\n    game = TetrisGame()\n    drop_timer = pygame.time.get_ticks()\n    running = True\n\n    while running:\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                running = False\n            elif event.type == pygame.KEYDOWN:\n                if event.key == pygame.K_r:\n                    game.reset()\n                    drop_timer = pygame.time.get_ticks()\n                elif event.key == pygame.K_p and not game.game_over:\n                    game.paused = not game.paused\n                elif not game.game_over and not game.paused:\n                    if event.key == pygame.K_LEFT:\n                        game.move(-1)\n                    elif event.key == pygame.K_RIGHT:\n                        game.move(1)\n                    elif event.key == pygame.K_DOWN:\n                        if game.move(0, 1):\n                            game.score += 1\n                        drop_timer = pygame.time.get_ticks()\n                    elif event.key == pygame.K_UP:\n                        game.rotate_piece()\n                    elif event.key == pygame.K_SPACE:\n                        game.hard_drop()\n                        drop_timer = pygame.time.get_ticks()\n\n        now = pygame.time.get_ticks()\n        if now - drop_timer >= game.drop_interval():\n            game.tick()\n            drop_timer = now\n\n        draw_game(screen, game, font, small)\n        pygame.display.flip()\n        clock.tick(FPS)\n\n    pygame.quit()\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nconstants.py\n```python\nCOLS, ROWS, CELL = 10, 20, 30\nSIDEBAR = 180\nWIDTH, HEIGHT = COLS * CELL + SIDEBAR, ROWS * CELL\nFPS = 60\n\nSHAPES = {\n    'I': [[1, 1, 1, 1]],\n    'O': [[1, 1], [1, 1]],\n    'T': [[0, 1, 0], [1, 1, 1]],\n    'S': [[0, 1, 1], [1, 1, 0]],\n    'Z': [[1, 1, 0], [0, 1, 1]],\n    'J': [[1, 0, 0], [1, 1, 1]],\n    'L': [[0, 0, 1], [1, 1, 1]],\n}\n\nCOLORS = {\n    'I': (0, 200, 200), 'O': (220, 200, 0), 'T': (170, 0, 200),\n    'S': (0, 200, 60), 'Z': (220, 50, 50), 'J': (40, 80, 230),\n    'L': (230, 140, 0),\n}\n\nLINE_SCORES = {1: 100, 2: 300, 3: 500, 4: 800}\n```\n\ngame.py\n```python\nimport random\n\nfrom constants import COLS, ROWS, LINE_SCORES, SHAPES\n\n\ndef rotate(shape):\n    return [list(row) for row in zip(*shape[::-1])]\n\n\nclass Piece:\n    def __init__(self, key=None):\n        self.key = key or random.choice(list(SHAPES))\n        self.shape = [row[:] for row in SHAPES[self.key]]\n        self.x = (COLS - len(self.shape[0])) // 2\n        self.y = 0\n\n    @staticmethod\n    def cells(shape, px, py):\n        return [(px + c, py + r)\n                for r, row in enumerate(shape)\n                for c, v in enumerate(row) if v]\n\n\nclass TetrisGame:\n    def __init__(self):\n        self.reset()\n\n    def reset(self):\n        self.board = [[None] * COLS for _ in range(ROWS)]\n        self.score = 0\n        self.lines = 0\n        self.level = 1\n        self.game_over = False\n        self.paused = False\n        self.next_piece = Piece()\n        self.spawn()\n\n    def spawn(self):\n        self.piece = self.next_piece\n        self.next_piece = Piece()\n        if self.collides(self.piece.shape, self.piece.x, self.piece.y):\n            self.game_over = True\n\n    def collides(self, shape, x, y):\n        for cx, cy in Piece.cells(shape, x, y):\n            if cx < 0 or cx >= COLS or cy >= ROWS:\n                return True\n            if cy >= 0 and self.board[cy][cx]:\n                return True\n        return False\n\n    def move(self, dx, dy=0):\n        if self.game_over or self.paused:\n            return False\n        if self.collides(self.piece.shape, self.piece.x + dx, self.piece.y + dy):\n            return False\n        self.piece.x += dx\n        self.piece.y += dy\n        return True\n\n    def rotate_piece(self):\n        if self.game_over or self.paused:\n            return\n        rotated = rotate(self.piece.shape)\n        for kick in (0, -1, 1, -2, 2):\n            if not self.collides(rotated, self.piece.x + kick, self.piece.y):\n                self.piece.shape = rotated\n                self.piece.x += kick\n                return\n\n    def hard_drop(self):\n        if self.game_over or self.paused:\n            return\n        dist = 0\n        while self.move(0, 1):\n            dist += 1\n        self.score += dist * 2\n        self.lock()\n\n    def tick(self):\n        if self.game_over or self.paused:\n            return\n        if not self.move(0, 1):\n            self.lock()\n\n    def lock(self):\n        for cx, cy in Piece.cells(self.piece.shape, self.piece.x, self.piece.y):\n            self.board[cy][cx] = self.piece.key\n        self.clear_lines()\n        self.spawn()\n\n    def clear_lines(self):\n        kept = [row for row in self.board if any(cell is None for cell in row)]\n        cleared = ROWS - len(kept)\n        if cleared:\n            self.board = [[None] * COLS for _ in range(cleared)] + kept\n            self.lines += cleared\n            self.score += LINE_SCORES[cleared] * self.level\n            self.level = self.lines // 10 + 1\n\n    def drop_interval(self):\n        return max(100, 1000 - (self.level - 1) * 90)\n```\n\nui.py\n```python\nimport pygame\n\nfrom constants import COLS, ROWS, CELL, WIDTH, HEIGHT, COLORS\nfrom game import Piece\n\n\ndef draw_cell(surface, x, y, color):\n    rect = pygame.Rect(x * CELL, y * CELL, CELL, CELL)\n    pygame.draw.rect(surface, color, rect)\n    pygame.draw.rect(surface, (15, 15, 25), rect, 1)\n\n\ndef draw_preview(surface, piece, ox, oy):\n    for cx, cy in Piece.cells(piece.shape, 0, 0):\n        rect = pygame.Rect(ox + cx * CELL, oy + cy * CELL, CELL, CELL)\n        pygame.draw.rect(surface, COLORS[piece.key], rect)\n        pygame.draw.rect(surface, (15, 15, 25), rect, 1)\n\n\ndef draw_game(surface, game, font, small):\n    surface.fill((15, 15, 25))\n    pygame.draw.rect(surface, (30, 30, 45), (0, 0, COLS * CELL, ROWS * CELL))"
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "22e128212c9fec801767fe9990afa6fcd7a6b6f2a4a97b716960b71bb1a789a5",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "22e128212c9fec801767fe9990afa6fcd7a6b6f2a4a97b716960b71bb1a789a5",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "f1b4cdfb0f6280971a45cb869ab157e4bce830d6cb9d8335ad20eea119b658c8",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "output_truncated",
+          "path": "$",
+          "message": "Model output reached its generation/context limit.",
+          "repair": "Output budget was exhausted. Omit analysis, architecture descriptions and drafts. Return a smaller complete implementation satisfying the task, with explicit filenames and closed code fences."
+        }
+      ],
+      "candidate_sha256": "2bd257c2b2dfc8d52ec9d80f5833fef94aa553e1dba311e0988a1a1c42f40624",
+      "termination_reasons": [
+        "length"
+      ],
+      "rejected_candidate": "Let me review the Tetris code for functional correctness against the task requirements.\n\nTask requirements:\n1. Tetrominoes fall from the top ✓\n2. Player can move or rotate them before they land ✓\n3. Completed lines are cleared, scoring increases ✓\n4. Game ends when no more pieces can be placed ✓\n5. Board updates after each move or drop ✓\n6. All seven standard Tetromino shapes ✓\n7. Increasing drop speed as game progresses ✓\n\nLet me look for bugs:\n\n1. `spawn()`: `self.y = 0`. If the piece collides at spawn, game over. But wait — the piece spawns at y=0. The collision check at spawn: if collides at (x, 0), game over. That's the standard \"game over when no more pieces can be placed\". OK.\n\nHowever, there's a subtle issue: pieces spawn at y=0, and the top row. If a piece locks partially above the board... Actually `lock()` has `if v and 0 <= self.y + r < H` — pieces never go above y=0 since y starts at 0 and only increases. So no negative y issue for locking. But rotation could push... no, rotation only changes x with kicks, y stays. Move only changes x. So y >= 0 always. Fine.\n\n2. `tick()` scheduling: `self.root.after(self.speed(), self.tick)` — speed changes with level, so the interval is recalculated each tick. OK.\n\n3. Pause: when paused, `step()` returns early, but tick continues scheduling. Fine.\n\n4. Game over: when game_over, tick still runs but step returns early. Fine.\n\n5. `clear_lines` scoring: `[0, 100, 300, 500, 800][len(full)]` — len(full) can be at most 4, so index max 4. OK.\n\n6. `lock()`: after locking, calls `clear_lines()` then `spawn()`. If spawn collides → game over. But there's an issue: after lock, if game over, draw shows GAME OVER. OK.\n\n7. Potential bug: In `step()`, when the piece can't move down, it locks. But `lock()` calls `spawn()`, and if the new piece immediately collides, game_over = True. Then `draw()` is called. OK.\n\n8. Hard drop: while loop moves down, score += 2 per row, then lock, draw. OK.\n\n9. Rotation: `rotate(m)` returns `zip(*m[::-1])` — clockwise rotation. For I piece [[1,1,1,1]] rotated: m[::-1] = [[1,1,1,1]], zip(*...) = [(1,1,1,1)]... wait, that's wrong! Rotating a 1x4 matrix clockwise should give a 4x1 matrix. Let me check: m = [[1,1,1,1]]. m[::-1] = [[1,1,1,1]] (single row reversed... actually reversed order of rows, single row so same). zip(*m[::-1]) = zip([1,1,1,1]) = [(1,), (1,), (1,), (1,)] → [[1],[1],[1],[1]]. Yes, that's a 4x1 column. Correct clockwise rotation.\n\n10. Wall kicks: tries dx in (0, -1, 1, -2, 2). Basic kicks. OK for functionality.\n\n11. A real issue: `spawn()` sets `self.y = 0` and checks collision. But the piece appears at the very top row. Standard Tetris spawns partially above the board, but this is acceptable.\n\n12. Bug candidate: In `tick`, `self.step()` is called even when game is over or paused — step returns early. Fine.\n\n13. Bug: `new_game` is never callable after game over — no restart key. Not required by task though.\n\n14. Bug candidate: `lock()` — when the piece locks, cells above the board? y+r >= 0 always. Fine.\n\n15. Bug: In `step()` with manual=True (Down key), score += 1 per soft drop. Fine.\n\n16. Potential real bug: `tick()` uses `self.speed()` which depends on level; level increases as lines clear. Speed: max(120, 800 - (level-1)*70). Level 1: 800ms, level 10: 800-630=170, level 11+: 120. OK, increasing speed. ✓\n\n17. Bug: `draw()` — when game over, the current piece (the one that failed to spawn) is not drawn, but board is drawn. Fine.\n\n18. Real bug candidate: In `spawn()`, if collision at spawn, game_over = True, but the piece variables are still set. In `draw()`, `if not self.game_over` skips drawing piece. OK.\n\n19. Bug: `hard_drop` — after lock, spawn may set game_over. draw called. OK.\n\n20. Subtle bug: In `lock()`, the piece locks into board, then `clear_lines()`, then `spawn()`. But what if the locked piece is above the visible area? Not possible here.\n\n21. Bug candidate: `collides` — `if ny >= 0 and self.board[ny][nx]` — ny can't be negative here since y >= 0 and r >= 0... Actually during rotation kicks, x changes but y stays >= 0. nx could be negative — checked first: `if nx < 0 or nx >= W: return True`. So board access only when 0 <= nx < W and ny >= 0... wait, ny could be negative? py = self.y >= 0, r >= 0, so ny >= 0. OK.\n\nHmm, wait — actually there's a subtle issue: `if ny >= 0 and self.board[ny][nx]` — but if ny < 0 (piece above board), it's allowed (no collision). Since y never goes negative, this doesn't matter.\n\n22. Real bug: The `tick` loop — after game over, the after-loop continues forever, calling step which returns early. Minor resource issue, not functional defect.\n\n23. Bug: Pause during game over — toggle_pause still works, showing PAUSED over GAME OVER? draw: game_over checked first, so GAME OVER shown. Minor.\n\n24. Now the most important check: does the game end correctly \"when no more pieces can be placed\"? spawn checks collision at y=0. If the stack reaches the top, new piece collides → game over. ✓\n\n25. One actual functional bug I should look for: `rotate` for O piece — [[1,1],[1,1]] rotates to itself. Fine.\n\n26. Bug: In `step()`, when the piece can't move down and locks — but this happens on the tick after landing. Standard behavior: piece locks when it can't move down on the next gravity step. That means the piece rests for one tick then locks. Acceptable.\n\nHmm, wait — actually there's a subtle bug: when the piece lands (can't move down), `step()` locks it immediately on the same tick it detects collision. So the piece gets one tick of rest... Actually no: step tries to move down; if blocked, locks immediately. So the piece locks on the tick when it first can't move. That means the piece never rests — it locks as soon as gravity tick fires while grounded. Standard-ish. Fine.\n\n27. Potential bug: `self.info` label — fine.\n\n28. Bug: key binding '<p>' — works for p key.\n\n29. What about the piece spawning overlapping existing stack partially — spawn at y=0 with collision → game over. But what if the stack is at row 0 only in some columns and the new piece fits? Fine.\n\n30. Now, is there any actual defect that blocks required functionality? Let me re-check `clear_lines`:\n\n```python\nfull = [r for r in range(H) if all(self.board[r])]\n```\n\n`all(self.board[r])` — board cells are None or color strings. all() of list with None → False if any None. If all cells are color strings (truthy), row is full. ✓\n\n31. `del self.board[r]; self.board.insert(0, [None]*W)` — iterating over `full` list while modifying board. Since full contains row indices in increasing order, deleting row r shifts rows above down... Let's check: full = [18, 19]. Delete row 18, insert at 0. Now rows that were 19 is still at 19 (rows above 18 shifted down by one, then insert at top shifts everything up by one — net effect: rows 0..17 shift down... hmm let me think.\n\nBoard rows 0..19. Delete index 18: rows 0..17 stay, old row 19 becomes index 18, board has 19 rows. Insert at 0: everything shifts down by one; old row 19 now at index 19. So deleting row 18 and inserting at top: rows 0..17 shift to 1..18, old 19 stays at 19. Correct — clearing row 18 means rows above fall down one, row 19 unchanged. ✓\n\nThen delete index 19 (old row 19, still full): delete, insert at 0. ✓\n\nSince we process full rows in increasing index order, and each delete+insert keeps rows below the deleted index at the same indices... wait: deleting index r shifts rows r+1.. to r.., i.e., rows below move up by one. Then insert at 0 shifts everything down by one. Net: rows above r move down one, rows below r unchanged. So subsequent full row indices (which are > previous ones) remain valid. ✓ Correct.\n\n32. Scoring: line clears score * level. ✓\n\n33. Speed increase: ✓ via level.\n\nHmm, so what's the highest-priority actionable defect? Let me look more carefully for real bugs.\n\nOne thing: `tick()` — `self.root.after(self.speed(), self.tick)`. When paused, tick still fires and calls step (returns early). Fine.\n\nAnother: after game over, there's no way to restart. Task doesn't require restart. Not blocking.\n\nPotential bug: `spawn()` — `self.x = (W - len(self.piece[0])) // 2`. For I piece: (10-4)//2 = 3. OK.\n\nBug: In `rotate_piece`, kick offsets (0,-1,1,-2,2) — for I piece near wall, might need more, but basic. Fine.\n\nWait — there IS a potential bug in `lock()`:\n\n```python\nfor r, row in enumerate(self.piece):\n    for c, v in enumerate(row):\n        if v and 0 <= self.y + r < H:\n            self.board[self.y + r][self.x + c] = self.name\n```\n\nself.x + c — could x+c be out of bounds? x is validated by collides before moves, so piece cells are always within 0..W-1. ✓\n\nHmm, what about `hard_drop` when the piece is already grounded? while loop doesn't execute, lock immediately. ✓\n\nWhat about `step(True)` from Down key when grounded — locks. ✓\n\nNow, one more careful look at `tick` and speed: `max(120, 800 - (self.level - 1) * 70)`. Level increases every 10 lines. Speed increases. ✓\n\nActually, wait. Let me reconsider the game-over condition more carefully. The task says \"The game ends when no more pieces can be placed.\" The spawn check: if the new piece collides at spawn position (y=0), game over. But consider: the piece spawns at y=0 and collides — game over. But what if the piece could be placed if it spawned... it always spawns at y=0. If row 0 is blocked where the piece would be, game over. That's the standard check. ✓\n\nHmm, but there's a subtle bug: the piece spawns at y=0, and if it doesn't collide, the game continues. But the top row might already have blocks; the new piece occupies row 0 overlapping? No — collision check covers that.\n\nLet me now think about whether there's any defect with the piece locking above the board — not possible.\n\nWhat about the `draw()` of the falling piece when part of it is above the board? y >= 0 always, so `self.cell(self.x + c, self.y + r, ...)` — r could make y+r... y >= 0, r >= 0, so cell row >= 0. ✓\n\nOK here's one thing I want to verify: the `rotate` function for the T piece etc. T = [[1,1,1],[0,1,0]]. m[::-1] = [[0,1,0],[1,1,1]]. zip(*...) = [(0,1),(1,1),(0,1)] → [[0,1],[1,1],[0,1]]. That's T pointing... original T points down (row 0 full, row 1 center). Rotated: column pattern — [[0,1],[1,1],[0,1]] — that's T pointing left? Cells at (0,1),(1,0),(1,1),(1,2),(2,1). Center at (1,1) with nub at (0,1) — pointing up. Clockwise rotation of T pointing down → T pointing left? Hmm: T pointing down (nub at bottom). Clockwise rotation → nub at left. Let me recheck: original rows: row0=[1,1,1], row1=[0,1,0]. Nub at (1,1) relative... the nub is at row 1, col 1, and the bar at row 0. So the T shape: bar on top, nub below → points down. Clockwise rotation should point... down → left? Rotating clockwise: down → left? Clockwise: up→right→down→left→up. So pointing down rotated clockwise → pointing left. My computed result: [[0,1],[1,1],[0,1]] — 3 rows, 2 cols. Cells: (0,1),(1,0),(1,1),(2,1). Bar is vertical at col 1 (rows 0,1,2), nub at (1,0) — pointing left. ✓ Correct.\n\nSo rotation is correct clockwise.\n\nHmm, everything seems functionally correct. Let me look for edge-case bugs again.\n\nOne issue: `tick()` is called once in `__init__` after `new_game()`. `new_game` is only called at startup. Fine.\n\nAnother potential issue: `self.root.after(self.speed(), self.tick)` — the delay is computed at scheduling time; if level increases mid-interval, next interval uses new speed. Fine.\n\nPotential issue: pressing Down (soft drop) when the game is over — guarded. ✓\n\nPotential issue: `toggle_pause` when game over — paused toggles but draw shows GAME OVER. Minor.\n\nHmm, is there a bug where `step()` locks the piece even when the piece just spawned and immediately can't move down? E.g., stack at top; new piece spawns at y=0 without collision (fits), but can't move down (row 1 blocked under it). Then next tick, it locks. Fine.\n\nWait, actually there might be a real bug: in `spawn()`, collision check at y=0. But the piece occupies row 0. If it collides → game over. But standard: game over when a new piece can't be placed at all. Here if row 0 is partially blocked such that the piece at y=0 collides, game over even though... the piece can't be placed anywhere else anyway (it spawns at fixed position). Acceptable interpretation.\n\nLet me check the scoring for soft drop: `step(True)` — score += 1 per successful down move. Hard drop: +2 per row. Line clears: 100/300/500/800 * level. ✓\n\nNow — one genuine bug I see: **the game-over check happens only at spawn, but `lock()` can fill cells and then `spawn()` sets game_over — fine. But what about when the piece locks and the board is full at top?** Covered by spawn check.\n\nHmm, let me reconsider `tick` scheduling after game over — the after callbacks continue indefinitely. Not a functional defect per requirements.\n\nIs there any issue with `random.choice(list(SHAPES))` — pure random, no 7-bag. Task says \"Include all seven standard Tetromino shapes\" — random choice includes all. ✓\n\nLet me check `draw()` performance — deletes all and redraws. Fine.\n\nWait, actually — I found something. In `tick()`:\n\n```python\ndef tick(self):\n    self.step()\n    self.root.after(self.speed(), self.tick)\n```\n\n`self.speed()` is called AFTER step. If step caused game over... speed still computed. Fine.\n\nHmm, what about `self.root.after` when root is destroyed — not relevant.\n\nLet me look at `collides` again very carefully:\n\n```python\ndef collides(self, piece, px, py):\n    for r, row in enumerate(piece):\n        for c, v in enumerate(row):\n            if v:\n                nx, ny = px + c, py + r\n                if nx < 0 or nx >= W or ny >= H:\n                    return True\n                if ny >= 0 and self.board[ny][nx]:\n                    return True\n    return False\n```\n\nny >= H → collision. ny < 0 → allowed (above board). But ny can never be < 0 given py >= 0. nx bounds checked. board access safe. ✓\n\nOK so honestly the code looks functionally correct. Let me hunt harder for defects.\n\n`self.info.config(...)` — updates every draw. ✓\n\n`main()` — creates root, Tetris, mainloop. ✓\n\nBindings: Left/Right/Down/Up/space/p. ✓\n\nHmm wait — one thing: `root.bind('<space>', ...)` — space key. ✓\n\nWhat about the initial `self.tick()` — starts gravity. ✓\n\nPotential defect: **When the player pauses, `tick` continues to reschedule with `self.speed()` — fine.**\n\nPotential defect: **`new_game` doesn't reset... it resets everything.** But `new_game` is never called again — no restart binding. Not required.\n\nHmm, let me think about the \"board updates after each move or drop\" — every action calls draw(). ✓\n\n\"Completed lines are cleared, and scoring increases accordingly\" — ✓.\n\n\"consider increasing drop speed as the game progresses\" — ✓ via level-based speed.\n\nSo... is the code actually finished? Let me triple-check the rotation kicks and the I-piece rotation near the floor. I piece at y near bottom: rotate → 4x1 piece, same y. If it collides (below floor), kicks try dx only, not dy. So rotation near floor may fail — acceptable (rotation just doesn't happen). Not a blocking defect.\n\nOne more: `rotate_piece` — if all kicks fail, piece unchanged. ✓\n\nHmm, wait. There's a subtle bug in `step()`:\n\n```python\ndef step(self, manual=False):\n    if self.game_over or self.paused:\n        return\n    if not self.collides(self.piece, self.x, self.y + 1):\n        self.y += 1\n        if manual:\n            self.score += 1\n    else:\n        self.lock()\n    self.draw()\n```\n\nWhen manual down and the piece locks — no score for the lock itself. Fine.\n\nAnd `lock()` calls `spawn()` which may set game_over. Then `draw()` shows GAME OVER. ✓\n\nBut here's a subtle issue: `lock()` → `clear_lines()` → `spawn()`. If spawn collides → game_over = True. But the locked piece's cells are in the board, and draw shows board + GAME OVER. ✓\n\nAlright — actually, let me reconsider one potential real bug: **the piece spawns at y=0, but if the board's top rows are occupied such that the piece at y=0 doesn't collide but the piece is immediately inside the stack...** covered by collision.\n\nHmm, what about **the piece locking while partially above row 0?** Impossible.\n\nOK here's another angle: the `after` loop and `speed()` — `max(120, 800 - (self.level - 1) * 70)`. At level 1: 800ms. That's quite slow but fine.\n\nActually, hold on. Let me re-examine `clear_lines` iteration order issue more rigorously, because this is a classic bug spot.\n\nfull = [r1, r2] with r1 < r2 (increasing order from range).\n\nProcess r1: del board[r1] → rows above r1 (indices < r1) unchanged; rows below shift up: old r1+1 → r1, ..., old r2 → r2-1. Board now has H-1 rows. insert(0, empty) → all shift down: rows 0..r1-1 → 1..r1; old r1+1..r2-1... let me index: after del, board[i] for i in [0, r1-1] = old rows [0, r1-1]; board[i] for i in [r1, H-2] = old rows [r1+1, H-1]. After insert at 0: board[i] for i in [1, r1] = old [0, r1-1]; board[i] for i in [r1+1, H-1] = old [r1+1, H-1].\n\nSo old row r2 is now at index r2 (since r2 >= r1+1 → old r2 at new index r2). ✓ So processing r2 next: board[r2] is still the old full row r2. ✓ Correct.\n\nFor r1 itself: old full row r1 removed. ✓\n\nGreat, clear_lines is correct.\n\nNow scoring list index: len(full) ∈ {1,2,3,4} → indices 1..4 valid. ✓\n\nLevel: `1 + self.lines // 10`. ✓\n\nSo the code seems... functionally complete and correct. Hmm.\n\nBut wait — the review instruction says \"Report at most the highest-priority actionable defect with a real filename and line number.\" If there are no defects, verdict is finished with empty issues.\n\nLet me do one more scan for actual bugs...\n\n`self.canvas = tk.Canvas(root, width=W*CELL, height=H*CELL, bg='black')` ✓\n\n`cell()` draws rectangle with fill and gray outline. ✓\n\n`draw()` — draws board, then piece (if not game over), then overlays. ✓\n\nHmm — one thing: in `draw()`, when the piece is at spawn and game just started, piece drawn at y=0. ✓\n\n`info` label text. ✓\n\nBindings use lambda e: ... ✓\n\n`toggle_pause` — toggles and redraws. When paused, gravity tick still fires but step returns early — so pause works. ✓ But note: while paused, `tick` keeps rescheduling — fine.\n\nHmm, actually wait. There IS a subtle bug with pause + tick timing? No.\n\nWhat about game over + tick: step returns early, after reschedules forever. The after-loop never stops. Minor.\n\nLet me think about whether there's a bug in `hard_drop` scoring: +2 per cell dropped. Fine.\n\nWhat about `move` calling draw even when the move fails — redraw, fine.\n\nOK, one more potential issue: **`spawn()` sets `self.y = 0` — but for the I piece rotated... no, spawn always uses base shape.**\n\nHmm, actually — here's a possible real defect: **the game-over condition triggers when the new piece collides at spawn, but the piece that just locked might have locked with cells in row 0, and the new piece spawns overlapping — game over. Correct.**\n\nAlright, let me also consider: does the piece ever get drawn overlapping the GAME OVER text? No, piece not drawn when game over.\n\nI'm now fairly convinced the code is functionally correct for all stated requirements. But let me check one more time for the classic bug in this kind of code: the `tick` uses `self.speed()` — but `speed` is a method; `self.speed()` returns int. ✓\n\n`root.after(self.speed(), self.tick)` — first arg is ms. ✓\n\nHmm, wait — actually there's one more thing: `self.root.after(self.speed(), self.tick)` is called even after game over, and `tick` calls `self.step()` which returns early — but the loop continues forever, which is harmless.\n\nAnd `new_game()` — called once. If the user wants to restart... not required.\n\nHmm, let me reconsider the requirement: \"The game ends when no more pieces can be placed.\" — implemented via spawn collision. ✓\n\n\"consider increasing drop speed as the game progresses\" — implemented. ✓\n\nSo... verdict: finished? Let me be extra careful though. Let me mentally simulate a game.\n\nStart: board empty. spawn: random piece, x centered, y=0. No collision. draw. tick after 800ms: step → y=1. ... piece falls. Player moves/rotates. Piece reaches bottom: step → collides(y+1) → lock. Board updated. clear_lines (none). spawn new piece. If spawn collides → game over.\n\nWait — there's a subtle bug here! In `step()`, when the piece can't move down, it locks **immediately on the same tick**. But consider: the piece lands on the stack. The tick fires, step detects it can't move down, locks. But the player might have been about to move it. Standard Tetris gives lock delay, but immediate lock on gravity tick is acceptable behavior (piece rests for one full tick interval before locking — actually no: the piece moves down each tick until it can't; the tick where it can't move, it locks. So the piece is grounded for exactly one tick interval before locking? Let's trace: tick N: piece moves from y to y+1 (now grounded, can't move to y+2). Tick N+1: step checks collides(y+2) → yes → lock. So the piece sits at y+1 for one full interval (800ms at level 1) before locking. That's fine — player has time. ✓\n\nActually wait, that's the behavior: piece becomes grounded at tick N (moved into grounded position), then at tick N+1 it locks. So there IS one interval of lock delay. Good.\n\nHmm OK. Now let me check `hard_drop` — locks immediately. ✓\n\nSoft drop (Down): if can move down, moves and +1; else locks immediately. Hmm — pressing Down when grounded locks the piece instantly. That's standard-ish (soft drop lock). Fine.\n\nSo functionally... I think it's correct. But the reviewer role typically expects finding at least something if there's a real defect. Let me look one final time for anything broken.\n\n```python\nSHAPES = {\n    'I': [[1, 1, 1, 1]],\n    'O': [[1, 1], [1, 1]],\n    'T': [[1, 1, 1], [0, 1, 0]],\n    'S': [[0, 1, 1], [1, 1, 0]],\n    'Z': [[1, 1, 0], [0, 1, 1]],\n    'J': [[1, 0, 0], [1, 1, 1]],\n    'L': [[0, 0, 1], [1, 1, 1]],\n}\n```\n\nAll seven shapes present. S: [[0,1,1],[1,1,0]] — top row: cells at cols 1,2; bottom row: cols 0,1. That's S shape. ✓ Z: [[1,1,0],[0,1,1]] ✓. J: [[1,0,0],[1,1,1]] — nub at top-left, bar at bottom → J. ✓ L: [[0,0,1],[1,1,1]] ✓.\n\nCOLORS — all seven. ✓\n\n`rotate` — correct.\n\nHmm, one thing: `zip(*m[::-1])` returns tuples; `list(r)` converts to lists. ✓ And `piece = [row[:] for row in SHAPES[...]]` copies. ✓ `rotate` creates new lists. ✓\n\nSo no mutation issues.\n\n`self.name` — piece color key. ✓\n\nOK here's one more candidate bug: **`self.info` label and canvas sizing** — fine.\n\n**Keyboard repeat**: holding Down fires repeated key events — fine.\n\nHonestly, I believe this code is functionally correct. But wait — let me check `tick()` once more:\n\n```python\ndef tick(self):\n    self.step()\n    self.root.after(self.speed(), self.tick)\n```\n\nIf `self.root` is destroyed (window closed), after raises — but mainloop exited. Fine.\n\nOne more: `Tetris.__init__` calls `self.new_game()` then `self.tick()`. `tick` calls `step` immediately — the piece moves down one row instantly at startup before the first interval. Minor cosmetic.\n\nHmm, actually — is there an issue where `step()` is called in `tick()` before the first `after` delay? The piece drops one row immediately at start. Cosmetic, not blocking.\n\nOK, let me also verify: \"The board updates after each move or drop\" — draw() called after every action. ✓\n\nAlright, one more consideration — the review prompt says \"Report at most the highest-priority actionable defect.\" If I find none, verdict finished.\n\nBut hold on — let me scrutinize the game-over edge case once more. `spawn()`:\n\n```python\nself.y = 0\nif self.collides(self.piece, self.x, self.y):\n    self.game_over = True\n```\n\nThe piece spawns at y=0. If row 0 has blocks where the piece would be → game over. But what if the piece could fit if it spawned higher (above the board, y<0)? E.g., stack is full up to row 1 (rows 1-19 full in some columns), row 0 partially free. A piece spawning at y=0 might collide if row 0 is blocked at those columns. Standard Tetris: game over when a piece spawns overlapping. This implementation is a valid interpretation. ✓\n\nHmm, but actually there's a subtle scenario: the stack reaches row 0 in the columns where the piece spawns, but the piece is 2 rows tall — at y=0 it occupies rows 0-1. If row 0 is free but row 1 blocked → collision at spawn → game over. But the piece could have been placed... no, it spawns at y=0 fixed. If it can't be placed at spawn position, game over. Reasonable.\n\nOK wait, actually — I want to reconsider whether there's a bug with `lock()` when the piece is at y=0 and the board row 0 gets filled — then spawn → collision → game over. ✓\n\nAlright. Let me also double check `clear_lines` is called BEFORE spawn in lock — yes: lock fills board, clear_lines, spawn. ✓\n\nAnd `draw` after lock in step/hard_drop. ✓\n\nSo my conclusion: the code meets all requirements and I can't find a functional defect. Hmm, but let me think really hard about one more time about potential runtime errors...\n\n- `COLORS[self.board[r][c]]` — board stores shape names, all in COLORS. ✓\n- `[0, 100, 300, 500, 800][len(full)]` — len(full) ≤ 4 (only 4 rows can complete with one piece... actually could more than 4 rows be full simultaneously? A single piece locks into at most 4 rows, so at most 4 rows can become full. But could rows that were already full exist? No — full rows are cleared immediately. So max 4. ✓ Actually, hmm, could len(full) exceed 4? Only if a piece lock completes 5+ rows — impossible since the piece occupies ≤ 4 rows and other rows were not full. ✓\n\n- `self.level = 1 + self.lines // 10` ✓\n\n- `speed()` — ✓\n\nOne more: `root.bind('<p>', ...)` — lowercase p. If Caps Lock... minor.\n\n`root.bind('<space>', ...)` — space might also trigger default widget behavior; canvas has focus? Bindings on root work regardless. ✓\n\nOK — actually, hold on. Let me reconsider the `tick` + `after` + pause interaction once more. When paused, `step()` returns early — but `tick` still reschedules. When unpaused, gravity resumes. ✓\n\nAnd game over: tick loop continues forever calling step (no-op). Harmless.\n\nHmm, one thing I keep coming back to: is there any issue with the piece being able to rotate into negative y (above board)? y never negative. ✓\n\nWhat about `move` allowing the piece to move into walls? collides checks nx bounds. ✓\n\nAlright, final answer: I'm leaning toward \"finished\" — but let me do one absolutely final check of every line...\n\n```python\nimport tkinter as tk\nimport random\n```\n✓\n\n```python\nW, H, CELL = 10, 20, 28\n```\n✓\n\n```python\ndef rotate(m):\n    return [list(r) for r in zip(*m[::-1])]\n```\n✓ clockwise.\n\n```python\nclass Tetris:\n    def __init__(self, root):\n        self.root = root\n        self.canvas = tk.Canvas(root, width=W * CELL, height=H * CELL, bg='black')\n        self.canvas.pack()\n        self.info = tk.Label(root, text='')\n        self.info.pack()\n        root.bind('<Left>', lambda e: self.move(-1))\n        root.bind('<Right>', lambda e: self.move(1))\n        root.bind('<Down>', lambda e: self.step(True))\n        root.bind('<Up>', lambda e: self.rotate_piece())\n        root.bind('<space>', lambda e: self.hard_drop())\n        root.bind('<p>', lambda e: self.toggle_pause())\n        self.new_game()\n        self.tick()\n```\n✓\n\n```python\n    def new_game(self):\n        self.board = [[None] * W for _ in range(H)]\n        self.score = 0\n        self.lines = 0\n        self.level = 1\n        self.paused = False\n        self.game_over = False\n        self.spawn()\n        self.draw()\n```\n✓\n\n```python\n    def spawn(self):\n        self.name = random.choice(list(SHAPES))\n        self.piece = [row[:] for row in SHAPES[self.name]]\n        self.x = (W - len(self.piece[0])) // 2\n        self.y = 0\n        if self.collides(self.piece, self.x, self.y):\n            self.game_over = True\n```\n✓\n\n```python\n    def collides(self, piece, px, py):\n        ...\n```\n✓\n\n```python\n    def move(self, dx):\n        if self.game_over or self.paused:\n            return\n        if not self.collides(self.piece, self.x + dx, self.y):\n            self.x += dx\n        self.draw()\n```\n✓\n\n```python\n    def rotate_piece(self):\n        if self.game_over or self.paused:\n            return\n        rp = rotate(self.piece)\n        for dx in (0, -1, 1, -2, 2):\n            if not self.collides(rp, self.x + dx, self.y):\n                self.piece, self.x = rp, self.x + dx\n                break\n        self.draw()\n```\n✓\n\n```python\n    def step(self, manual=False):\n        ...\n```\n✓\n\n```python\n    def hard_drop(self):\n        ...\n```\n✓\n\n```python\n    def lock(self):\n        for r, row in enumerate(self.piece):\n            for c, v in enumerate(row):\n                if v and 0 <= self.y + r < H:\n                    self.board[self.y + r][self.x + c] = self.name\n        self.clear_lines()\n        self.spawn()\n```\n✓\n\n```python\n    def clear_lines(self):\n        full = [r for r in range(H) if all(self.board[r])]\n        for r in full:\n            del self.board[r]\n            self.board.insert(0, [None] * W)\n        if full:\n            self.lines += len(full)\n            self.score += [0, 100, 300, 500, 800][len(full)] * self.level\n            self.level = 1 + self.lines // 10\n```\n✓\n\n```python\n    def speed(self):\n        return max(120, 800 - (self.level - 1) * 70)\n```\n✓\n\n```python\n    def tick(self):\n        self.step()\n        self.root.after(self.speed(), self.tick)\n```\n✓\n\n```python\n    def toggle_pause(self):\n        self.paused = not self.paused\n        self.draw()\n```\n✓\n\n```python\n    def draw(self):\n        ...\n```\n✓\n\n```python\n    def cell(self, c, r, color):\n        ...\n```\n✓\n\n```python\ndef main():\n    root = tk.Tk()\n    root.title('Tetris')\n    Tetris(root)\n    root.mainloop()\n```\n✓\n\nHmm. Everything checks out. But wait — one thing about `tick()`: it's called from `__init__` BEFORE `mainloop()` starts. `self.root.after(...)` works before mainloop. ✓ And `self.step()` in the first tick moves the piece down one immediately. Cosmetic.\n\nHmm, actually — wait. There's one more subtle thing"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "f1b4cdfb0f6280971a45cb869ab157e4bce830d6cb9d8335ad20eea119b658c8",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "41a4b7cba60fe48a82dea68df25c150b1c1a538a99dbfb89714d4f298e56bd57",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "f1b4cdfb0f6280971a45cb869ab157e4bce830d6cb9d8335ad20eea119b658c8",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2e268ff0cef63580c64233b07e8fd026c494a543f47a7717f2245832819f24fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "f1b4cdfb0f6280971a45cb869ab157e4bce830d6cb9d8335ad20eea119b658c8",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "22b20af60fbbb56aa0bdac9cf97d946a0b282b753a2bddaf15e83f3e4400e230",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "f1b4cdfb0f6280971a45cb869ab157e4bce830d6cb9d8335ad20eea119b658c8",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3713dc9d1785c47081ef36c7e993dd51ecf9c4913bd8e04500b2a4717fc9a3a0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "f1b4cdfb0f6280971a45cb869ab157e4bce830d6cb9d8335ad20eea119b658c8",
+        "source_digests": {
+          "main.py": "881d65955817e161b4f00725e0610b02e4ce516d1a30b0a4a4639d861f962c07"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "source/pure-contract\\content_lab\\startup_probe.py",
+          "data/runs/mpst_contract/r08/19_Tetris/artifact\\main.py",
+          "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-ilfb6njp\\probe.json"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "profile": "tkinter_event_loop",
+        "observation": {
+          "event_loop_observed": true,
+          "mapped_window": true,
+          "widget_count": 2,
+          "callback_errors": []
+        },
+        "id": "fbfd2198ab70dbe74aa0515a75b06f00204db6d031f4fa8eb5dba5ba67201220"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "f1b4cdfb0f6280971a45cb869ab157e4bce830d6cb9d8335ad20eea119b658c8",
+        "source_digests": {
+          "main.py": "881d65955817e161b4f00725e0610b02e4ce516d1a30b0a4a4639d861f962c07"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "source/pure-contract\\content_lab\\startup_probe.py",
+          "data/runs/mpst_contract/r08/19_Tetris/artifact\\main.py",
+          "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-z64ah3pl\\probe.json"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "profile": "tkinter_event_loop",
+        "observation": {
+          "event_loop_observed": true,
+          "mapped_window": true,
+          "widget_count": 2,
+          "callback_errors": []
+        },
+        "id": "ea2b535530e27c09410e897c1239143efc2efc9d7292e2e81ef1c56225bb4a15"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "f1b4cdfb0f6280971a45cb869ab157e4bce830d6cb9d8335ad20eea119b658c8",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2563263cba847d7a7de65233b16b19a176b2816e38b89d71e7a808a824802207",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "f1b4cdfb0f6280971a45cb869ab157e4bce830d6cb9d8335ad20eea119b658c8",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "243cca59fd0f24057e19bfca39f5a0e1d2b0cd93669562d38f74a725e13de784",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "f1b4cdfb0f6280971a45cb869ab157e4bce830d6cb9d8335ad20eea119b658c8",
+        "source_digests": {
+          "main.py": "881d65955817e161b4f00725e0610b02e4ce516d1a30b0a4a4639d861f962c07"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "source/pure-contract\\content_lab\\startup_probe.py",
+          "data/runs/mpst_contract/r08/19_Tetris/artifact\\main.py",
+          "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-r2ck7rge\\probe.json"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "profile": "tkinter_event_loop",
+        "observation": {
+          "event_loop_observed": true,
+          "mapped_window": true,
+          "widget_count": 2,
+          "callback_errors": []
+        },
+        "id": "1df2fb7461e949e566ef2b1b4d1c658c1a3383a2057c14594f33170b716e8518"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": true,
+      "evidence_id": "1df2fb7461e949e566ef2b1b4d1c658c1a3383a2057c14594f33170b716e8518"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "task_index": 4,
+  "project_name": "BudgetTracker",
+  "description": "Create a budget tracker to monitor expenses and savings",
+  "framework": "ChatDev1.0",
+  "model": "glm-5.3-flash:cloud",
+  "content_contracts_enabled": true,
+  "session_type_enabled": true,
+  "status": "failed",
+  "error": "exit code 1",
+  "failure_type": "content_contract",
+  "project_path": "data/runs/mpst_contract/r05/04_BudgetTracker/artifact",
+  "elapsed_seconds": 166.343,
+  "contract_rejections": 1,
+  "violated_rules": [
+    "current_startup_passed"
+  ],
+  "last_diagnostic": "saction(self, txn_id):\n        before = len(self.data[\"transactions\"])\n        self.data[\"transactions\"] = [t for t in self.data[\"transactions\"]\n                                     if t[\"id\"] != txn_id]\n        removed = len(self.data[\"transactions\"]) < before\n        if removed:\n            self._save()\n        return removed\n\n    def transactions(self, month=None):\n        txns = [Transaction.from_dict(t) for t in self.data[\"transactions\"]]\n        if month:\n            txns = [t for t in txns if t.date.startswith(month)]\n        return sorted(txns, key=lambda t: (t.date, t.id))\n\n    def summary(self, month=None):\n        txns = self.transactions(month)\n        income = sum(t.amount for t in txns if t.ttype == \"income\")\n        expenses = sum(t.amount for t in txns if t.ttype == \"expense\")\n        return income, expenses, income - expenses\n\n    def category_breakdown(self, month=None):\n        totals = defaultdict(float)\n        for t in self.transactions(month):\n            if t.ttype == \"expense\":\n                totals[t.category] += t.amount\n        return dict(sorted(totals.items(), key=lambda kv: kv[1], reverse=True))\n\n    def add_goal(self, name, target):\n        name = (name or \"\").strip()\n        if not name:\n            raise ValueError(\"Goal name is required.\")\n        target = float(target)\n        if target <= 0:\n            raise ValueError(\"Target must be positive.\")\n        if any(g[\"name\"].lower() == name.lower() for g in self.data[\"goals\"]):\n            raise ValueError(\"A goal with that name already exists.\")\n        goal = SavingsGoal(name, target)\n        self.data[\"goals\"].append(goal.to_dict())\n        self._save()\n        return goal\n\n    def contribute(self, name, amount):\n        amount = float(amount)\n        if amount <= 0:\n            raise ValueError(\"Amount must be positive.\")\n        for g in self.data[\"goals\"]:\n            if g[\"name\"].lower() == (name or \"\").strip().lower():\n                g[\"saved\"] = round(min(g[\"saved\"] + amount, g[\"target\"]), 2)\n                self._save()\n                return SavingsGoal.from_dict(g)\n        raise ValueError(\"Goal not found.\")\n\n    def goals(self):\n        return [SavingsGoal.from_dict(g) for g in self.data[\"goals\"]]\n\n    def total_saved(self):\n        return sum(g[\"saved\"] for g in self.data[\"goals\"])\n```\n\nmodels.py\n```python\nfrom dataclasses import dataclass, asdict\n\n\n@dataclass\nclass Transaction:\n    id: int\n    date: str\n    ttype: str\n    category: str\n    description: str\n    amount: float\n\n    def to_dict(self):\n        return asdict(self)\n\n    @classmethod\n    def from_dict(cls, d):\n        return cls(**d)\n\n\n@dataclass\nclass SavingsGoal:\n    name: str\n    target: float\n    saved: float = 0.0\n\n    def to_dict(self):\n        return asdict(self)\n\n    @classmethod\n    def from_dict(cls, d):\n        return cls(**d)\n```\n\nstorage.py\n```python\nimport json\nimport os\n\nDATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), \"budget_data.json\")\n\n\ndef load():\n    if os.path.exists(DATA_FILE):\n        try:\n            with open(DATA_FILE, \"r\", encoding=\"utf-8\") as fh:\n                data = json.load(fh)\n            if not isinstance(data, dict):\n                raise ValueError(\"Corrupt data file.\")\n            data.setdefault(\"transactions\", [])\n            data.setdefault(\"goals\", [])\n            data.setdefault(\"next_id\", 1)\n            return data\n        except (json.JSONDecodeError, ValueError, OSError):\n            pass\n    return {\"transactions\": [], \"goals\": [], \"next_id\": 1}\n\n\ndef save(data):\n    with open(DATA_FILE, \"w\", encoding=\"utf-8\") as fh:\n        json.dump(data, fh, indent=2)\n```\n\ndir: data/runs/mpst_contract/r05/04_BudgetTracker/artifact\n**[Software Info]**:\n\n \n\n💰**cost**=unknown\n\n🔨**version_updates**=-1\n\n📃**num_code_files**=4\n\n🏞**num_png_files**=0\n\n📚**num_doc_files**=5\n\n📃**code_lines**=235\n\n📋**env_lines**=-1\n\n📒**manual_lines**=-1\n\n🗣**num_utterances**=20\n\n🤔**num_self_reflections**=0\n\n❓**num_prompt_tokens**=21091\n\n❗**num_completion_tokens**=23114\n\n🌟**num_total_tokens**=44205\n\nTraceback (most recent call last):\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\run.py\", line 136, in <module>\n    chat_chain.execute_chain()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\chat_chain.py\", line 183, in execute_chain\n    content_guard.finish()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\content_guard.py\", line 134, in finish\n    raise ContentViolation(\"chatdev.stage_exit.v1\", findings)\ncontent_lab.chatdev_contracts.ContentViolation: {\"contract\": \"chatdev.stage_exit.v1\", \"violations\": [{\"layer\": \"A\", \"rule\": \"current_startup_passed\", \"path\": \"$\", \"message\": \"Current startup did not pass.\", \"repair\": \"Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior.\"}]}\n",
+  "artifact_pass": true,
+  "evaluation_error": null,
+  "result_path": "data/runs/mpst_contract/r05/04_BudgetTracker\\run_result.json",
+  "model_decision_enabled": false,
+  "model_decision_calls": 0,
+  "terminal_contract": "chatdev.stage_exit.v1",
+  "terminal_rules": [
+    "current_startup_passed"
+  ],
+  "audit_checks": 24,
+  "delivered_phases": [
+    "DemandAnalysis",
+    "LanguageChoose",
+    "Coding",
+    "CodeComplete",
+    "CodeComplete",
+    "CodeComplete",
+    "CodeReviewComment",
+    "CodeReviewModification",
+    "TestErrorSummary",
+    "TestModification"
+  ]
+}

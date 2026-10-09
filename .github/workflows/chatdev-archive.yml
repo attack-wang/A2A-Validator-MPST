@@ -1,0 +1,29 @@
+name: ChatDev archive verification
+on:
+  push:
+    paths: ['research/chatdev-contracts/**', '.github/workflows/chatdev-archive.yml']
+  pull_request:
+    paths: ['research/chatdev-contracts/**', '.github/workflows/chatdev-archive.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: research/chatdev-contracts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify historical data
+        run: python scripts/summarize.py --verify-hashes
+      - name: Install offline test dependencies
+        run: pip install -r requirements-offline.txt
+      - name: Populate tokenizer data cache
+        run: python -c "import tiktoken; tiktoken.encoding_for_model('gpt-4o'); tiktoken.encoding_for_model('gpt-4'); tiktoken.encoding_for_model('gpt-3.5-turbo')"
+      - name: Test preserved contract implementation
+        run: python scripts/run_offline_tests.py --variant pure-contract
+      - name: Test inline contract projection
+        run: python scripts/run_offline_tests.py --variant inline-contract

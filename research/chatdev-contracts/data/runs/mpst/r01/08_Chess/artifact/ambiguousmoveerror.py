@@ -1,0 +1,3 @@
+class MoveParseError(Exception): pass
+class AmbiguousMoveError(MoveParseError):
+    def __init__(self, candidates): ...

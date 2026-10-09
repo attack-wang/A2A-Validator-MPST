@@ -1,0 +1,297 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "Thank you for sharing the task details. As the Chief Product Officer, let me analyze the customer's requirements to determine the most suitable product modality.\n\n**Customer's core needs:**\n1. An interactive trivia quiz program (multiple-choice or short-answer questions)\n2. User input for answers with real-time score tracking\n3. Display of total correct answers upon completion\n4. Configurable question banks\n5. Optional display of correct answers after the quiz\n\n**My analysis of the modalities:**\n\n- **Application (Python)**: This is the strongest candidate. A Python application can fully support interactive user input, score tracking logic, loading configurable question banks (e.g., from JSON files), and displaying results. It directly matches the customer's description of a \"program\" where users \"enter answers.\"\n\n- **Website (HTML)**: A viable alternative — JavaScript could handle interactivity in a browser. However, \"configurable question banks\" and the notion of a standalone \"program\" lean more naturally toward an application form.\n\n- Other modalities (Image, Document, PowerPoint, Excel, PDF, Dashboard, Mind Map) are primarily for presenting static or visualized information and cannot support the interactive answer-entry and scoring workflow the customer requires.\n\n**My recommendation:** I propose we build this as an **Application** via Python. It best fulfills the interactive nature, score tracking, and configurable question bank requirements, and it's fully realizable within our capabilities.\n\nWhat are your thoughts? Do you agree with the Application modality, or would you prefer the Website approach?"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\n\"\"\"Trivia quiz program entry point.\n\nUsage:\n    python main.py [--bank FILE] [--topic TOPIC] [--count N]\n                   [--shuffle] [--show-answers]\n\"\"\"\nimport argparse\nimport sys\n\nfrom bank import DEFAULT_BANK, load_bank\nfrom quiz import Quiz\n\n\ndef parse_args(argv):\n    parser = argparse.ArgumentParser(\n        description=\"Trivia quiz with multiple-choice and short-answer questions.\")\n    parser.add_argument(\"--bank\", metavar=\"FILE\",\n                        help=\"Path to a JSON question bank (default: built-in bank).\")\n    parser.add_argument(\"--topic\", metavar=\"TOPIC\",\n                        help=\"Only ask questions from this topic.\")\n    parser.add_argument(\"--count\", type=int, metavar=\"N\",\n                        help=\"Maximum number of questions to ask.\")\n    parser.add_argument(\"--shuffle\", action=\"store_true\",\n                        help=\"Shuffle the question order.\")\n    parser.add_argument(\"--show-answers\", action=\"store_true\",\n                        help=\"Display correct answers in a review after the quiz.\")\n    return parser.parse_args(argv)\n\n\ndef main(argv=None):\n    args = parse_args(argv)\n    try:\n        questions = load_bank(args.bank) if args.bank else DEFAULT_BANK\n    except (OSError, ValueError) as exc:\n        print(f\"Error loading question bank: {exc}\", file=sys.stderr)\n        return 1\n\n    if args.topic:\n        wanted = args.topic.strip().lower()\n        questions = [q for q in questions\n                     if str(q.get(\"topic\", \"General\")).lower() == wanted]\n    if not questions:\n        print(\"No questions match the selected options.\", file=sys.stderr)\n        return 1\n    if args.count and args.count > 0:\n        questions = questions[:args.count]\n\n    Quiz(questions, shuffle=args.shuffle, show_answers=args.show_answers).run()\n    return 0\n\n\nif __name__ == \"__main__\":\n    sys.exit(main())\n```\n\nquiz.py\n```python\n\"\"\"Quiz engine: question model, answer checking, scoring, and review.\"\"\"\nimport random\n\n\nclass Question:\n    \"\"\"A single trivia question, either multiple-choice or short-answer.\"\"\"\n\n    def __init__(self, text, answer, choices=None, topic=\"General\"):\n        self.text = str(text)\n        self.answer = str(answer)\n        self.choices = [str(c) for c in choices] if choices else None\n        self.topic = str(topic)\n\n    @property\n    def is_multiple_choice(self):\n        return bool(self.choices)\n\n    @staticmethod\n    def normalize(value):\n        return \" \".join(str(value).strip().lower().split())\n\n    def check(self, response):\n        return self.normalize(response) == self.normalize(self.answer)\n\n    def accept_choice(self, response):\n        \"\"\"Translate a choice letter (a/b/c/...) into the choice text.\"\"\"\n        if not self.is_multiple_choice:\n            return response\n        resp = str(response).strip()\n        if len(resp) == 1 and resp.isalpha():\n            index = ord(resp.upper()) - ord(\"A\")\n            if 0 <= index < len(self.choices):\n                return self.choices[index]\n        return response\n\n    def correct_letter(self):\n        if not self.is_multiple_choice:\n            return None\n        target = self.normalize(self.answer)\n        for index, choice in enumerate(self.choices):\n            if self.normalize(choice) == target:\n                return chr(ord(\"A\") + index)\n        return None\n\n    def prompt(self):\n        lines = [self.text]\n        if self.is_multiple_choice:\n            lines.extend(f\"  {chr(ord('A') + i)}) {choice}\"\n                         for i, choice in enumerate(self.choices))\n            lines.append(\"  (enter a letter or the full answer)\")\n        else:\n            lines.append(\"  (short answer)\")\n        return \"\\n\".join(lines)\n\n\nclass Quiz:\n    \"\"\"Runs a quiz session, tracks the score, and reports results.\"\"\"\n\n    def __init__(self, questions, shuffle=False, show_answers=False,\n                 input_fn=input, output_fn=print):\n        self.questions = [self._as_question(q) for q in questions]\n        if shuffle:\n            random.shuffle(self.questions)\n        self.show_answers = show_answers\n        self._input = input_fn\n        self._print = output_fn\n        self.results = []  # list of (question, response, was_correct)\n\n    @staticmethod\n    def _as_question(item):\n        if isinstance(item, Question):\n            return item\n        if isinstance(item, dict):\n            return Question(item[\"text\"], item[\"answer\"],\n                            item.get(\"choices\"), item.get(\"topic\", \"General\"))\n        raise TypeError(f\"Unsupported question entry: {item!r}\")\n\n    def run(self):\n        self._print(\"=\" * 55)\n        self._print(\"TRIVIA QUIZ\".center(55))\n        self._print(\"=\" * 55)\n        self._print(f\"{len(self.questions)} questions. Type 'q' to quit early.\")\n        for number, question in enumerate(self.questions, 1):\n            self._print(f\"\\nQuestion {number} of {len(self.questions)} \"\n                        f\"[{question.topic}]\")\n            self._print(question.prompt())\n            response = self._input(\"Your answer: \").strip()\n            if response.lower() in (\"q\", \"quit\"):\n                self._print(\"\\nQuiz ended early by user.\")\n                break\n            response = question.accept_choice(response)\n            correct = question.check(response)\n            self.results.append((question, response, correct))\n            self._print(\"Correct!\" if correct else \"Incorrect.\")\n        self.report()\n\n    def score(self):\n        return sum(1 for _, _, correct in self.results if correct)\n\n    def report(self):\n        total = len(self.results)\n        score = self.score()\n        self._print(\"\\n\" + \"=\" * 55)\n        self._print(f\"QUIZ COMPLETE: {score} out of {total} correct\")\n        if total:\n            self._print(f\"Score: {score / total * 100:.0f}%\")\n        if self.show_answers and self.results:\n            self._print(\"\\nAnswer review \" + \"-\" * 40)\n            for number, (question, response, correct) in enumerate(self.results, 1):\n                mark = \"Correct\" if correct else \"Wrong\"\n                self._print(f\"{number}. [{mark}] {question.text}\")\n                self._print(f\"   Your answer: {response}\")\n                if not correct:\n                    letter = question.correct_letter()\n                    answer = f\"{letter}) {question.answer}\" if letter else question.answer\n                    self._print(f\"   Correct answer: {answer}\")\n```\n\nbank.py\n```python\n\"\"\"Question bank utilities and the built-in default bank.\n\nCustom banks are JSON files, either a list of question objects or an\nobject with a \"questions\" list. Each question object supports:\n\n    text     (str, required): the question text\n    answer   (str, required): the correct answer\n    choices  (list of str, optional): enables multiple-choice mode\n    topic    (str, optional): topic label, defaults to \"General\"\n\nExample:\n    [\n        {\"text\": \"What is 2 + 2?\", \"answer\": \"4\",\n         \"choices\": [\"3\", \"4\", \"5\"], \"topic\": \"Math\"}\n    ]\n\"\"\"\nimport json\n\nDEFAULT_BANK = [\n    {\"text\": \"What is the capital of France?\", \"answer\": \"Paris\", \"topic\": \"Geography\"},\n    {\"text\": \"Which planet is known as the Red Planet?\", \"answer\": \"Mars\", \"topic\": \"Science\"},\n    {\"text\": \"How many continents are on Earth?\", \"answer\": \"7\",\n     \"choices\": [\"5\", \"6\", \"7\", \"8\"], \"topic\": \"Geography\"},\n    {\"text\": \"Who wrote the play 'Romeo and Juliet'?\", \"answer\": \"William Shakespeare\",\n     \"topic\": \"Literature\"},\n    {\"text\": \"What is the chemical symbol for gold?\", \"answer\": \"Au\", \"topic\": \"Science\"},\n    {\"text\": \"In which year did World War II end?\", \"answer\": \"1945\", \"topic\": \"History\"},\n    {\"text\": \"What is the largest animal on Earth?\", \"answer\": \"Blue whale\",\n     \"choices\": [\"African elephant\", \"Blue whale\", \"Giraffe\", \"Orca\"], \"topic\": \"Animals\"},\n    {\"text\": \"What is 12 multiplied by 8?\", \"answer\": \"96\", \"topic\": \"Math\"},\n    {\"text\": \"Which gas do plants absorb from the atmosphere for photosynthesis?\",\n     \"answer\": \"Carbon dioxide\",\n     \"choices\": [\"Oxygen\", \"Nitrogen\", \"Carbon dioxide\", \"Helium\"], \"topic\": \"Science\"},\n    {\"text\": \"What is the longest river in Africa?\", \"answer\": \"Nile\", \"topic\": \"Geography\"},\n]\n\n\ndef validate_entry(entry, index):\n    if not isinstance(entry, dict):\n        raise ValueError(f\"Question {index}: expected a JSON object.\")\n    if \"text\" not in entry or \"answer\" not in entry:\n        raise ValueError(f\"Question {index}: missing required 'text' or 'answer'.\")\n    choices = entry.get(\"choices\")\n    if choices is not None and (not isinstance(choices, list) or len(choices) < 2):\n        raise ValueError(f\"Question {index}: 'choices' must be a list with at least 2 options.\")\n    return entry\n\n\ndef load_bank(path):\n    \"\"\"Load and validate a JSON question bank file.\"\"\"\n    with open(path, \"r\", encoding=\"utf-8\") as handle:\n        data = json.load(handle)\n    if isinstance(data, dict):\n        data = data.get(\"questions\")\n    if not isinstance(data, list) or not data:\n        raise ValueError(\"Question bank must be a non-empty list of questions.\")\n    return [validate_entry(entry, number) for number, entry in enumerate(data, 1)]\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "2c24145fb906e0e9e8ef64c530a28ad74b6db4a50f29777721141f8e3b4e184d",
+      "result": "{\"verdict\": \"finished\", \"issues\": []}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "2c24145fb906e0e9e8ef64c530a28ad74b6db4a50f29777721141f8e3b4e184d",
+      "result": " Finished"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "2c24145fb906e0e9e8ef64c530a28ad74b6db4a50f29777721141f8e3b4e184d",
+      "result": "{\"status\": \"failed\", \"test_run_id\": \"23db912e4a1f450e107c2b73a2d94795ca9c265c6224aeb600ee025f225e1b5d\", \"summary\": \"Startup smoke ran 'python -E main.py' with no stdin and a 3s timeout. The program started correctly: default bank loaded, banner and Question 1 (short answer) printed, then crashed with EOFError at quiz.py:87 in input('Your answer: ') because the harness provided no stdin. This is an invocation/environment limitation (interactive console program run non-interactively), not a source error or missing dependency; all modules imported and executed up to the first prompt. A graceful EOF handling in Quiz.run would make the smoke test pass, but the observed failure does not by itself establish a code defect.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "2c24145fb906e0e9e8ef64c530a28ad74b6db4a50f29777721141f8e3b4e184d",
+      "result": "quiz.py\n```python\n\"\"\"Quiz engine: question model, answer checking, scoring, and review.\"\"\"\nimport random\n\n\nclass Question:\n    \"\"\"A single trivia question, either multiple-choice or short-answer.\"\"\"\n\n    def __init__(self, text, answer, choices=None, topic=\"General\"):\n        self.text = str(text)\n        self.answer = str(answer)\n        self.choices = [str(c) for c in choices] if choices else None\n        self.topic = str(topic)\n\n    @property\n    def is_multiple_choice(self):\n        return bool(self.choices)\n\n    @staticmethod\n    def normalize(value):\n        return \" \".join(str(value).strip().lower().split())\n\n    def check(self, response):\n        return self.normalize(response) == self.normalize(self.answer)\n\n    def accept_choice(self, response):\n        \"\"\"Translate a choice letter (a/b/c/...) into the choice text.\"\"\"\n        if not self.is_multiple_choice:\n            return response\n        resp = str(response).strip()\n        if len(resp) == 1 and resp.isalpha():\n            index = ord(resp.upper()) - ord(\"A\")\n            if 0 <= index < len(self.choices):\n                return self.choices[index]\n        return response\n\n    def correct_letter(self):\n        if not self.is_multiple_choice:\n            return None\n        target = self.normalize(self.answer)\n        for index, choice in enumerate(self.choices):\n            if self.normalize(choice) == target:\n                return chr(ord(\"A\") + index)\n        return None\n\n    def prompt(self):\n        lines = [self.text]\n        if self.is_multiple_choice:\n            lines.extend(f\"  {chr(ord('A') + i)}) {choice}\"\n                         for i, choice in enumerate(self.choices))\n            lines.append(\"  (enter a letter or the full answer)\")\n        else:\n            lines.append(\"  (short answer)\")\n        return \"\\n\".join(lines)\n\n\nclass Quiz:\n    \"\"\"Runs a quiz session, tracks the score, and reports results.\"\"\"\n\n    def __init__(self, questions, shuffle=False, show_answers=False,\n                 input_fn=input, output_fn=print):\n        self.questions = [self._as_question(q) for q in questions]\n        if shuffle:\n            random.shuffle(self.questions)\n        self.show_answers = show_answers\n        self._input = input_fn\n        self._print = output_fn\n        self.results = []  # list of (question, response, was_correct)\n\n    @staticmethod\n    def _as_question(item):\n        if isinstance(item, Question):\n            return item\n        if isinstance(item, dict):\n            return Question(item[\"text\"], item[\"answer\"],\n                            item.get(\"choices\"), item.get(\"topic\", \"General\"))\n        raise TypeError(f\"Unsupported question entry: {item!r}\")\n\n    def run(self):\n        self._print(\"=\" * 55)\n        self._print(\"TRIVIA QUIZ\".center(55))\n        self._print(\"=\" * 55)\n        self._print(f\"{len(self.questions)} questions. Type 'q' to quit early.\")\n        for number, question in enumerate(self.questions, 1):\n            self._print(f\"\\nQuestion {number} of {len(self.questions)} \"\n                        f\"[{question.topic}]\")\n            self._print(question.prompt())\n            try:\n                response = self._input(\"Your answer: \").strip()\n            except EOFError:\n                self._print(\"\\nNo more input available; quiz ended early.\")\n                break\n            except KeyboardInterrupt:\n                self._print(\"\\nQuiz interrupted by user.\")\n                break\n            if response.lower() in (\"q\", \"quit\"):\n                self._print(\"\\nQuiz ended early by user.\")\n                break\n            response = question.accept_choice(response)\n            correct = question.check(response)\n            self.results.append((question, response, correct))\n            self._print(\"Correct!\" if correct else \"Incorrect.\")\n        self.report()\n\n    def score(self):\n        return sum(1 for _, _, correct in self.results if correct)\n\n    def report(self):\n        total = len(self.results)\n        score = self.score()\n        self._print(\"\\n\" + \"=\" * 55)\n        self._print(f\"QUIZ COMPLETE: {score} out of {total} correct\")\n        if total:\n            self._print(f\"Score: {score / total * 100:.0f}%\")\n        if self.show_answers and self.results:\n            self._print(\"\\nAnswer review \" + \"-\" * 40)\n            for number, (question, response, correct) in enumerate(self.results, 1):\n                mark = \"Correct\" if correct else \"Wrong\"\n                self._print(f\"{number}. [{mark}] {question.text}\")\n                self._print(f\"   Your answer: {response}\")\n                if not correct:\n                    letter = question.correct_letter()\n                    answer = f\"{letter}) {question.answer}\" if letter else question.answer\n                    self._print(f\"   Correct answer: {answer}\")\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "b30c4b86ba63b9f6ea477d5cf84cfa24984b775ecd11164289ed163e4209d03b",
+    "source_digests": {
+      "bank.py": "489451fcd8efeb616cd1854dc84e71555f3e4b758c06f55d4182b5180b041856",
+      "main.py": "bc9f7c3704169e39256a2146d4bce075f13721f16036b896a71f44aca993a1d4",
+      "quiz.py": "4234bed714b53b253b1d8f3c9d63de23462946bc7b81e5094c5459a403dedd2b"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "main.py"
+    ],
+    "timeout_seconds": 3,
+    "status": "passed",
+    "exit_code": 0,
+    "stdout": "=======================================================\n                      TRIVIA QUIZ                      \n=======================================================\n10 questions. Type 'q' to quit early.\n\nQuestion 1 of 10 [Geography]\nWhat is the capital of France?\n  (short answer)\nYour answer: \nNo more input available; quiz ended early.\n\n=======================================================\nQUIZ COMPLETE: 0 out of 0 correct\n",
+    "stderr": "",
+    "profile": "process_exit",
+    "id": "0acd0d83c1547c8c2d52973feb7892da308e22d64d9cf88449bf933a9fa95227"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "a414b7d15e27bb5bb8bff05f0bd756ec5b3a1f51d8c1f1c08f97793eaeefd692",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "a414b7d15e27bb5bb8bff05f0bd756ec5b3a1f51d8c1f1c08f97793eaeefd692",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "7e1b03ae50e1a50d4f736ebb20106e4a2359f8c6d4b4817405f688a9a81dcdb5",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "16bb04cb3438bfbd5966df6a1ec517d35dacd4d1da4870a2e3b5579138238028",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "16bb04cb3438bfbd5966df6a1ec517d35dacd4d1da4870a2e3b5579138238028",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "2c24145fb906e0e9e8ef64c530a28ad74b6db4a50f29777721141f8e3b4e184d",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "aff5b4aafc2fc347b7160b41954aabfd50371ed2aa8afab34509b80964bff81f",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "2c24145fb906e0e9e8ef64c530a28ad74b6db4a50f29777721141f8e3b4e184d",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2e268ff0cef63580c64233b07e8fd026c494a543f47a7717f2245832819f24fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "2c24145fb906e0e9e8ef64c530a28ad74b6db4a50f29777721141f8e3b4e184d",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "a685025f3fa648342e3d539bfb5b28af1048aef846b1edfcd5ca36ab1c904929",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "2c24145fb906e0e9e8ef64c530a28ad74b6db4a50f29777721141f8e3b4e184d",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3713dc9d1785c47081ef36c7e993dd51ecf9c4913bd8e04500b2a4717fc9a3a0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "2c24145fb906e0e9e8ef64c530a28ad74b6db4a50f29777721141f8e3b4e184d",
+        "source_digests": {
+          "bank.py": "489451fcd8efeb616cd1854dc84e71555f3e4b758c06f55d4182b5180b041856",
+          "main.py": "bc9f7c3704169e39256a2146d4bce075f13721f16036b896a71f44aca993a1d4",
+          "quiz.py": "f6e2756c200e05585d57f21bbb30945d4cc8b201836e723e7f944f8de3ee7f2c"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "=======================================================\n                      TRIVIA QUIZ                      \n=======================================================\n10 questions. Type 'q' to quit early.\n\nQuestion 1 of 10 [Geography]\nWhat is the capital of France?\n  (short answer)\nYour answer: ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r11/17_TriviaQuiz/artifact\\main.py\", line 53, in <module>\n    sys.exit(main())\n             ^^^^^^\n  File \"data/runs/mpst_contract/r11/17_TriviaQuiz/artifact\\main.py\", line 48, in main\n    Quiz(questions, shuffle=args.shuffle, show_answers=args.show_answers).run()\n  File \"data/runs/mpst_contract/r11/17_TriviaQuiz/artifact\\quiz.py\", line 87, in run\n    response = self._input(\"Your answer: \").strip()\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "23db912e4a1f450e107c2b73a2d94795ca9c265c6224aeb600ee025f225e1b5d"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "2c24145fb906e0e9e8ef64c530a28ad74b6db4a50f29777721141f8e3b4e184d",
+        "source_digests": {
+          "bank.py": "489451fcd8efeb616cd1854dc84e71555f3e4b758c06f55d4182b5180b041856",
+          "main.py": "bc9f7c3704169e39256a2146d4bce075f13721f16036b896a71f44aca993a1d4",
+          "quiz.py": "f6e2756c200e05585d57f21bbb30945d4cc8b201836e723e7f944f8de3ee7f2c"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "=======================================================\n                      TRIVIA QUIZ                      \n=======================================================\n10 questions. Type 'q' to quit early.\n\nQuestion 1 of 10 [Geography]\nWhat is the capital of France?\n  (short answer)\nYour answer: ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r11/17_TriviaQuiz/artifact\\main.py\", line 53, in <module>\n    sys.exit(main())\n             ^^^^^^\n  File \"data/runs/mpst_contract/r11/17_TriviaQuiz/artifact\\main.py\", line 48, in main\n    Quiz(questions, shuffle=args.shuffle, show_answers=args.show_answers).run()\n  File \"data/runs/mpst_contract/r11/17_TriviaQuiz/artifact\\quiz.py\", line 87, in run\n    response = self._input(\"Your answer: \").strip()\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "23db912e4a1f450e107c2b73a2d94795ca9c265c6224aeb600ee025f225e1b5d"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "2c24145fb906e0e9e8ef64c530a28ad74b6db4a50f29777721141f8e3b4e184d",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "245b58f18e710154cb134de9ae3705e5d481742c41ecd428c512cafdc947848b",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "2c24145fb906e0e9e8ef64c530a28ad74b6db4a50f29777721141f8e3b4e184d",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "16fd311cb5bf61c0d2ed9a65ea27c9362cb9e58e9cff10c1e814835043837890",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "2c24145fb906e0e9e8ef64c530a28ad74b6db4a50f29777721141f8e3b4e184d",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "69f780e611e895f3ae8e4302feb778c0f43c6d61ea49c2c187d3a4b64f784f29",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "2c24145fb906e0e9e8ef64c530a28ad74b6db4a50f29777721141f8e3b4e184d",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "69f780e611e895f3ae8e4302feb778c0f43c6d61ea49c2c187d3a4b64f784f29",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "b30c4b86ba63b9f6ea477d5cf84cfa24984b775ecd11164289ed163e4209d03b",
+        "source_digests": {
+          "bank.py": "489451fcd8efeb616cd1854dc84e71555f3e4b758c06f55d4182b5180b041856",
+          "main.py": "bc9f7c3704169e39256a2146d4bce075f13721f16036b896a71f44aca993a1d4",
+          "quiz.py": "4234bed714b53b253b1d8f3c9d63de23462946bc7b81e5094c5459a403dedd2b"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "=======================================================\n                      TRIVIA QUIZ                      \n=======================================================\n10 questions. Type 'q' to quit early.\n\nQuestion 1 of 10 [Geography]\nWhat is the capital of France?\n  (short answer)\nYour answer: \nNo more input available; quiz ended early.\n\n=======================================================\nQUIZ COMPLETE: 0 out of 0 correct\n",
+        "stderr": "",
+        "profile": "process_exit",
+        "id": "0acd0d83c1547c8c2d52973feb7892da308e22d64d9cf88449bf933a9fa95227"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": true,
+      "evidence_id": "0acd0d83c1547c8c2d52973feb7892da308e22d64d9cf88449bf933a9fa95227"
+    }
+  ]
+}

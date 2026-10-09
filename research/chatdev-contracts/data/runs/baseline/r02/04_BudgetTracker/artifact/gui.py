@@ -1,0 +1,3 @@
+try:
+    from charts import MATPLOTLIB_AVAILABLE
+except...

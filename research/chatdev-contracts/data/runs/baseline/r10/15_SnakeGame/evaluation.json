@@ -1,0 +1,73 @@
+{
+  "task_index": 15,
+  "project_name": "SnakeGame",
+  "framework": "ChatDev",
+  "workflow_status": "completed",
+  "workspace": "data/runs/baseline/r10/15_SnakeGame/artifact",
+  "source_file_count": 7,
+  "python_compile": {
+    "checked": 7,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-05T03:30:29+0800",
+  "judge": {
+    "verdict": "pass",
+    "functional_completeness": 0.96,
+    "executable_likelihood": 0.92,
+    "implemented_requirements": [
+      {
+        "requirement": "Directional input controls the snake (arrow keys / WASD)",
+        "fulfilled": true,
+        "evidence": "In `game.py::_handle_events` the code maps pygame.K_UP / K_w to settings.UP, K_DOWN / K_s to settings.DOWN, K_LEFT / K_a to settings.LEFT, K_RIGHT / K_d to settings.RIGHT and stores them in `pending_directions`. The `Snake.set_direction` method validates and applies the new direction."
+      },
+      {
+        "requirement": "Snake moves on a grid, grows when eating food, and its body is rendered each frame",
+        "fulfilled": true,
+        "evidence": "`snake.py` defines `Snake.move`, `Snake.grow`, and `Snake.body`. `game.py::_step` calls `self.snake.move()` and `self.snake.grow(1)` when the head reaches `self.food.position`. Rendering is done in `Game._draw_snake` which iterates over `self.snake.body`."
+      },
+      {
+        "requirement": "Food spawns at random free cells and is not placed on the snake",
+        "fulfilled": true,
+        "evidence": "`food.py` implements `Food.respawn(occupied_cells)` which builds a list of free cells excluding `occupied_cells` (the snake body) and chooses a random position."
+      },
+      {
+        "requirement": "Game ends on collision with self or boundary",
+        "fulfilled": true,
+        "evidence": "`game.py::_step` checks wall collision with `if not (0 <= nx < settings.GRID_WIDTH and 0 <= ny < settings.GRID_HEIGHT): self._end_game()` and self‑collision with `if self.snake.collides_with_self(new_head): self._end_game()`."
+      },
+      {
+        "requirement": "Score is tracked and displayed based on food eaten",
+        "fulfilled": true,
+        "evidence": "`Game.reset` sets `self.score = 0`. When food is eaten, `self.score += settings.SCORE_PER_FOOD`. The HUD draws the score in `Game._draw_hud`."
+      },
+      {
+        "requirement": "Multiple difficulty levels affect game speed",
+        "fulfilled": true,
+        "evidence": "`settings.DIFFICULTY_LEVELS` defines Easy/Medium/Hard speeds. `Game.__init__` reads the selected difficulty and sets `self.base_speed`. Speed increases during play via `SPEED_UP_EVERY` logic."
+      },
+      {
+        "requirement": "Board updates after each move (grid, snake, food, HUD)",
+        "fulfilled": true,
+        "evidence": "`Game.run` calls `_step` based on a time accumulator and then `_render` each frame, which draws the grid, food, snake, border, and HUD."
+      },
+      {
+        "requirement": "Pause, restart, and game‑over screens are available",
+        "fulfilled": true,
+        "evidence": "`Game._handle_events` toggles `self.paused` with ESC/SPACE, sets `self.game_over` on collision, and `Game._render` draws overlay messages for paused, win, and game‑over states."
+      }
+    ],
+    "critical_issues": [
+      "None detected: the code appears complete and self‑contained. Minor cosmetic issues (font fallback, overlay opacity) do not affect core functionality."
+    ],
+    "summary": "All core features of a classic Snake game are implemented with concrete code: directional control, grid movement, food spawning, growth, collision detection, scoring, HUD, multiple difficulty levels, pause/restart, and persistent high‑score. The code is likely executable (pygame auto‑install fallback) and meets the benchmark requirements.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": true
+}

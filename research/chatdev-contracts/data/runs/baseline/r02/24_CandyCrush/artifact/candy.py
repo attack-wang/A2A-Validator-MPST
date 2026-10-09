@@ -1,0 +1,6 @@
+IDLE = "idle"
+SWAPPING = "swapping"
+FALLING = "falling"
+CLEARING = "clearing"
+SPAWNING = "spawning"
+DEAD = "dead"

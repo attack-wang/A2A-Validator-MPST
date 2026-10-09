@@ -1,0 +1,78 @@
+{
+  "task_index": 11,
+  "project_name": "Wordle",
+  "framework": "ChatDev",
+  "workflow_status": "completed",
+  "workspace": "data/runs/mpst/r07/11_Wordle/artifact",
+  "source_file_count": 5,
+  "python_compile": {
+    "checked": 5,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-04T02:13:06+0800",
+  "judge": {
+    "verdict": "fail",
+    "functional_completeness": 0.28,
+    "executable_likelihood": 0.22,
+    "implemented_requirements": [
+      {
+        "requirement": "Provide a daily 5‑letter English word",
+        "fulfilled": true,
+        "evidence": "wordlist.py defines WordProvider.get_daily_word() which deterministically selects a word based on the current date."
+      },
+      {
+        "requirement": "Allow a player up to 6 guesses",
+        "fulfilled": true,
+        "evidence": "game.py defines MAX_ATTEMPTS = 6 and uses it in WordleGame.attempts_left and is_over()."
+      },
+      {
+        "requirement": "Validate each guess for length, alphabetic characters and dictionary membership",
+        "fulfilled": true,
+        "evidence": "validator.py implements GuessValidator.validate() with checks for empty input, non‑alphabetic characters, length, and dictionary membership."
+      },
+      {
+        "requirement": "Compute per‑letter feedback (green, yellow, grey) following official duplicate‑letter rules",
+        "fulfilled": true,
+        "evidence": "validator.py.evaluate() implements a two‑pass algorithm that returns GREEN, YELLOW or GREY codes."
+      },
+      {
+        "requirement": "Render feedback with terminal colours (green, yellow, grey) and display a board after each turn",
+        "fulfilled": false,
+        "evidence": "game.py imports colorize, tile, row from colors.py but the colors module only contains a placeholder class (\"class Colors: ...\") and no concrete ANSI definitions or rendering helpers. No board‑rendering method is present in WordleGame."
+      },
+      {
+        "requirement": "Run from the Linux terminal without external GUI dependencies",
+        "fulfilled": false,
+        "evidence": "There is no entry‑point that ties the components together. main.py only contains a docstring; no code creates a WordProvider, GuessValidator, or WordleGame instance and starts the loop."
+      },
+      {
+        "requirement": "Announce win or reveal the secret word after attempts are exhausted",
+        "fulfilled": false,
+        "evidence": "WordleGame tracks self.won and history, but no method prints a final win/lose message or reveals the target word."
+      },
+      {
+        "requirement": "Handle quit command or Ctrl‑C gracefully",
+        "fulfilled": false,
+        "evidence": "The only mention of quit is in the header printed by print_header(); no input handling for the string \"quit\" or signal handling is implemented."
+      }
+    ],
+    "critical_issues": [
+      "colors.py lacks concrete ANSI colour constants and helper functions (colorize, tile, row) required for rendering.",
+      "game.py does not contain a full game loop; it only defines the WordleGame class with header printing and turn processing.",
+      "main.py is empty – there is no script that assembles the WordProvider, GuessValidator, and WordleGame and invokes the game.",
+      "No code prints the board or keyboard after each guess, so the player receives no visual feedback beyond the raw feedback list.",
+      "Missing handling for the \"quit\" command and for Ctrl‑C interruption.",
+      "The win/lose announcement and word reveal logic are absent."
+    ],
+    "summary": "The repository includes the core data‑handling pieces (word provider, guess validator, and a WordleGame class with attempt tracking) but omits the essential terminal rendering utilities, the main execution script, and the interactive loop that would make the game playable. Because of these missing components, the solution cannot be executed as a functional terminal Wordle game, and therefore it fails the acceptance criteria.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": false
+}

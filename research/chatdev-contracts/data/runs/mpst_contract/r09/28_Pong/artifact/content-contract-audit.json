@@ -1,0 +1,298 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Application"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "The user wants a two-player Pong game in Python. I need to write a compact complete implementation. The most common approach is using pygame. Let me write a single main.py file with pygame.\n\nRequirements:\n- Two players control vertical paddles, moving up and down\n- Ball bounces between paddles and off top/bottom edges\n- Players score when opponent misses\n- Winning score threshold\n- Reset ball after each point\n\nLet me write a compact but complete pygame implementation:\n\n```python\nimport pygame\nimport sys\n\npygame.init()\n\nWIDTH, HEIGHT = 800, 600\nPADDLE_W, PADDLE_H = 12, 100\nBALL_SIZE = 14\nWINNING_SCORE = 5\nFPS = 60\n\nWHITE = (255, 255, 255)\nBLACK = (0, 0, 0)\n\nscreen = pygame.display.set_mode((WIDTH, HEIGHT))\npygame.display.set_caption(\"Pong\")\nclock = pygame.time.Clock()\nfont = pygame.font.SysFont(None, 48)\nsmall_font = pygame.font.SysFont(None, 32)\n\nclass Paddle:\n    def __init__(self, x):\n        self.x = x\n        self.y = HEIGHT // 2 - PADDLE_H // 2\n        self.speed = 7\n        self.score = 0\n\n    def move(self, up, down):\n        if up:\n            self.y -= self.speed\n        if down:\n            self.y += self.speed\n        self.y = max(0, min(HEIGHT - PADDLE_H, self.y))\n\n    def rect(self):\n        return pygame.Rect(self.x, self.y, PADDLE_W, PADDLE_H)\n\nclass Ball:\n    def __init__(self):\n        self.reset()\n\n    def reset(self, direction=1):\n        self.x = WIDTH // 2 - BALL_SIZE // 2\n        self.y = HEIGHT // 2 - BALL_SIZE // 2\n        self.speed_x = 5 * direction\n        self.speed_y = 4 * (1 if pygame.time.get_ticks() % 2 else -1)\n\n    def rect(self):\n        return pygame.Rect(self.x, self.y, BALL_SIZE, BALL_SIZE)\n\ndef main():\n    left = Paddle(30)\n    right = Paddle(WIDTH - 30 - PADDLE_W)\n    ball = Ball()\n    running = True\n    winner = None\n\n    while running:\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                running = False\n            elif event.type == pygame.KEYDOWN:\n                if event.key == pygame.K_r and winner:\n                    left.score = 0\n                    right.score = 0\n                    ball.reset()\n                    winner = None\n\n        keys = pygame.key.get_pressed()\n        if not winner:\n            left.move(keys[pygame.K_w], keys[pygame.K_s])\n            right.move(keys[pygame.K_UP], keys[pygame.K_DOWN])\n\n            ball.x += ball.speed_x\n            ball.y += ball.speed_y\n\n            # Top/bottom bounce\n            if ball.y <= 0 or ball.y >= HEIGHT - BALL_SIZE:\n                ball.speed_y *= -1\n                ball.y = max(0, min(HEIGHT - BALL_SIZE, ball.y))\n\n            # Paddle collisions\n            br = ball.rect()\n            if br.colliderect(left.rect()) and ball.speed_x < 0:\n                ball.speed_x *= -1\n                ball.x = left.rect().right\n                # add spin based on hit position\n                offset = (ball.y + BALL_SIZE/2) - (left.y + PADDLE_H/2)\n                ball.speed_y += offset * 0.1\n            if br.colliderect(right.rect()) and ball.speed_x > 0:\n                ball.speed_x *= -1\n                ball.x = right.rect().left - BALL_SIZE\n                offset = (ball.y + BALL_SIZE/2) - (right.y + PADDLE_H/2)\n                ball.speed_y += offset * 0.1\n\n            # Scoring\n            if ball.x < 0:\n                right.score += 1\n                ball.reset(direction=1)\n            elif ball.x > WIDTH:\n                left.score += 1\n                ball.reset(direction=-1)\n\n            if left.score >= WINNING_SCORE:\n                winner = \"Left Player (W/S)\"\n            elif right.score >= WINNING_SCORE:\n                winner = \"Right Player (Up/Down)\"\n\n        # Draw\n        screen.fill(BLACK)\n        pygame.draw.aaline(screen, WHITE, (WIDTH//2, 0), (WIDTH//2, HEIGHT))\n        pygame.draw.rect(screen, WHITE, left.rect())\n        pygame.draw.rect(screen, WHITE, right.rect())\n        pygame.draw.rect(screen, WHITE, ball.rect())\n\n        score_text = font.render(f\"{left.score}   {right.score}\", True, WHITE)\n        screen.blit(score_text, (WIDTH//2 - score_text.get_width()//2, 20))\n\n        if winner:\n            win_text = font.render(f\"{winner} wins! Press R to restart\", True, WHITE)\n            screen.blit(win_text, (WIDTH//2 - win_text.get_width()//2, HEIGHT//2 - 24))\n\n        pygame.display.flip()\n        clock.tick(FPS)\n\n    pygame.quit()\n    sys.exit()\n\nif __name__ == \"__main__\":\n    main()\n```\n\nThis is compact and complete. The instructions say \"Start with main.py, followed by every other required Python file.\" A single main.py is fine for a compact implementation. The task says \"Return FINAL SOURCE FILES ONLY\" — so just the file(s).\n\nLet me double-check the ball reset direction logic: when ball goes off left (x < 0), right player scores, and ball should reset moving... typically toward the player who lost the point or the scorer. Direction=1 means moving right (toward right player). That's fine.\n\nAlso, the speed_y randomization in reset uses pygame.time.get_ticks() % 2 — a bit hacky but works. Could use random module instead. Let me use random.choice for clarity.\n\nAlso need to clamp speed_y to avoid it becoming too extreme or zero. Let me add a clamp.\n\nLet me finalize:\n\n```python\nimport pygame\nimport random\nimport sys\n\npygame.init()\n\nWIDTH, HEIGHT = 800, 600\nPADDLE_W, PADDLE_H = 12, 100\nBALL_SIZE = 14\nPADDLE_SPEED = 7\nBALL_SPEED = 5\nWINNING_SCORE = 5\nFPS = 60\n\nWHITE = (255, 255, 255)\nBLACK = (0, 0, 0)\n\nscreen = pygame.display.set_mode((WIDTH, HEIGHT))\npygame.display.set_caption(\"Two-Player Pong\")\nclock = pygame.time.Clock()\nfont = pygame.font.SysFont(None, 48)\nsmall_font = pygame.font.SysFont(None, 32)\n\n\nclass Paddle:\n    def __init__(self, x):\n        self.x = x\n        self.y = HEIGHT // 2 - PADDLE_H // 2\n        self.score = 0\n\n    def move(self, up, down):\n        if up:\n            self.y -= PADDLE_SPEED\n        if down:\n            self.y += PADDLE_SPEED\n        self.y = max(0, min(HEIGHT - PADDLE_H, self.y))\n\n    def rect(self):\n        return pygame.Rect(self.x, self.y, PADDLE_W, PADDLE_H)\n\n\nclass Ball:\n    def __init__(self):\n        self.reset(1)\n\n    def reset(self, direction):\n        self.x = WIDTH // 2 - BALL_SIZE // 2\n        self.y = HEIGHT // 2 - BALL_SIZE // 2\n        self.speed_x = BALL_SPEED * direction\n        self.speed_y = random.choice([-4, -3, 3, 4])\n\n    def rect(self):\n        return pygame.Rect(int(self.x), int(self.y), BALL_SIZE, BALL_SIZE)\n\n\ndef reset_game():\n    left = Paddle(30)\n    right = Paddle(WIDTH - 30 - PADDLE_W)\n    ball = Ball()\n    return left, right, ball\n\n\ndef main():\n    left, right, ball = reset_game()\n    winner = None\n\n    while True:\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                pygame.quit()\n                sys.exit()\n            if event.type == pygame.KEYDOWN and event.key == pygame.K_r and winner:\n                left, right, ball = reset_game()\n                winner = None\n\n        keys = pygame.key.get_pressed()\n        if winner is None:\n            left.move(keys[pygame.K_w], keys[pygame.K_s])\n            right.move(keys[pygame.K_UP], keys[pygame.K_DOWN])\n\n            ball.x += ball.speed_x\n            ball.y += ball.speed_y\n\n            if ball.y <= 0 or ball.y >= HEIGHT - BALL_SIZE:\n                ball.speed_y *= -1\n                ball.y = max(0, min(HEIGHT - BALL_SIZE, ball.y))\n\n            br = ball.rect()\n            lr = left.rect()\n            rr = right.rect()\n            if ball.speed_x < 0 and br.colliderect(lr):\n                ball.speed_x = abs(ball.speed_x)\n                ball.x = lr.right\n                ball.speed_y += ((br.centery - lr.centery) / (PADDLE_H / 2)) * 3\n            elif ball.speed_x > 0 and br.colliderect(rr):\n                ball.speed_x = -abs(ball.speed_x)\n                ball.x = rr.left - BALL_SIZE\n                ball.speed_y += ((br.centery - rr.centery) / (PADDLE_H / 2)) * 3\n            ball.speed_y = max(-8, min(8, ball.speed_y))\n\n            if ball.x + BALL_SIZE < 0:\n                right.score += 1\n                ball.reset(1)\n            elif ball.x > WIDTH:\n                left.score += 1\n                ball.reset(-1)\n\n            if left.score >= WINNING_SCORE:\n                winner = \"Left Player (W/S)\"\n            elif right.score >= WINNING_SCORE:\n                winner = \"Right Player (Arrows)\"\n\n        screen.fill(BLACK)\n        for y in range(0, HEIGHT, 30):\n            pygame.draw.rect(screen, WHITE, (WIDTH // 2 - 2, y, 4, 15))\n        pygame.draw.rect(screen, WHITE, left.rect())\n        pygame.draw.rect(screen, WHITE, right.rect())\n        pygame.draw.rect(screen, WHITE, ball.rect())\n\n        score_text = font.render(f\"{left.score}   {right.score}\", True, WHITE)\n        screen.blit(score_text, (WIDTH // 2 - score_text.get_width() // 2, 20))\n        controls = small_font.render(\"Left: W/S   Right: Up/Down   R: restart\", True, WHITE)\n        screen.blit(controls, (WIDTH // 2 - controls.get_width() // 2, HEIGHT - 30))\n\n        if winner:\n            win_text = font.render(f\"{winner} wins! Press R to restart\", True, WHITE)\n            screen.blit(win_text, (WIDTH // 2 - win_text.get_width() // 2, HEIGHT // 2 - 24))\n\n        pygame.display.flip()\n        clock.tick(FPS)\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nThis looks good. One file, main.py. Compact, complete, no placeholders. The instructions say \"Start with main.py, followed by every other required Python file\" — a single file suffices.\n\nCheck the collision logic: when ball.speed_x < 0 and collides with left paddle, reverse. Good. The ball.x set to lr.right prevents sticking. Good.\n\nScoring: ball.x + BALL_SIZE < 0 means fully off left edge — right scores, ball resets moving right (direction=1 toward right player). ball.x > WIDTH means off right — left scores, ball resets moving left (direction=-1). Good.\n\nWinning score threshold: WINNING_SCORE = 5. Reset ball after each point: yes via ball.reset(). Good.\n\nOutput format: filename alone on a line, then closed fenced python code block. Return each final file once. No analysis. So my response should just be:\n\nmain.py\n```python\n...\n```\n\nThat's it. No extra commentary since they said \"Return FINAL SOURCE FILES ONLY.\"main.py\n```python\nimport pygame\nimport random\nimport sys\n\npygame.init()\n\nWIDTH, HEIGHT = 800, 600\nPADDLE_W, PADDLE_H = 12, 100\nBALL_SIZE = 14\nPADDLE_SPEED = 7\nBALL_SPEED = 5\nWINNING_SCORE = 5\nFPS = 60\n\nWHITE = (255, 255, 255)\nBLACK = (0, 0, 0)\n\nscreen = pygame.display.set_mode((WIDTH, HEIGHT))\npygame.display.set_caption(\"Two-Player Pong\")\nclock = pygame.time.Clock()\nfont = pygame.font.SysFont(None, 48)\nsmall_font = pygame.font.SysFont(None, 32)\n\n\nclass Paddle:\n    def __init__(self, x):\n        self.x = x\n        self.y = HEIGHT // 2 - PADDLE_H // 2\n        self.score = 0\n\n    def move(self, up, down):\n        if up:\n            self.y -= PADDLE_SPEED\n        if down:\n            self.y += PADDLE_SPEED\n        self.y = max(0, min(HEIGHT - PADDLE_H, self.y))\n\n    def rect(self):\n        return pygame.Rect(self.x, self.y, PADDLE_W, PADDLE_H)\n\n\nclass Ball:\n    def __init__(self):\n        self.reset(1)\n\n    def reset(self, direction):\n        self.x = WIDTH // 2 - BALL_SIZE // 2\n        self.y = HEIGHT // 2 - BALL_SIZE // 2\n        self.speed_x = BALL_SPEED * direction\n        self.speed_y = random.choice([-4, -3, 3, 4])\n\n    def rect(self):\n        return pygame.Rect(int(self.x), int(self.y), BALL_SIZE, BALL_SIZE)\n\n\ndef reset_game():\n    left = Paddle(30)\n    right = Paddle(WIDTH - 30 - PADDLE_W)\n    ball = Ball()\n    return left, right, ball\n\n\ndef main():\n    left, right, ball = reset_game()\n    winner = None\n\n    while True:\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                pygame.quit()\n                sys.exit()\n            if event.type == pygame.KEYDOWN and event.key == pygame.K_r and winner:\n                left, right, ball = reset_game()\n                winner = None\n\n        keys = pygame.key.get_pressed()\n        if winner is None:\n            left.move(keys[pygame.K_w], keys[pygame.K_s])\n            right.move(keys[pygame.K_UP], keys[pygame.K_DOWN])\n\n            ball.x += ball.speed_x\n            ball.y += ball.speed_y\n\n            if ball.y <= 0 or ball.y >= HEIGHT - BALL_SIZE:\n                ball.speed_y *= -1\n                ball.y = max(0, min(HEIGHT - BALL_SIZE, ball.y))\n\n            br = ball.rect()\n            lr = left.rect()\n            rr = right.rect()\n            if ball.speed_x < 0 and br.colliderect(lr):\n                ball.speed_x = abs(ball.speed_x)\n                ball.x = lr.right\n                ball.speed_y += ((br.centery - lr.centery) / (PADDLE_H / 2)) * 3\n            elif ball.speed_x > 0 and br.colliderect(rr):\n                ball.speed_x = -abs(ball.speed_x)\n                ball.x = rr.left - BALL_SIZE\n                ball.speed_y += ((br.centery - rr.centery) / (PADDLE_H / 2)) * 3\n            ball.speed_y = max(-8, min(8, ball.speed_y))\n\n            if ball.x + BALL_SIZE < 0:\n                right.score += 1\n                ball.reset(1)\n            elif ball.x > WIDTH:\n                left.score += 1\n                ball.reset(-1)\n\n            if left.score >= WINNING_SCORE:\n                winner = \"Left Player (W/S)\"\n            elif right.score >= WINNING_SCORE:\n                winner = \"Right Player (Arrows)\"\n\n        screen.fill(BLACK)\n        for y in range(0, HEIGHT, 30):\n            pygame.draw.rect(screen, WHITE, (WIDTH // 2 - 2, y, 4, 15))\n        pygame.draw.rect(screen, WHITE, left.rect())\n        pygame.draw.rect(screen, WHITE, right.rect())\n        pygame.draw.rect(screen, WHITE, ball.rect())\n\n        score_text = font.render(f\"{left.score}   {right.score}\", True, WHITE)\n        screen.blit(score_text, (WIDTH // 2 - score_text.get_width() // 2, 20))\n        controls = small_font.render(\"Left: W/S   Right: Up/Down   R: restart\", True, WHITE)\n        screen.blit(controls, (WIDTH // 2 - controls.get_width() // 2, HEIGHT - 30))\n\n        if winner:\n            win_text = font.render(f\"{winner} wins! Press R to restart\", True, WHITE)\n            screen.blit(win_text, (WIDTH // 2 - win_text.get_width() // 2, HEIGHT // 2 - 24))\n\n        pygame.display.flip()\n        clock.tick(FPS)\n\n\nif __name__ == \"__main__\":\n    main()\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "8c552c764169228b47306b395da863592c4c653e7558fb078bdfe384c681e646",
+      "result": "{\"verdict\": \"changes_requested\", \"issues\": [{\"file\": \"main.py\", \"line\": 1, \"message\": \"Source is an empty placeholder; no Pong implementation exists. Implement the two-player game: two vertical paddles with independent up/down controls, ball movement with bounces off paddles and top/bottom edges, point scored when a player misses, ball reset after each point, and a winning score threshold that ends the game.\"}]}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "8c552c764169228b47306b395da863592c4c653e7558fb078bdfe384c681e646",
+      "result": "main.py\n```python\nimport pygame\nimport sys\nimport random\n\npygame.init()\n\nWIDTH, HEIGHT = 800, 600\nPADDLE_W, PADDLE_H = 12, 100\nBALL_SIZE = 12\nPADDLE_SPEED = 7\nBALL_SPEED_X, BALL_SPEED_Y = 6, 4\nWIN_SCORE = 5\nFPS = 60\n\nWHITE = (255, 255, 255)\nBLACK = (0, 0, 0)\n\nscreen = pygame.display.set_mode((WIDTH, HEIGHT))\npygame.display.set_caption(\"Two-Player Pong\")\nclock = pygame.time.Clock()\nfont = pygame.font.SysFont(None, 48)\n\n\nclass Paddle:\n    def __init__(self, x):\n        self.rect = pygame.Rect(x, HEIGHT // 2 - PADDLE_H // 2, PADDLE_W, PADDLE_H)\n\n    def move(self, dy):\n        self.rect.y = max(0, min(HEIGHT - PADDLE_H, self.rect.y + dy))\n\n    def reset(self):\n        self.rect.y = HEIGHT // 2 - PADDLE_H // 2\n\n    def draw(self):\n        pygame.draw.rect(screen, WHITE, self.rect)\n\n\nclass Ball:\n    def __init__(self):\n        self.reset(random.choice([-1, 1]))\n\n    def reset(self, direction):\n        self.rect = pygame.Rect(WIDTH // 2 - BALL_SIZE // 2,\n                                HEIGHT // 2 - BALL_SIZE // 2, BALL_SIZE, BALL_SIZE)\n        self.vx = BALL_SPEED_X * direction\n        self.vy = random.choice([-1, 1]) * BALL_SPEED_Y\n\n    def draw(self):\n        pygame.draw.rect(screen, WHITE, self.rect)\n\n\ndef main():\n    left = Paddle(20)\n    right = Paddle(WIDTH - 20 - PADDLE_W)\n    ball = Ball()\n    score_left = 0\n    score_right = 0\n    winner = None\n    running = True\n\n    while running:\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                running = False\n            elif event.type == pygame.KEYDOWN and event.key == pygame.K_r and winner:\n                score_left = score_right = 0\n                winner = None\n                left.reset()\n                right.reset()\n                ball.reset(random.choice([-1, 1]))\n\n        keys = pygame.key.get_pressed()\n        if not winner:\n            if keys[pygame.K_w]:\n                left.move(-PADDLE_SPEED)\n            if keys[pygame.K_s]:\n                left.move(PADDLE_SPEED)\n            if keys[pygame.K_UP]:\n                right.move(-PADDLE_SPEED)\n            if keys[pygame.K_DOWN]:\n                right.move(PADDLE_SPEED)\n\n            ball.rect.x += ball.vx\n            ball.rect.y += ball.vy\n\n            if ball.rect.top <= 0:\n                ball.rect.top = 0\n                ball.vy = -ball.vy\n            if ball.rect.bottom >= HEIGHT:\n                ball.rect.bottom = HEIGHT\n                ball.vy = -ball.vy\n\n            if ball.rect.colliderect(left.rect) and ball.vx < 0:\n                ball.rect.left = left.rect.right\n                ball.vx = -ball.vx\n                ball.vy += int((ball.rect.centery - left.rect.centery) / (PADDLE_H / 2) * 3)\n            if ball.rect.colliderect(right.rect) and ball.vx > 0:\n                ball.rect.right = right.rect.left\n                ball.vx = -ball.vx\n                ball.vy += int((ball.rect.centery - right.rect.centery) / (PADDLE_H / 2) * 3)\n            ball.vy = max(-10, min(10, ball.vy))\n\n            if ball.rect.right < 0:\n                score_right += 1\n                ball.reset(-1)\n            elif ball.rect.left > WIDTH:\n                score_left += 1\n                ball.reset(1)\n\n            if score_left >= WIN_SCORE:\n                winner = \"Left Player\"\n            elif score_right >= WIN_SCORE:\n                winner = \"Right Player\"\n\n        screen.fill(BLACK)\n        pygame.draw.line(screen, WHITE, (WIDTH // 2, 0), (WIDTH // 2, HEIGHT), 2)\n        left.draw()\n        right.draw()\n        ball.draw()\n        score_text = font.render(f\"{score_left}    {score_right}\", True, WHITE)\n        screen.blit(score_text, (WIDTH // 2 - score_text.get_width() // 2, 20))\n        if winner:\n            win_text = font.render(f\"{winner} wins! Press R to restart\", True, WHITE)\n            screen.blit(win_text, (WIDTH // 2 - win_text.get_width() // 2, HEIGHT // 2 - 24))\n\n        pygame.display.flip()\n        clock.tick(FPS)\n\n    pygame.quit()\n    sys.exit()\n\n\nif __name__ == \"__main__\":\n    main()\n```"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "0e1c55e57639704c2bfcf9be265d561f9fce7a9323957e92efc8aa50d5bff1ab",
+      "result": "{\"status\": \"failed\", \"test_run_id\": \"01cb7889d1aa2cba87a78c572a63795c18b315c8f3aec0cecc666a6742f4c6a5\", \"summary\": \"Startup smoke test failed with exit code 1 due to ModuleNotFoundError: No module named 'pygame' at main.py line 1. This is a missing dependency in the host environment (pygame not installed in the invoked venv), not a source code error. The failure is inconclusive regarding code correctness; installing pygame (e.g., pip install pygame) and re-running is required to validate the Pong implementation.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "0e1c55e57639704c2bfcf9be265d561f9fce7a9323957e92efc8aa50d5bff1ab",
+      "result": "main.py\n```python\nimport sys\n\ntry:\n    import pygame\nexcept ImportError:\n    print(\"pygame is required to run this game. Install it with: pip install pygame\")\n    sys.exit(1)\n\nimport random\n\npygame.init()\n\nWIDTH, HEIGHT = 800, 600\nPADDLE_W, PADDLE_H = 12, 100\nBALL_SIZE = 12\nPADDLE_SPEED = 7\nBALL_SPEED_X, BALL_SPEED_Y = 6, 4\nWIN_SCORE = 5\nFPS = 60\n\nWHITE = (255, 255, 255)\nBLACK = (0, 0, 0)\n\nscreen = pygame.display.set_mode((WIDTH, HEIGHT))\npygame.display.set_caption(\"Two-Player Pong\")\nclock = pygame.time.Clock()\nfont = pygame.font.SysFont(None, 48)\n\n\nclass Paddle:\n    def __init__(self, x):\n        self.rect = pygame.Rect(x, HEIGHT // 2 - PADDLE_H // 2, PADDLE_W, PADDLE_H)\n\n    def move(self, dy):\n        self.rect.y = max(0, min(HEIGHT - PADDLE_H, self.rect.y + dy))\n\n    def reset(self):\n        self.rect.y = HEIGHT // 2 - PADDLE_H // 2\n\n    def draw(self):\n        pygame.draw.rect(screen, WHITE, self.rect)\n\n\nclass Ball:\n    def __init__(self):\n        self.reset(random.choice([-1, 1]))\n\n    def reset(self, direction):\n        self.rect = pygame.Rect(WIDTH // 2 - BALL_SIZE // 2,\n                                HEIGHT // 2 - BALL_SIZE // 2, BALL_SIZE, BALL_SIZE)\n        self.vx = BALL_SPEED_X * direction\n        self.vy = random.choice([-1, 1]) * BALL_SPEED_Y\n\n    def draw(self):\n        pygame.draw.rect(screen, WHITE, self.rect)\n\n\ndef main():\n    left = Paddle(20)\n    right = Paddle(WIDTH - 20 - PADDLE_W)\n    ball = Ball()\n    score_left = 0\n    score_right = 0\n    winner = None\n    running = True\n\n    while running:\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                running = False\n            elif event.type == pygame.KEYDOWN and event.key == pygame.K_r and winner:\n                score_left = score_right = 0\n                winner = None\n                left.reset()\n                right.reset()\n                ball.reset(random.choice([-1, 1]))\n\n        keys = pygame.key.get_pressed()\n        if not winner:\n            if keys[pygame.K_w]:\n                left.move(-PADDLE_SPEED)\n            if keys[pygame.K_s]:\n                left.move(PADDLE_SPEED)\n            if keys[pygame.K_UP]:\n                right.move(-PADDLE_SPEED)\n            if keys[pygame.K_DOWN]:\n                right.move(PADDLE_SPEED)\n\n            ball.rect.x += ball.vx\n            ball.rect.y += ball.vy\n\n            if ball.rect.top <= 0:\n                ball.rect.top = 0\n                ball.vy = -ball.vy\n            if ball.rect.bottom >= HEIGHT:\n                ball.rect.bottom = HEIGHT\n                ball.vy = -ball.vy\n\n            if ball.rect.colliderect(left.rect) and ball.vx < 0:\n                ball.rect.left = left.rect.right\n                ball.vx = -ball.vx\n                ball.vy += int((ball.rect.centery - left.rect.centery) / (PADDLE_H / 2) * 3)\n            if ball.rect.colliderect(right.rect) and ball.vx > 0:\n                ball.rect.right = right.rect.left\n                ball.vx = -ball.vx\n                ball.vy += int((ball.rect.centery - right.rect.centery) / (PADDLE_H / 2) * 3)\n            ball.vy = max(-10, min(10, ball.vy))\n\n            if ball.rect.right < 0:\n                score_right += 1\n                ball.reset(-1)\n            elif ball.rect.left > WIDTH:\n                score_left += 1\n                ball.reset(1)\n\n            if score_left >= WIN_SCORE:\n                winner = \"Left Player\"\n            elif score_right >= WIN_SCORE:\n                winner = \"Right Player\"\n\n        screen.fill(BLACK)\n        pygame.draw.line(screen, WHITE, (WIDTH // 2, 0), (WIDTH // 2, HEIGHT), 2)\n        left.draw()\n        right.draw()\n        ball.draw()\n        score_text = font.render(f\"{score_left}    {score_right}\", True, WHITE)\n        screen.blit(score_text, (WIDTH // 2 - score_text.get_width() // 2, 20))\n        if winner:\n            win_text = font.render(f\"{winner} wins! Press R to restart\", True, WHITE)\n            screen.blit(win_text, (WIDTH // 2 - win_text.get_width() // 2, HEIGHT // 2 - 24))\n\n        pygame.display.flip()\n        clock.tick(FPS)\n\n    pygame.quit()\n    sys.exit()\n\n\nif __name__ == \"__main__\":\n    main()\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "d68756df4d651d5013f52733a2e8ddf2f278e8513b42705630cc9f731e63eada",
+    "source_digests": {
+      "main.py": "e2d02ce3e31a413c30bbfd19a0aebdd5a143328e6e77f0a8f457dc6e0ad89cde"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "main.py"
+    ],
+    "timeout_seconds": 3,
+    "status": "failed",
+    "exit_code": 1,
+    "stdout": "pygame is required to run this game. Install it with: pip install pygame\n",
+    "stderr": "",
+    "profile": "process_exit",
+    "id": "20aeb7193a4d11880881f19c80dc5f1c591e9080a38a1ddb85e67a187cd9b34e"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "aaab1f71ee8b80037b7266788cdc6dbd5827d9eb042ad891ebe9edc1b903463f",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "57d005c3b71920cefd5b63883aac3200365d1f8a4aa4b23a48238444adb055e7",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "694727febe0da2b3189164abc1aaf73bed6bf9a49fefed87cf2dee67010438be",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "d0c5f1feb1de490eb37a5bea465fb5bdbef4c81b4d736b4551a89f7c07825325",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "d0c5f1feb1de490eb37a5bea465fb5bdbef4c81b4d736b4551a89f7c07825325",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "8c552c764169228b47306b395da863592c4c653e7558fb078bdfe384c681e646",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "5875c9ed4433f32290daca7b2e845d58a21097baba4ce815fa1070f2002b25ad",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "8c552c764169228b47306b395da863592c4c653e7558fb078bdfe384c681e646",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "303e600af1fb479ce22d20a67d9a3bec0802fc415b5c79cd5b6fdf83ff0b5088",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "8c552c764169228b47306b395da863592c4c653e7558fb078bdfe384c681e646",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "9480da7b99c8361dd249d2842449065997caaa8c7f0f2e73bd98a8f4ad5c71fe",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "8c552c764169228b47306b395da863592c4c653e7558fb078bdfe384c681e646",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "9480da7b99c8361dd249d2842449065997caaa8c7f0f2e73bd98a8f4ad5c71fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "0e1c55e57639704c2bfcf9be265d561f9fce7a9323957e92efc8aa50d5bff1ab",
+        "source_digests": {
+          "main.py": "6ca6be76db736a725f8952482485008328568defda2b762f74b5035b2de1cfd9"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r09/28_Pong/artifact\\main.py\", line 1, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+        "profile": "process_exit",
+        "id": "01cb7889d1aa2cba87a78c572a63795c18b315c8f3aec0cecc666a6742f4c6a5"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "0e1c55e57639704c2bfcf9be265d561f9fce7a9323957e92efc8aa50d5bff1ab",
+        "source_digests": {
+          "main.py": "6ca6be76db736a725f8952482485008328568defda2b762f74b5035b2de1cfd9"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r09/28_Pong/artifact\\main.py\", line 1, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+        "profile": "process_exit",
+        "id": "01cb7889d1aa2cba87a78c572a63795c18b315c8f3aec0cecc666a6742f4c6a5"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "0e1c55e57639704c2bfcf9be265d561f9fce7a9323957e92efc8aa50d5bff1ab",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "a225b245a79273b0acac8f77edae1b86956749e354761d96b548c1098758283e",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "0e1c55e57639704c2bfcf9be265d561f9fce7a9323957e92efc8aa50d5bff1ab",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "7ef22de08b5224c7d52ca5769596222ac3188a86b2fba1febf312edc5084819b",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "0e1c55e57639704c2bfcf9be265d561f9fce7a9323957e92efc8aa50d5bff1ab",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "44578944ee21e184368cd136f63b6453cf22f518bfbf37e699c40ab6d227c433",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "0e1c55e57639704c2bfcf9be265d561f9fce7a9323957e92efc8aa50d5bff1ab",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "44578944ee21e184368cd136f63b6453cf22f518bfbf37e699c40ab6d227c433",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "d68756df4d651d5013f52733a2e8ddf2f278e8513b42705630cc9f731e63eada",
+        "source_digests": {
+          "main.py": "e2d02ce3e31a413c30bbfd19a0aebdd5a143328e6e77f0a8f457dc6e0ad89cde"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "pygame is required to run this game. Install it with: pip install pygame\n",
+        "stderr": "",
+        "profile": "process_exit",
+        "id": "20aeb7193a4d11880881f19c80dc5f1c591e9080a38a1ddb85e67a187cd9b34e"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": false,
+      "evidence_id": "20aeb7193a4d11880881f19c80dc5f1c591e9080a38a1ddb85e67a187cd9b34e",
+      "violations": [
+        {
+          "layer": "A",
+          "rule": "current_startup_passed",
+          "path": "$",
+          "message": "Current startup did not pass.",
+          "repair": "Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior."
+        }
+      ]
+    }
+  ]
+}

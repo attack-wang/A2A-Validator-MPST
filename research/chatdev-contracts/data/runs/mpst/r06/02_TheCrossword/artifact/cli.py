@@ -1,0 +1,3 @@
+Across:
+- PYTHON at (0,0): P Y T H O N
+- ...

@@ -1,0 +1,69 @@
+{
+  "task_index": 11,
+  "project_name": "Wordle",
+  "framework": "ChatDev",
+  "workflow_status": "completed",
+  "workspace": "data/runs/mpst/r10/11_Wordle/artifact",
+  "source_file_count": 6,
+  "python_compile": {
+    "checked": 6,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-05T02:53:59+0800",
+  "judge": {
+    "verdict": "fail",
+    "functional_completeness": 0.78,
+    "executable_likelihood": 0.22,
+    "implemented_requirements": [
+      {
+        "requirement": "Provide a daily 5‑letter English word",
+        "fulfilled": false,
+        "evidence": "word_manager.py selects a daily word from ANSWER_WORDS, but words.py only contains placeholders (`ANSWER_WORDS = [...]`) so no real word data is present."
+      },
+      {
+        "requirement": "Allow up to 6 guesses",
+        "fulfilled": true,
+        "evidence": "WordleGame.MAX_ATTEMPTS = 6 and the main loop stops when attempts_used >= MAX_ATTEMPTS (game.is_over)."
+      },
+      {
+        "requirement": "Give per‑letter feedback (green, yellow, grey)",
+        "fulfilled": true,
+        "evidence": "game_logic.evaluate_guess returns a tuple of LetterState values; board.show_board maps these to BG_GREEN, BG_YELLOW, BG_GREY via STATE_TO_BG."
+      },
+      {
+        "requirement": "Display results in the Linux terminal using ANSI colors",
+        "fulfilled": true,
+        "evidence": "colors.py defines ANSI codes; board.tile and board.show_board print colored tiles."
+      },
+      {
+        "requirement": "Print win/loss messages",
+        "fulfilled": true,
+        "evidence": "Board.show_win and Board.show_loss are called after the game loop."
+      },
+      {
+        "requirement": "Validate each guess (length, alphabetic, word‑list)",
+        "fulfilled": true,
+        "evidence": "WordleGame.validate_guess checks length, alphabetic characters, and uses WordManager.is_valid_guess."
+      },
+      {
+        "requirement": "Run from a single entry point without GUI dependencies",
+        "fulfilled": true,
+        "evidence": "main.py is a self‑contained script that uses only standard library modules and the provided files."
+      }
+    ],
+    "critical_issues": [
+      "words.py contains only placeholder ellipsis lists; no actual 5‑letter words are defined, making the game unable to select a valid answer or validate guesses.",
+      "Because of the missing word data, the program would raise errors at runtime (e.g., trying to .lower() an Ellipsis object)."
+    ],
+    "summary": "The repository implements most of the core Wordle mechanics: turn limit, guess validation, colour feedback, terminal rendering, and win/loss handling. However, the essential word list is absent, replaced by placeholder ellipsis literals. Without a real dictionary of 5‑letter words, the game cannot function, making execution unlikely and causing a failure of the benchmark. Consequently, the overall verdict is **fail** despite solid surrounding code.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": false
+}

@@ -1,0 +1,345 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "As the Chief Product Officer, I'd like to share my thoughts on the product modality for this task.\n\nThe customer's request is to develop a **two-player Pong game**, which involves:\n- Real-time, interactive gameplay (paddle movement, ball physics, bouncing)\n- Continuous keyboard input from two players simultaneously\n- Dynamic visual rendering (paddles, ball, scores, court)\n- Game logic such as scoring, a winning threshold, and ball resets\n\nGiven these requirements, the only modality that can truly realize an interactive, visualized game is the **Application** form — implemented via Python (e.g., with a game library like Pygame), which supports real-time rendering, input handling, and executable standalone gameplay. Other modalities like Website, Document, or PowerPoint cannot deliver the real-time interactive experience the customer expects.\n\nTherefore, I propose we develop this Pong game as an **Application**. Do you agree with this choice?"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\nimport pygame\nimport random\nimport sys\n\npygame.init()\nW, H = 800, 480\nPADDLE_W, PADDLE_H = 12, 80\nBALL_R = 6\nSPEED = 6\nWIN_SCORE = 7\nWHITE = (255, 255, 255)\nBLACK = (20, 20, 20)\nscreen = pygame.display.set_mode((W, H))\npygame.display.set_caption(\"Two-Player Pong\")\nclock = pygame.time.Clock()\nfont = pygame.font.SysFont(None, 40)\nbig = pygame.font.SysFont(None, 64)\n\n\ndef serve(direction):\n    return {\"x\": W / 2, \"y\": H / 2,\n            \"vx\": SPEED * direction, \"vy\": random.choice([-4, -3, 3, 4])}\n\n\ndef clamp(v):\n    return max(0, min(H - PADDLE_H, v))\n\n\ndef main():\n    p1y = p2y = (H - PADDLE_H) / 2\n    scores = [0, 0]\n    ball = serve(random.choice([-1, 1]))\n    winner = None\n    while True:\n        for e in pygame.event.get():\n            if e.type == pygame.QUIT:\n                pygame.quit()\n                sys.exit()\n            if e.type == pygame.KEYDOWN and winner is not None and e.key == pygame.K_r:\n                p1y = p2y = (H - PADDLE_H) / 2\n                scores = [0, 0]\n                ball = serve(random.choice([-1, 1]))\n                winner = None\n\n        keys = pygame.key.get_pressed()\n        if winner is None:\n            if keys[pygame.K_w]:\n                p1y -= SPEED\n            if keys[pygame.K_s]:\n                p1y += SPEED\n            if keys[pygame.K_UP]:\n                p2y -= SPEED\n            if keys[pygame.K_DOWN]:\n                p2y += SPEED\n            p1y = clamp(p1y)\n            p2y = clamp(p2y)\n\n            ball[\"x\"] += ball[\"vx\"]\n            ball[\"y\"] += ball[\"vy\"]\n            if ball[\"y\"] - BALL_R <= 0 or ball[\"y\"] + BALL_R >= H:\n                ball[\"vy\"] *= -1\n                ball[\"y\"] = max(BALL_R, min(H - BALL_R, ball[\"y\"]))\n\n            p1x, p2x = 30, W - 30 - PADDLE_W\n            if ball[\"vx\"] < 0 and ball[\"x\"] - BALL_R <= p1x + PADDLE_W and ball[\"x\"] > p1x \\\n                    and p1y - BALL_R <= ball[\"y\"] <= p1y + PADDLE_H + BALL_R:\n                ball[\"vx\"] = min(abs(ball[\"vx\"]) * 1.05, 14)\n                ball[\"vy\"] += (ball[\"y\"] - (p1y + PADDLE_H / 2)) * 0.08\n                ball[\"vy\"] = max(-10, min(10, ball[\"vy\"]))\n                ball[\"x\"] = p1x + PADDLE_W + BALL_R\n            if ball[\"vx\"] > 0 and ball[\"x\"] + BALL_R >= p2x and ball[\"x\"] < p2x + PADDLE_W \\\n                    and p2y - BALL_R <= ball[\"y\"] <= p2y + PADDLE_H + BALL_R:\n                ball[\"vx\"] = -min(abs(ball[\"vx\"]) * 1.05, 14)\n                ball[\"vy\"] += (ball[\"y\"] - (p2y + PADDLE_H / 2)) * 0.08\n                ball[\"vy\"] = max(-10, min(10, ball[\"vy\"]))\n                ball[\"x\"] = p2x - BALL_R\n\n            if ball[\"x\"] + BALL_R < 0:\n                scores[1] += 1\n                ball = serve(-1)\n            elif ball[\"x\"] - BALL_R > W:\n                scores[0] += 1\n                ball = serve(1)\n            if scores[0] >= WIN_SCORE or scores[1] >= WIN_SCORE:\n                winner = 0 if scores[0] >= WIN_SCORE else 1\n\n        screen.fill(BLACK)\n        for y in range(0, H, 24):\n            pygame.draw.rect(screen, WHITE, (W // 2 - 2, y, 4, 12))\n        pygame.draw.rect(screen, WHITE, (30, p1y, PADDLE_W, PADDLE_H))\n        pygame.draw.rect(screen, WHITE, (W - 30 - PADDLE_W, p2y, PADDLE_W, PADDLE_H))\n        pygame.draw.circle(screen, WHITE, (int(ball[\"x\"]), int(ball[\"y\"])), BALL_R)\n        screen.blit(font.render(str(scores[0]), True, WHITE), (W // 2 - 60, 16))\n        screen.blit(font.render(str(scores[1]), True, WHITE), (W // 2 + 40, 16))\n        if winner is not None:\n            msg = big.render(\"Player %d wins!  R = restart\" % (winner + 1), True, WHITE)\n            screen.blit(msg, msg.get_rect(center=(W // 2, H // 2)))\n        pygame.display.flip()\n        clock.tick(60)\n\n\nif __name__ == \"__main__\":\n    main()\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "381ac86f65d833354783ff7e89bb8ed6529d8cdfe38abc3db958bab90c8c2356",
+      "result": "{\"verdict\": \"finished\", \"issues\": []}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "381ac86f65d833354783ff7e89bb8ed6529d8cdfe38abc3db958bab90c8c2356",
+      "result": " Finished"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "381ac86f65d833354783ff7e89bb8ed6529d8cdfe38abc3db958bab90c8c2356",
+      "result": "{\"status\": \"failed\", \"test_run_id\": \"54d095e1ea3c2fd8951bef39f91fcab6239cf63fdfb9bd975ecf964b4e23329b\", \"summary\": \"Startup smoke test failed with exit code 1 due to ModuleNotFoundError: No module named 'pygame'. This is a missing dependency in the host execution environment, not a source code error: the traceback fails at the first import statement in main.py, and the provided Pong implementation itself contains no syntax or logic errors. Installing pygame in the host venv (e.g., pip install pygame) should allow the game to launch; the failure does not establish a defect in the source.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "381ac86f65d833354783ff7e89bb8ed6529d8cdfe38abc3db958bab90c8c2356",
+      "result": "main.py\n```python\nimport random\nimport tkinter as tk\n\nW, H = 800, 480\nPW, PH = 12, 80\nBR = 6\nSPEED = 6\nWIN_SCORE = 7\nP1X, P2X = 30, W - 30 - PW\n\n\nclass Pong:\n    def __init__(self, root):\n        self.root = root\n        root.title(\"Two-Player Pong\")\n        self.cv = tk.Canvas(root, width=W, height=H, bg=\"#141414\", highlightthickness=0)\n        self.cv.pack()\n        for y in range(0, H, 24):\n            self.cv.create_rectangle(W // 2 - 2, y, W // 2 + 2, y + 12, fill=\"#555555\", width=0)\n        self.p1 = self.cv.create_rectangle(P1X, 0, P1X + PW, PH, fill=\"white\", width=0)\n        self.p2 = self.cv.create_rectangle(P2X, 0, P2X + PW, PH, fill=\"white\", width=0)\n        self.ball = self.cv.create_oval(0, 0, 0, 0, fill=\"white\", width=0)\n        self.s1 = self.cv.create_text(W // 2 - 60, 32, text=\"0\", fill=\"white\", font=(\"Helvetica\", 32, \"bold\"))\n        self.s2 = self.cv.create_text(W // 2 + 60, 32, text=\"0\", fill=\"white\", font=(\"Helvetica\", 32, \"bold\"))\n        self.msg = self.cv.create_text(W // 2, H // 2, text=\"\", fill=\"white\", font=(\"Helvetica\", 26, \"bold\"))\n        self.keys = set()\n        root.bind(\"<KeyPress>\", self.key_down)\n        root.bind(\"<KeyRelease>\", self.key_up)\n        self.reset()\n        self.tick()\n\n    def key_down(self, e):\n        k = e.keysym.lower()\n        self.keys.add(k)\n        if k == \"r\" and self.winner is not None:\n            self.reset()\n\n    def key_up(self, e):\n        self.keys.discard(e.keysym.lower())\n\n    def reset(self):\n        self.p1y = self.p2y = (H - PH) / 2.0\n        self.scores = [0, 0]\n        self.winner = None\n        self.serve(random.choice([-1, 1]))\n        self.cv.itemconfig(self.msg, text=\"\")\n\n    def serve(self, d):\n        self.bx, self.by = W / 2.0, H / 2.0\n        self.bvx, self.bvy = SPEED * d, random.choice([-4, -3, 3, 4])\n\n    def move(self, y, up, dn):\n        if up in self.keys:\n            y -= SPEED\n        if dn in self.keys:\n            y += SPEED\n        return max(0.0, min(H - PH, y))\n\n    def tick(self):\n        if self.winner is None:\n            self.p1y = self.move(self.p1y, \"w\", \"s\")\n            self.p2y = self.move(self.p2y, \"up\", \"down\")\n            self.bx += self.bvx\n            self.by += self.bvy\n            if self.by - BR <= 0 or self.by + BR >= H:\n                self.bvy *= -1\n                self.by = max(BR, min(H - BR, self.by))\n            if self.bvx < 0 and self.bx - BR <= P1X + PW and self.bx > P1X and \\\n                    self.p1y - BR <= self.by <= self.p1y + PH + BR:\n                self.bvx = min(abs(self.bvx) * 1.05, 14)\n                self.bvy = max(-10, min(10, self.bvy + (self.by - (self.p1y + PH / 2)) * 0.08))\n                self.bx = P1X + PW + BR\n            if self.bvx > 0 and self.bx + BR >= P2X and self.bx < P2X + PW and \\\n                    self.p2y - BR <= self.by <= self.p2y + PH + BR:\n                self.bvx = -min(abs(self.bvx) * 1.05, 14)\n                self.bvy = max(-10, min(10, self.bvy + (self.by - (self.p2y + PH / 2)) * 0.08))\n                self.bx = P2X - BR\n            if self.bx + BR < 0:\n                self.scores[1] += 1\n                self.serve(-1)\n            elif self.bx - BR > W:\n                self.scores[0] += 1\n                self.serve(1)\n            if self.scores[0] >= WIN_SCORE or self.scores[1] >= WIN_SCORE:\n                self.winner = 0 if self.scores[0] >= WIN_SCORE else 1\n                self.cv.itemconfig(self.msg, text=\"Player %d wins!  R = restart\" % (self.winner + 1))\n            self.cv.itemconfig(self.s1, text=str(self.scores[0]))\n            self.cv.itemconfig(self.s2, text=str(self.scores[1]))\n        self.cv.coords(self.p1, P1X, self.p1y, P1X + PW, self.p1y + PH)\n        self.cv.coords(self.p2, P2X, self.p2y, P2X + PW, self.p2y + PH)\n        self.cv.coords(self.ball, self.bx - BR, self.by - BR, self.bx + BR, self.by + BR)\n        self.root.after(16, self.tick)\n\n\nif __name__ == \"__main__\":\n    root = tk.Tk()\n    Pong(root)\n    root.mainloop()\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "1cdadcd25f350ef6ffaa3cc8323dc60b24c617aa23a722e82fcc1a8dc2c06246",
+    "source_digests": {
+      "main.py": "3e87726493d80febe6489a2414bc7be732707bbadfe6b7e70a10a1883b524cd7"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "source/pure-contract\\content_lab\\startup_probe.py",
+      "data/runs/mpst_contract/r07/28_Pong/artifact\\main.py",
+      "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-ptxcv_01\\probe.json"
+    ],
+    "timeout_seconds": 3,
+    "status": "passed",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "profile": "tkinter_event_loop",
+    "observation": {
+      "event_loop_observed": true,
+      "mapped_window": true,
+      "widget_count": 1,
+      "callback_errors": []
+    },
+    "id": "59f60f25be285bf8a4a5fc13a6cfe8acb310627b1b3f2050d6499fb6fb7789a5"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "f1b5488f5db8849b3098c577f41d30036727affe0638f75e9ea796613ca8041f",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "f1b5488f5db8849b3098c577f41d30036727affe0638f75e9ea796613ca8041f",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "e59bf69a10f5869b73e4723ca24f4e76e534b94e655a662107d8fde1d73cf06e",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "output_truncated",
+          "path": "$",
+          "message": "Model output reached its generation/context limit.",
+          "repair": "Output budget was exhausted. Omit analysis, architecture descriptions and drafts. Return a smaller complete implementation satisfying the task, with explicit filenames and closed code fences."
+        }
+      ],
+      "candidate_sha256": "64d6591229a96bb835a9ea56de70ba2dd628bd78f39595cc3093f902e9602d30",
+      "termination_reasons": [
+        "length"
+      ],
+      "rejected_candidate": "The user wants a two-player Pong game in Python. I need to provide final source files only. Let me create a compact but complete implementation.\n\nI'll use pygame for the game. Let me structure it:\n- main.py - entry point\n- pong.py or game.py - game logic\n\nActually, to keep it compact, I could do main.py plus maybe one or two modules. The instructions say \"Start with main.py, followed by every other required Python file.\" So I should have at least main.py and possibly other files.\n\nLet me design:\n- main.py: entry point, initializes pygame, creates Game, runs it\n- game.py: Game class with paddles, ball, scoring, win threshold\n- paddle.py: Paddle class\n- ball.py: Ball class\n\nOr keep it simpler: main.py + pong_game.py containing everything. But to show good structure, let me do main.py, game.py, paddle.py, ball.py. That's reasonable and compact.\n\nRequirements:\n- Two players control vertical paddles (W/S for player 1, Up/Down arrows for player 2)\n- Ball bounces between paddles and off top/bottom edges\n- Score point when opponent misses\n- Winning score threshold (e.g., 5)\n- Reset ball after each point\n\nLet me write compact code.\n\npaddle.py:\n```python\nimport pygame\n\nclass Paddle:\n    WIDTH, HEIGHT = 12, 90\n    SPEED = 7\n\n    def __init__(self, x, up_key, down_key):\n        self.rect = pygame.Rect(x, 0, self.WIDTH, self.HEIGHT)\n        self.up_key = up_key\n        self.down_key = down_key\n\n    def move(self, keys, top, bottom):\n        if keys[self.up_key]:\n            self.rect.y -= self.SPEED\n        if keys[self.down_key]:\n            self.rect.y += self.SPEED\n        self.rect.y = max(top, min(self.rect.y, bottom - self.rect.height))\n\n    def draw(self, surface):\n        pygame.draw.rect(surface, self.color, self.rect)\n```\n\nActually let me include color in init.\n\nball.py:\n```python\nimport pygame\nimport random\n\nclass Ball:\n    SIZE = 12\n    SPEED = 6\n\n    def __init__(self, left, right, top, bottom):\n        self.bounds = pygame.Rect(left, top, right - left, bottom - top)\n        self.rect = pygame.Rect(0, 0, self.SIZE, self.SIZE)\n        self.vx = self.vy = 0\n        self.reset()\n\n    def reset(self, direction=None):\n        self.rect.center = self.bounds.center\n        if direction is None:\n            direction = random.choice((-1, 1))\n        self.vx = self.SPEED * direction\n        self.vy = random.choice((-1, 1)) * self.SPEED * 0.6\n\n    def update(self):\n        self.rect.x += self.vx\n        self.rect.y += self.vy\n        if self.rect.top <= self.bounds.top:\n            self.rect.top = self.bounds.top\n            self.vy = abs(self.vy)\n        if self.rect.bottom >= self.bounds.bottom:\n            self.rect.bottom = self.bounds.bottom\n            self.vy = -abs(self.vy)\n\n    def bounce_off(self, paddle):\n        self.vx = -self.vx\n        # angle based on hit position\n        offset = (self.rect.centery - paddle.rect.centery) / (paddle.rect.height / 2)\n        self.vy = self.SPEED * max(-1, min(1, offset)) * 0.9\n        # slight speed up\n        self.vx *= 1.03\n```\n\nHmm, need to be careful with speed increase. Let me keep speed constant or slightly increase.\n\ngame.py:\n```python\nimport pygame\nfrom paddle import Paddle\nfrom ball import Ball\n\nWIN_SCORE = 5\nBG = (20, 20, 30)\nFG = (240, 240, 240)\n\nclass Game:\n    def __init__(self, surface):\n        self.surface = surface\n        w, h = surface.get_size()\n        self.font = pygame.font.SysFont(None, 48)\n        self.small = pygame.font.SysFont(None, 32)\n        self.p1 = Paddle(30, h, pygame.K_w, pygame.K_s, (80, 200, 255))\n        self.p2 = Paddle(w - 30 - Paddle.WIDTH, h, pygame.K_UP, pygame.K_DOWN, (255, 120, 120))\n        self.ball = Ball(0, w, 0, h)\n        self.score = [0, 0]\n        self.winner = None\n        self.serve_delay = 0\n\n    def handle(self, event):\n        if event.type == pygame.KEYDOWN and self.winner and event.key == pygame.K_r:\n            self.__init__(self.surface)\n\n    def update(self):\n        keys = pygame.key.get_pressed()\n        self.p1.move(keys)\n        self.p2.move(keys)\n        if self.serve_delay > 0:\n            self.serve_delay -= 1\n            return\n        self.ball.update()\n        self.ball.bounce_off(self.p1)\n        self.ball.bounce_off(self.p2)\n        if self.ball.rect.right < 0:\n            self.score[1] += 1\n            self.after_point()\n        elif self.ball.rect.left > self.surface.get_width():\n            self.score[0] += 1\n            self.after_point()\n\n    def after_point(self):\n        if self.score[0] >= WIN_SCORE or self.score[1] >= WIN_SCORE:\n            self.winner = 0 if self.score[0] >= WIN_SCORE else 1\n        else:\n            self.ball.reset(direction=...)\n            self.serve_delay = 45\n```\n\nWait, direction after point: ball should serve toward the player who just lost the point? Typically serves toward the scorer's opponent... Actually in Pong, after a point, ball serves toward the player who just scored? Common convention: serve toward the player who lost (they get the ball). Let's serve toward the player who conceded... Actually simpler: serve toward the side that just scored? Hmm. In classic Pong, the ball serves toward the player who just scored... no wait. Let me just serve toward the player who lost the point (so they get first hit). If player 1 missed (ball went off left), player 2 scored, serve toward player 1 (left, direction -1). That's fine.\n\nDraw: center dashed line, scores at top, winner overlay.\n\nmain.py:\n```python\nimport pygame\nfrom game import Game\n\ndef main():\n    pygame.init()\n    screen = pygame.display.set_mode((900, 560))\n    pygame.display.set_caption(\"Pong - Two Player\")\n    clock = pygame.time.Clock()\n    game = Game(screen)\n    running = True\n    while running:\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                running = False\n            game.handle(event)\n        game.update()\n        game.draw()\n        pygame.display.flip()\n        clock.tick(60)\n    pygame.quit()\n\nif __name__ == \"__main__\":\n    main()\n```\n\nPaddle needs bounds for movement — pass height at construction. Let me finalize paddle:\n\n```python\nimport pygame\n\nclass Paddle:\n    WIDTH, HEIGHT, SPEED = 12, 90, 7\n\n    def __init__(self, x, screen_h, up_key, down_key, color):\n        self.rect = pygame.Rect(x, (screen_h - self.HEIGHT) // 2, self.WIDTH, self.HEIGHT)\n        self.up_key, self.down_key, self.color = up_key, down_key, color\n        self.top, self.bottom = 0, screen_h\n\n    def move(self, keys):\n        if keys[self.up_key]:\n            self.rect.y -= self.SPEED\n        if keys[self.down_key]:\n            self.rect.y += self.SPEED\n        self.rect.y = max(self.top, min(self.rect.y, self.bottom - self.rect.height))\n\n    def draw(self, surface):\n        pygame.draw.rect(surface, self.color, self.rect)\n```\n\nBall bounce_off: need to ensure ball doesn't get stuck. Standard approach: check collision, reposition ball outside paddle, reverse vx, adjust vy based on hit offset, maybe speed up slightly.\n\n```python\ndef bounce_off(self, paddle):\n    if self.rect.colliderect(paddle.rect):\n        if self.vx > 0:  # moving right, hit left paddle? no...\n```\n\nHmm, need direction awareness. If ball moving left (vx<0) and collides with left paddle, bounce right. If moving right and collides with right paddle, bounce left. Simple: after collision, set vx = -vx but ensure it moves away from paddle. Better:\n\n```python\ndef bounce_off(self, paddle):\n    if not self.rect.colliderect(paddle.rect):\n        return\n    offset = (self.rect.centery - paddle.rect.centery) / (paddle.rect.height / 2)\n    offset = max(-1.0, min(1.0, offset))\n    speed = min(abs(self.vx) * 1.05 + 0.2, 14)\n    if self.rect.centerx < paddle.rect.centerx:\n        self.vx = -abs(speed)\n    else:\n        self.vx = abs(speed)\n    self.vy = speed * offset * 0.85\n    # push out of paddle\n    if self.vx > 0:\n        self.rect.left = paddle.rect.right\n    else:\n        self.rect.right = paddle.rect.left\n```\n\nWait, if ball center is left of paddle center, ball should bounce left (negative vx). If ball is left paddle on left side: ball approaches from right moving left, ball center is right of paddle center → vx = abs(speed) positive → moves right. Correct. For right paddle: ball approaches from left moving right, ball center left of paddle center → vx = -abs(speed) → moves left. Correct.\n\nSpeed cap: min(..., 14). Initial speed 6.\n\nBall update with bounds. Also need to handle ball going past paddles — score when fully off screen.\n\nGame.draw:\n\n```python\ndef draw(self):\n    self.surface.fill(BG)\n    w, h = self.surface.get_size()\n    for y in range(0, h, 30):\n        pygame.draw.rect(self.surface, FG, (w // 2 - 2, y, 4, 16))\n    self.p1.draw(self.surface)\n    self.p2.draw(self.surface)\n    pygame.draw.ellipse(self.surface, FG, self.ball.rect)\n    s1 = self.font.render(str(self.score[0]), True, FG)\n    s2 = self.font.render(str(self.score[1]), True, FG)\n    self.surface.blit(s1, (w // 2 - 60 - s1.get_width() // 2, 20))\n    self.surface.blit(s2, (w // 2 + 60 - s2.get_width() // 2, 20))\n    if self.serve_delay > 0 and not self.winner:\n        msg = self.small.render(\"Get ready...\", True, FG)\n        ...\n    if self.winner is not None:\n        text = f\"Player {self.winner + 1} wins! Press R to restart\"\n        overlay = self.font.render(text, True, FG)\n        rect = overlay.get_rect(center=(w // 2, h // 2))\n        self.surface.blit(overlay, rect)\n```\n\nAlso draw ball during serve delay (centered). Fine.\n\nAlso handle event for restart: R key when winner.\n\nLet me also make sure ball.reset takes direction param.\n\nFull ball.py:\n\n```python\nimport pygame\nimport random\n\nclass Ball:\n    SIZE = 12\n    BASE_SPEED = 6\n    MAX_SPEED = 14\n\n    def __init__(self, width, height):\n        self.bounds = pygame.Rect(0, 0, width, height)\n        self.rect = pygame.Rect(0, 0, self.SIZE, self.SIZE)\n        self.vx = self.vy = 0\n        self.reset()\n\n    def reset(self, direction=None):\n        self.rect.center = self.bounds.center\n        self.speed = self.BASE_SPEED\n        if direction is None:\n            direction = random.choice((-1, 1))\n        self.vx = self.speed * direction\n        self.vy = random.uniform(-0.6, 0.6) * self.speed\n\n    def update(self):\n        self.rect.x += self.vx\n        self.rect.y += self.vy\n        if self.rect.top <= self.bounds.top:\n            self.rect.top = self.bounds.top\n            self.vy = abs(self.vy)\n        elif self.rect.bottom >= self.bounds.bottom:\n            self.rect.bottom = self.bounds.bottom\n            self.vy = -abs(self.vy)\n\n    def bounce_off(self, paddle):\n        if not self.rect.colliderect(paddle.rect):\n            return\n        offset = (self.rect.centery - paddle.rect.centery) / (paddle.rect.height / 2)\n        offset = max(-1.0, min(1.0, offset))\n        self.speed = min(self.speed * 1.05, self.MAX_SPEED)\n        if self.rect.centerx < paddle.rect.centerx:\n            self.vx = -self.speed\n        else:\n            self.vx = self.speed\n        self.vy = offset * self.speed * 0.85\n        if self.vx > 0:\n            self.rect.left = paddle.rect.right\n        else:\n            self.rect.right = paddle.rect.left\n```\n\nHmm wait — if ball center is left of paddle center, ball should bounce left (negative vx). If ball is left paddle on left side: ball approaches from right moving left, ball center is right of paddle center → vx = abs(speed) positive → moves right. Correct. For right paddle: ball approaches from left moving right, ball center left of paddle center → vx = -abs(speed) → moves left. Correct.\n\nSpeed cap: min(..., 14). Initial speed 6.\n\nEdge case: ball could tunnel through paddle at high speed? At 14 px/frame and paddle width 12, possible tunneling. To mitigate, check collision with a slightly expanded check or check crossing. Keep simple; at 60fps with speed 14 and paddle 12 wide, tunneling possible but rare. Could expand paddle rect for collision by ball speed. Simple fix: use colliderect with paddle.rect inflated by abs(vx). Let me do:\n\n```python\nzone = paddle.rect.inflate(abs(self.vx) + 2, 0)\nif not self.rect.colliderect(zone):\n    return\n```\n\nBut then repositioning: if vx>0 set left = paddle.right... but if ball already passed... With inflate, ball might be behind paddle. Hmm. Keep it simple but add the inflate and clamp: if ball center is beyond paddle far edge, skip. Actually simpler: keep collision with actual rect but also check the previous position crossing. For compactness, I'll use the inflated zone and only bounce if ball hasn't fully passed:\n\nActually, let's do a robust simple approach: check if ball rect intersects paddle rect OR ball crossed the paddle plane this frame. Given compactness requirement, I'll use inflated rect collision and reposition accordingly — if ball is behind the paddle (center beyond paddle's back edge), skip bounce. Let me write:\n\n```python\ndef bounce_off(self, paddle):\n    zone = paddle.rect.inflate(abs(self.vx) + self.SIZE, 0)\n    if not self.rect.colliderect(zone):\n        return\n    if self.vx > 0 and self.rect.centerx > paddle.rect.right:\n        return  # already passed\n    if self.vx < 0 and self.rect.centerx < paddle.rect.left:\n        return\n    ...\n```\n\nHmm wait, for left paddle: ball moving left (vx<0), paddle on left. If ball center < paddle.left, it passed. Skip. For right paddle: ball moving right (vx>0), if ball center > paddle.right, passed. Skip. But the condition above: `if self.vx > 0 and self.rect.centerx > paddle.rect.right: return` — that's for right paddle. And `if self.vx < 0 and self.rect.centerx < paddle.rect.left: return` for left paddle. Good.\n\nThen bounce logic as before. This handles tunneling decently.\n\nGame update: also need to handle ball out of bounds scoring. Ball off left → player 2 scores; serve toward left (player 1 who missed)? Direction: after player 2 scores, serve toward player 1 → direction -1. After player 1 scores, serve toward player 2 → direction +1.\n\n```python\nif self.ball.rect.right < 0:\n    self.score_point(1, -1)\nelif self.ball.rect.left > w:\n    self.score_point(0, 1)\n\ndef score_point(self, player, direction):\n    self.score[player] += 1\n    if self.score[player] >= WIN_SCORE:\n        self.winner = player\n    else:\n        self.ball.reset(direction)\n        self.serve_delay = 45\n```\n\nDuring serve_delay, ball sits centered; countdown then ball moves. Actually with reset, ball already has velocity; serve delay just pauses movement. In update: if serve_delay > 0: decrement, skip ball update (but still move paddles). Good.\n\nRestart: R key resets scores, winner, ball, paddles. Implement `restart` method that re-inits state without recreating font:\n\n```python\ndef restart(self):\n    self.score = [0, 0]\n    self.winner = None\n    self.serve_delay = 45\n    self.ball.reset()\n    self.p1.rect.centery = self.p2.rect.centery = self.surface.get_height() // 2\n```\n\nHandle event:\n\n```python\ndef handle_event(self, event):\n    if event.type == pygame.KEYDOWN and self.winner is not None and event.key == pygame.K_r:\n        self.restart()\n```\n\nDraw winner overlay with semi-transparent background maybe. Keep simple: render text with bg color rect.\n\nAlso add small hint text at bottom: \"P1: W/S  P2: Up/Down\". Nice touch.\n\nFonts: pygame.font.SysFont(None, size) — fine. Or pygame.font.Font(None, size).\n\nLet me now also think about whether to include a requirements note — no, only source files. The instructions say return final source files only, filename line then fenced python block.\n\nFiles:\n1. main.py\n2. game.py\n3. paddle.py\n4. ball.py\n\nMaybe also constants.py? Not needed; keep constants in respective modules.\n\nLet me write final code carefully.\n\nmain.py:\n```python\nimport pygame\n\nfrom game import Game\n\nWIDTH, HEIGHT, FPS = 900, 560, 60\n\n\ndef main():\n    pygame.init()\n    screen = pygame.display.set_mode((WIDTH, HEIGHT))\n    pygame.display.set_caption(\"Pong - Two Player\")\n    clock = pygame.time.Clock()\n    game = Game(screen)\n    running = True\n    while running:\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                running = False\n            else:\n                game.handle_event(event)\n        game.update()\n        game.draw()\n        pygame.display.flip()\n        clock.tick(FPS)\n    pygame.quit()\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\ngame.py:\n```python\nimport pygame\n\nfrom ball import Ball\nfrom paddle import Paddle\n\nWIN_SCORE = 5\nSERVE_DELAY = 45\nBG_COLOR = (18, 20, 34)\nFG_COLOR = (235, 235, 240)\n\n\nclass Game:\n    def __init__(self, surface):\n        self.surface = surface\n        w, h = surface.get_size()\n        self.font = pygame.font.Font(None, 56)\n        self.small_font = pygame.font.Font(None, 28)\n        self.p1 = Paddle(30, h, pygame.K_w, pygame.K_s, (90, 200, 255))\n        self.p2 = Paddle(w - 30 - Paddle.WIDTH, h, pygame.K_UP, pygame.K_DOWN, (255, 110, 110))\n        self.ball = Ball(w, h)\n        self.score = [0, 0]\n        self.winner = None\n        self.serve_delay = SERVE_DELAY\n\n    def handle_event(self, event):\n        if event.type == pygame.KEYDOWN and self.winner is not None and event.key == pygame.K_r:\n            self.restart()\n\n    def restart(self):\n        h = self.surface.get_height()\n        self.score = [0, 0]\n        self.winner = None\n        self.serve_delay = SERVE_DELAY\n        self.ball.reset()\n        self.p1.rect.centery = self.p2.rect.centery = h // 2\n\n    def update(self):\n        keys = pygame.key.get_pressed()\n        self.p1.move(keys)\n        self.p2.move(keys)\n        if self.winner is not None or self.serve_delay > 0:\n            if self.serve_delay > 0:\n                self.serve_delay -= 1\n            return\n        self.ball.update()\n        self.ball.bounce_off(self.p1)\n        self.ball.bounce_off(self.p2)\n        w = self.surface.get_width()\n        if self.ball.rect.right < 0:\n            self.award_point(1, -1)\n        elif self.ball.rect.left > w:\n            self.award_point(0, 1)\n\n    def award_point(self, player, serve_direction):\n        self.score[player] += 1\n        if self.score[player] >= WIN_SCORE:\n            self.winner = player\n        else:\n            self.ball.reset(serve_direction)\n            self.serve_delay = SERVE_DELAY\n\n    def draw(self):\n        w, h = self.surface.get_size()\n        self.surface.fill(BG_COLOR)\n        for y in range(0, h, 32):\n            pygame.draw.rect(self.surface, (70, 74, 96), (w // 2 - 2, y, 4, 18))\n        self.p1.draw(self.surface)\n        self.p2.draw(self.surface)\n        pygame.draw.ellipse(self.surface, FG_COLOR, self.ball.rect)\n        for i, score in enumerate(self.score):\n            text = self.font.render(str(score), True, FG_COLOR)\n            x = w // 2 + (60 if i else -60) - text.get_width() // 2\n            self.surface.blit(text, (x, 16))\n        hint = self.small_font.render(\"P1: W/S    P2: Up/Down    First to %d wins\" % WIN_SCORE, True, (120, 126, 150))\n        self.surface.blit(hint, hint.get_rect(midbottom=(w // 2, h - 8)))\n        if self.winner is not None:\n            self.draw_overlay(\"Player %d wins!  Press R to restart\" % (self.winner + 1))\n        elif self.serve_delay > SERVE_DELAY - 20:\n            self.draw_overlay(\"Get ready...\")\n\n    def draw_overlay(self, message):\n        w, h = self.surface.get_size()\n        text = self.font.render(message, True, FG_COLOR)\n        box = text.get_rect(center=(w // 2, h // 2)).inflate(40, 24)\n        pygame.draw.rect(self.surface, BG_COLOR, box, border_radius=8)\n        pygame.draw.rect(self.surface, FG_COLOR, box, 2, border_radius=8)\n        self.surface.blit(text, text.get_rect(center=box.center))\n```\n\nWait, serve_delay > SERVE_DELAY - 20 shows \"Get ready...\" for first 20 frames of the 45-frame delay. Fine.\n\nHmm, one issue: in update, when winner is not None, we return early but also skip serve_delay decrement — that's fine since restart resets it.\n\npaddle.py:\n```python\nimport pygame\n\n\nclass Paddle:\n    WIDTH, HEIGHT, SPEED = 12, 90, 7\n\n    def __init__(self, x, screen_height, up_key, down_key, color):\n        self.rect = pygame.Rect(x, (screen_height - self.HEIGHT) // 2, self.WIDTH, self.HEIGHT)\n        self.up_key = up_key\n        self.down_key = down_key\n        self.color = color\n        self.limit = screen_height\n\n    def move(self, keys):\n        if keys[self.up_key]:\n            self.rect.y -= self.SPEED\n        if keys[self.down_key]:\n            self.rect.y += self.SPEED\n        self.rect.y = max(0, min(self.rect.y, self.limit - self.rect.height))\n\n    def draw(self, surface):\n        pygame.draw.rect(surface, self.color, self.rect, border_radius=4)\n```\n\nball.py:\n```python\nimport random\n\nimport pygame\n\n\nclass Ball:\n    SIZE = 12\n    BASE_SPEED = 6.0\n    MAX_SPEED = 13.0\n\n    def __init__(self, width, height):\n        self.bounds = pygame.Rect(0, 0, width, height)\n        self.rect = pygame.Rect(0, 0, self.SIZE, self.SIZE)\n        self.speed = self.BASE_SPEED\n        self.vx = self.vy = 0.0\n        self.reset()\n\n    def reset(self, direction=None):\n        self.rect.center = self.bounds.center\n        self.speed = self.BASE_SPEED\n        direction = random.choice((-1, 1)) if direction is None else direction\n        self.vx = self.speed * direction\n        self.vy = random.uniform(-0.6, 0.6) * self.speed\n\n    def update(self):\n        self.rect.x += round(self.vx)\n        self.rect.y += round(self.vy)\n        if self.rect.top <= self.bounds.top:\n            self.rect.top = self.bounds.top\n            self.vy = abs(self.vy)\n        elif self.rect.bottom >= self.bounds.bottom:\n            self.rect.bottom = self.bounds.bottom\n            self.vy = -abs(self.vy)\n\n    def bounce_off(self, paddle):\n        zone = paddle.rect.inflate(abs(self.vx) + self.SIZE, 0)\n        if not self.rect.colliderect(zone):\n            return\n        if self.vx > 0 and self.rect.centerx > paddle.rect.right:\n            return\n        if self.vx < 0 and self.rect.centerx < paddle.rect.left:\n            return\n        offset = (self.rect.centery - paddle.rect.centery) / (paddle.rect.height / 2)\n        offset = max(-1.0, min(1.0, offset))\n        self.speed = min(self.speed * 1.05, self.MAX_SPEED)\n        if self.rect.centerx < paddle.rect.centerx:\n            self.vx = -self.speed\n            self.rect.right = paddle.rect.left\n        else:\n            self.vx = self.speed\n            self.rect.left = paddle.rect.right\n        self.vy = offset * self.speed * 0.85\n```\n\nWait, there's a subtle bug: if ball center is left of paddle center, ball should bounce left (negative vx). But what if ball hits the left paddle from behind (ball is left of paddle moving right)? Then vx>0 and centerx < paddle.left... the skip condition `if self.vx < 0 and self.rect.centerx < paddle.rect.left: return` only skips when moving left. If ball is behind left paddle moving right (weird scenario), it would set vx = -speed (since centerx < paddle centerx) and rect.right = paddle.left — pushing ball further left, moving left. That's actually acceptable behavior (bounce off the back). Rare edge case, fine.\n\nAlso, the zone inflate: paddle.rect.inflate(abs(vx)+SIZE, 0) inflates width by that amount total (half each side). abs(vx) up to 13 + 12 = 25, so 12.5 each side. Ball moving at 13 px/frame could be up to 13 px past the paddle face. The zone extends 12.5 past face — close enough combined with the \"passed\" checks. Actually the passed check handles the case where ball center is beyond the back edge. If ball center is between face and back edge... e.g., right paddle: ball moving right, centerx > paddle.right means passed → skip. If centerx <= paddle.right, bounce and set rect.left = paddle.right. Good.\n\nHmm, but there's an issue: with inflate, the ball could collide with the zone while still far from the paddle (up to 12.5 px away), causing the bounce to trigger early and reposition ball at the face — a slight \"teleport\" of up to ~12px. At speed 13, that's within one frame of travel, so visually negligible. Acceptable.\n\nActually wait — the inflate extends both sides. For the left paddle, the zone extends 12.5 px to the left of the paddle. Ball approaching from the right at distance 12 would trigger bounce early. Minor. Alternatively, only inflate in the direction of travel. Simpler: keep as is; it's fine for gameplay.\n\nActually, let me reconsider: maybe simpler to not inflate and just accept rare tunneling at max speed 13 with paddle width 12. Ball width 12 + paddle 12 = 24 combined; per-frame movement 13 < 24, so no tunneling actually! Collision detection between two rects each frame: ball moves 13 px per frame; overlap requires ball rect intersect paddle rect. Ball width 12, paddle width 12. If ball was at x=25 (right edge 37) and paddle at x=30..42, they intersect. Next frame ball at x=12 (right edge 24), paddle 30..42 — no intersect. Wait, ball moving left: positions x=25 → x=12. At x=25, right edge 37 > 30, intersects. So it would have bounced at x=25. Tunneling requires jumping from no-overlap to past-overlap: ball right edge goes from < 30 to ball left edge > 42 in one step: right edge < 30 means left edge < 18; next left edge = left + 13 < 31 < 42. So no tunneling possible when step ≤ combined width (24). Max speed 13 < 24. So no inflation needed! Great, simpler:\n\n```python\ndef bounce_off(self, paddle):\n    if not self.rect.colliderect(paddle.rect):\n        return\n    ...\n```\n\nBut wait — the reposition: if ball moving left hits left paddle, set rect.right = paddle.rect.left. If ball somehow deep-overlaps (shouldn't happen), fine.\n\nBut there's the \"passed\" check issue: without inflate, if ball is overlapping paddle, center can't be beyond back edge much. Keep the checks anyway for safety? If ball moving left overlaps left paddle, centerx >= paddle.left - ... hmm, ball left edge >= ... overlap means ball.right > paddle.left and ball.left < paddle.right. Ball center could be < paddle.left if ball is mostly left of paddle but overlapping edge. E.g., ball.left = paddle.left - 10, ball.right = paddle.left + 2. Center = paddle.left - 4 < paddle.left. With the skip condition `if self.vx < 0 and self.rect.centerx < paddle.rect.left: return` — this would skip the bounce! Bad. That's a real scenario: ball's leading edge (left side, since moving left... wait ball moving left, its leading edge is left edge). Ball moving left approaches paddle from the right. First contact: ball.right = paddle.right... no wait. Ball moving left toward left paddle which is at x=30..42. Ball approaches from right side. First overlap: ball.left = 42-ish... ball.left < paddle.right = 42 and ball.right > paddle.left = 30. First frame of overlap: ball.left just under 42, ball.right = ball.left + 12 ≈ 54 > 30. Center ≈ 48 > paddle.left. So center > paddle.left. The skip condition centerx < paddle.left would only trigger if ball has moved well past — but we reposition on first contact, so it never gets past. The skip is a safety for the frame after bounce if repositioning failed. Since we reposition ball.right = paddle.left (ball entirely left of... wait no).\n\nHold on: ball moving left (vx<0) hits LEFT paddle. Ball should bounce right (vx>0). Reposition: ball should be to the RIGHT of the paddle: rect.left = paddle.rect.right. Let me redo:\n\n```python\nif self.rect.centerx < paddle.rect.centerx:\n    # ball is left of paddle center → bounce left\n    self.vx = -self.speed\n    self.rect.right = paddle.rect.left\nelse:\n    self.vx = self.speed\n    self.rect.left = paddle.rect.right\n```\n\nBall moving left hits left paddle: ball center (~48) > paddle center (36) → else branch: vx = +speed (bounce right), rect.left = paddle.right = 42. Correct.\n\nBall moving right hits right paddle (at w-42..w-30): ball center < paddle center → vx = -speed, rect.right = paddle.left. Correct.\n\nNow the skip conditions: for left paddle with ball moving left, after bounce ball is right of paddle moving right — no longer overlapping. Next frames ball moves right away. Fine. The skip conditions I wrote earlier:\n\n```python\nif self.vx > 0 and self.rect.centerx > paddle.rect.right:\n    return\nif self.vx < 0 and self.rect.centerx < paddle.rect.left:\n    return\n```\n\nScenario: ball moving right (vx>0) near LEFT paddle — could it overlap? Ball moving right passes left paddle from left side... it would have bounced when it first overlapped (center < paddle center → vx = -speed, pushed left). Hmm, but what if ball spawns/overlaps weirdly? After bounce, ball is at rect.left = paddle.right, moving right — center > paddle.right? center = paddle.right + 6 > paddle.right → skip condition triggers → return. Good, prevents double-bounce.\n\nScenario: ball moving left (vx<0) near RIGHT paddle after bounce: ball at rect.right = paddle.left, center = paddle.left - 6 < paddle.left → skip triggers. Good.\n\nBut wait, there's a problem: ball moving right (vx>0) hits RIGHT paddle. On bounce: center < paddle center → vx = -speed, rect.right = paddle.left. Now center = paddle.left - 6 < paddle.left. Next frame, ball moves left by 13: center = paddle.left - 19. Check bounce_off(right paddle): overlap? ball.right = paddle.left - 19 + 6 = paddle.left - 13 < paddle.left → no overlap → return. Fine.\n\nBut consider ball moving right hits right paddle, bounce sets vx negative. Then check `if self.vx > 0 and ...` — vx is now negative, skip doesn't trigger, but no overlap anyway. OK.\n\nOne more: ball moving left (vx<0) hits left paddle → bounce → vx positive, rect.left = paddle.right. center = paddle.right + 6 > paddle.right. Skip condition 1: vx>0 and center > paddle.right → return. Good, no immediate re-bounce.\n\nWhat about ball hitting paddle top/bottom edge corners? The bounce logic handles it via offset clamp. Fine.\n\nNow, what if ball is moving left and overlaps left paddle but center < paddle center? E.g., ball deep overlap: ball.left = 20, ball.right = 32, paddle 30..42. Center = 26 < 36 → vx = -speed (continue left!), rect.right = paddle.left = 30 → ball now at 18..30, moving left. That would happen if ball tunneled halfway in — but we showed tunneling can't happen with step ≤ 24. First contact always has center > paddle center for left-paddle approach from right? First overlap frame: ball.left ∈ (paddle.right - step, paddle.right) = (30, 42) for step 13... wait paddle.right = 42, ball.left < 42 and previous ball.left ≥ 42. So ball.left ∈ [42-13, 42) = [29, 42). Center = ball.left + 6 ∈ [35, 48). Paddle center = 36. Hmm, ball.left = 29 → center = 35 < 36! Edge case: ball.left = 29, overlap (29 < 42, right = 41 > 30). Center 35 < 36 → vx = -speed, rect.right = 30 → ball at 18..30 moving left — ball passes through paddle! Bug!\n\nHmm. So the center-based direction determination can fail for glancing contacts near the paddle's far edge. Better: determine bounce direction by ball's velocity, not position:\n\n```python\ndef bounce_off(self, paddle):\n    if not self.rect.colliderect(paddle.rect):\n        return\n    moving_left = self.vx < 0\n    self.speed = min(self.speed * 1.05, self.MAX_SPEED)\n    if moving_left:\n        self.vx = self.speed\n        self.rect.left = paddle.rect.right\n    else:\n        self.vx = -self.speed\n        self.rect.right = paddle.rect.left\n    offset = (self.rect.centery - paddle.rect.centery) / (paddle.rect.height / 2)\n    self.vy = max(-1.0, min(1.0, offset)) * self.speed * 0.85\n```\n\nWait but this assumes left paddle is hit while moving left and right paddle while moving right. Since paddles are at the edges, ball can only reach them moving toward them. Ball moving left can only overlap left paddle (right paddle is behind it... actually ball moving left could overlap right paddle if it spawned there — not in normal play). Using velocity direction is robust: ball moving left bounces right and repositions right of paddle. But if ball moving left overlaps the RIGHT paddle (impossible in normal flow), it would teleport to right of right paddle. Not a concern.\n\nBut careful: repositioning based on velocity: ball moving left hits left paddle → vx = +speed, rect.left = paddle.right. Correct. Ball moving right hits right paddle → vx = -speed, rect.right = paddle.left. Correct.\n\nBut what about ball moving left overlapping left paddle where ball is mostly LEFT of paddle (deep overlap from a previous glitch)? Reposition to right of paddle — teleport but rec"
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "9e877a44cb9a26c5b6238b30c1a44c83b72e07dfc523c42930d3e56f9a66aa74",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "9e877a44cb9a26c5b6238b30c1a44c83b72e07dfc523c42930d3e56f9a66aa74",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "381ac86f65d833354783ff7e89bb8ed6529d8cdfe38abc3db958bab90c8c2356",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "0e24cb981e63f236ebddff90ab968bd42dbdc815916cced29cb9fe7b32caaa61",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "381ac86f65d833354783ff7e89bb8ed6529d8cdfe38abc3db958bab90c8c2356",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2e268ff0cef63580c64233b07e8fd026c494a543f47a7717f2245832819f24fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "381ac86f65d833354783ff7e89bb8ed6529d8cdfe38abc3db958bab90c8c2356",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "a56b41dca190b7f621e3c52b622fdd591aa688b16297ebb1c8c80c4871a30f81",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "381ac86f65d833354783ff7e89bb8ed6529d8cdfe38abc3db958bab90c8c2356",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3713dc9d1785c47081ef36c7e993dd51ecf9c4913bd8e04500b2a4717fc9a3a0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "381ac86f65d833354783ff7e89bb8ed6529d8cdfe38abc3db958bab90c8c2356",
+        "source_digests": {
+          "main.py": "3b8186af16a5e05fbc4819809c7a59b6376e164f459be6f3845948e359e63c9f"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r07/28_Pong/artifact\\main.py\", line 1, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+        "profile": "process_exit",
+        "id": "54d095e1ea3c2fd8951bef39f91fcab6239cf63fdfb9bd975ecf964b4e23329b"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "381ac86f65d833354783ff7e89bb8ed6529d8cdfe38abc3db958bab90c8c2356",
+        "source_digests": {
+          "main.py": "3b8186af16a5e05fbc4819809c7a59b6376e164f459be6f3845948e359e63c9f"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r07/28_Pong/artifact\\main.py\", line 1, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+        "profile": "process_exit",
+        "id": "54d095e1ea3c2fd8951bef39f91fcab6239cf63fdfb9bd975ecf964b4e23329b"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "381ac86f65d833354783ff7e89bb8ed6529d8cdfe38abc3db958bab90c8c2356",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "a9bac21b0abeb69feb5c1c981fb0d531d57f28e6a86420233b6708d7cb62a094",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "381ac86f65d833354783ff7e89bb8ed6529d8cdfe38abc3db958bab90c8c2356",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "e4ff4f892247f307f604a1e16fc1d619234804806a53c819da85a66cc25b7cdb",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "381ac86f65d833354783ff7e89bb8ed6529d8cdfe38abc3db958bab90c8c2356",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "output_truncated",
+          "path": "$",
+          "message": "Model output reached its generation/context limit.",
+          "repair": "Output budget was exhausted. Omit analysis, architecture descriptions and drafts. Return a smaller complete implementation satisfying the task, with explicit filenames and closed code fences."
+        }
+      ],
+      "candidate_sha256": "dbd37349834a9613ccc30aef26c8612ea4fe3dcdeb09d69c3ad4717dce3d6ac0",
+      "termination_reasons": [
+        "length"
+      ],
+      "rejected_candidate": "main.py\n```python\nimport random\nimport sys\n\nW, H = 800, 480\nPADDLE_W, PADDLE_H = 12, 80\nBALL_R = 6\nSPEED = 6\nWIN_SCORE = 7\nWHITE = (255, 255, 255)\nBLACK = (20, 20, 20)\n\ntry:\n    import pygame\nexcept ImportError:\n    pygame = None\n\n\ndef clamp(v):\n    return max(0, min(H - PADDLE_H, v))\n\n\ndef new_ball(direction):\n    return {\"x\": W / 2, \"y\": H / 2,\n            \"vx\": SPEED * direction, \"vy\": random.choice([-4, -3, 3, 4])}\n\n\nclass Game:\n    def __init__(self):\n        self.reset()\n\n    def reset(self):\n        self.p1y = self.p2y ="
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "381ac86f65d833354783ff7e89bb8ed6529d8cdfe38abc3db958bab90c8c2356",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "921f03cdc355c6f15415b1d485bbe6a33974559480ed6bad6c5d8999973a30c3",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "381ac86f65d833354783ff7e89bb8ed6529d8cdfe38abc3db958bab90c8c2356",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "921f03cdc355c6f15415b1d485bbe6a33974559480ed6bad6c5d8999973a30c3",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "1cdadcd25f350ef6ffaa3cc8323dc60b24c617aa23a722e82fcc1a8dc2c06246",
+        "source_digests": {
+          "main.py": "3e87726493d80febe6489a2414bc7be732707bbadfe6b7e70a10a1883b524cd7"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "source/pure-contract\\content_lab\\startup_probe.py",
+          "data/runs/mpst_contract/r07/28_Pong/artifact\\main.py",
+          "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-ptxcv_01\\probe.json"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "profile": "tkinter_event_loop",
+        "observation": {
+          "event_loop_observed": true,
+          "mapped_window": true,
+          "widget_count": 1,
+          "callback_errors": []
+        },
+        "id": "59f60f25be285bf8a4a5fc13a6cfe8acb310627b1b3f2050d6499fb6fb7789a5"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": true,
+      "evidence_id": "59f60f25be285bf8a4a5fc13a6cfe8acb310627b1b3f2050d6499fb6fb7789a5"
+    }
+  ]
+}

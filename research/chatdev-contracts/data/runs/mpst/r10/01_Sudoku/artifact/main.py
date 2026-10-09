@@ -1,0 +1,1 @@
+self.board = self.generator.generate(difficulty)

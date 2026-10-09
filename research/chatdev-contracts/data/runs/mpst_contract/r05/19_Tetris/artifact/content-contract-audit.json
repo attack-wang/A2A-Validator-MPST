@@ -1,0 +1,314 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Application"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n\n```python\nimport random\nimport tkinter as tk\n\nCELL, COLS, ROWS = 30, 10, 20\nSHAPES = {\n    'I': [[1, 1, 1, 1]],\n    'J': [[1, 0, 0], [1, 1, 1]],\n    'L': [[0, 0, 1], [1, 1, 1]],\n    'O': [[1, 1], [1, 1]],\n    'S': [[0, 1, 1], [1, 1, 0]],\n    'T': [[0, 1, 0], [1, 1, 1]],\n    'Z': [[1, 1, 0], [0, 1, 1]],\n}\nCOLORS = {'I': '#00e5ff', 'J': '#2962ff', 'L': '#ff9100', 'O': '#ffea00',\n          'S': '#00e676', 'T': '#d500f9', 'Z': '#ff1744'}\n\n\ndef rot(m):\n    return [list(r) for r in zip(*m[::-1])]\n\n\nclass Tetris:\n    def __init__(self, root):\n        self.root = root\n        self.canvas = tk.Canvas(root, width=COLS * CELL, height=ROWS * CELL,\n                                bg='#101018', highlightthickness=0)\n        self.canvas.pack()\n        self.info = tk.Label(root, font=('Consolas', 11), fg='white', bg='#101018')\n        self.info.pack(fill='x')\n        root.bind('<Key>', self.on_key)\n        self.new_game()\n        self.tick()\n\n    def new_game(self):\n        self.board = [[None] * COLS for _ in range(ROWS)]\n        self.score = self.lines = 0\n        self.level = 1\n        self.over = self.paused = False\n        self.bag = []\n        self.spawn()\n        self.draw()\n\n    def spawn(self):\n        if not self.bag:\n            self.bag = random.sample(list(SHAPES), 7)\n        name = self.bag.pop()\n        m = SHAPES[name]\n        self.piece = [name, m, (COLS - len(m[0])) // 2, 0]\n        if self.hits(m, self.piece[2], 0):\n            self.over = True\n\n    def hits(self, m, px, py):\n        for y, row in enumerate(m):\n            for x, v in enumerate(row):\n                if v:\n                    bx, by = px + x, py + y\n                    if bx < 0 or bx >= COLS or by >= ROWS or (by >= 0 and self.board[by][bx]):\n                        return True\n        return False\n\n    def move(self, dx, dy):\n        _, m, x, y = self.piece\n        if self.hits(m, x + dx, y + dy):\n            return False\n        self.piece[2] += dx\n        self.piece[3] += dy\n        return True\n\n    def rotate(self):\n        _, m, x, y = self.piece\n        r = rot(m)\n        for dx in (0, -1, 1, -2, 2):\n            if not self.hits(r, x + dx, y):\n                self.piece[1], self.piece[2] = r, x + dx\n                return\n\n    def lock(self):\n        name, m, x, y = self.piece\n        for j, row in enumerate(m):\n            for i, v in enumerate(row):\n                if v and y + j >= 0:\n                    self.board[y + j][x + i] = name\n        kept = [r for r in self.board if any(c is None for c in r)]\n        cleared = ROWS - len(kept)\n        self.board = [[None] * COLS for _ in range(cleared)] + kept\n        if cleared:\n            self.lines += cleared\n            self.score += (0, 100, 300, 500, 800)[cleared] * self.level\n            self.level = self.lines // 10 + 1\n        self.spawn()\n\n    def hard_drop(self):\n        n = 0\n        while self.move(0, 1):\n            n += 1\n        self.score += 2 * n\n        self.lock()\n\n    def on_key(self, e):\n        k = e.keysym.lower()\n        if self.over:\n            if k == 'r':\n                self.new_game()\n            return\n        if k == 'p':\n            self.paused = not self.paused\n        elif not self.paused:\n            if k == 'left':\n                self.move(-1, 0)\n            elif k == 'right':\n                self.move(1, 0)\n            elif k == 'down':\n                if self.move(0, 1):\n                    self.score += 1\n            elif k == 'up':\n                self.rotate()\n            elif k == 'space':\n                self.hard_drop()\n        self.draw()\n\n    def interval(self):\n        return max(120, 800 - (self.level - 1) * 70)\n\n    def tick(self):\n        if not (self.paused or self.over):\n            if not self.move(0, 1):\n                self.lock()\n            self.draw()\n        self.root.after(self.interval(), self.tick)\n\n    def draw(self):\n        c = self.canvas\n        c.delete('all')\n        for y in range(ROWS):\n            for x in range(COLS):\n                n = self.board[y][x]\n                if n:\n                    self.cell(x, y, COLORS[n])\n        if not self.over:\n            _, m, x, y = self.piece\n            for j, row in enumerate(m):\n                for i, v in enumerate(row):\n                    if v and y + j >= 0:\n                        self.cell(x + i, y + j, COLORS[self.piece[0]])\n        s = f'Score: {self.score}   Lines: {self.lines}   Level: {self.level}'\n        if self.over:\n            s += '   GAME OVER - R to restart'\n        elif self.paused:\n            s += '   PAUSED (P)'\n        self.info.config(text=s)\n\n    def cell(self, x, y, color):\n        self.canvas.create_rectangle(x * CELL + 1, y * CELL + 1,\n                                     (x + 1) * CELL - 1, (y + 1) * CELL - 1,\n                                     fill=color, outline='')\n\n\ndef main():\n    root = tk.Tk()\n    root.title('Tetris')\n    Tetris(root)\n    root.mainloop()\n\n\nif __name__ == '__main__':\n    main()\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "df2563778e4af9dcad361bfdf95cd2642d0345cf21800649e39c46312fb67f2f",
+      "result": "{\"verdict\": \"finished\", \"issues\": []}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "df2563778e4af9dcad361bfdf95cd2642d0345cf21800649e39c46312fb67f2f",
+      "result": " Finished"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "df2563778e4af9dcad361bfdf95cd2642d0345cf21800649e39c46312fb67f2f",
+      "result": "{\"status\": \"passed\", \"test_run_id\": \"6fdc6cb72c30fe0e7ca94be76509ec6a599e754a1528d80561f9b3b94e5c102a\", \"summary\": \"Startup smoke test passed for main.py (Tetris game, Python/tkinter). The tkinter event loop was observed, the window mapped successfully with 2 widgets, and no callback errors occurred within the 3-second timeout. Exit code 0 with empty stdout/stderr indicates no source errors or missing dependencies; all seven tetromino shapes, line clearing, scoring, and level-based speed increase are implemented in the provided source.\"}"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "df2563778e4af9dcad361bfdf95cd2642d0345cf21800649e39c46312fb67f2f",
+    "source_digests": {
+      "main.py": "8801d15f09d9e3db611f3a40c1f5c5ab188b8c6dbba0b9df8b18e29ff1ddcb88"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "source/pure-contract\\content_lab\\startup_probe.py",
+      "data/runs/mpst_contract/r05/19_Tetris/artifact\\main.py",
+      "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-mu7kg424\\probe.json"
+    ],
+    "timeout_seconds": 3,
+    "status": "passed",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "profile": "tkinter_event_loop",
+    "observation": {
+      "event_loop_observed": true,
+      "mapped_window": true,
+      "widget_count": 2,
+      "callback_errors": []
+    },
+    "id": "1a88975b9100c52c341dd799b57a94fec1b5e0ddb4172e9838bd4a7c133751be"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "8f077176b8ec10732e12ac2a2247b2f24bdabb35887eac747d312917118ed825",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "57d005c3b71920cefd5b63883aac3200365d1f8a4aa4b23a48238444adb055e7",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "49c03b95209c451fca80e29655b31052dab9309b40bee6a6221f1bd9ecca5e00",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "output_truncated",
+          "path": "$",
+          "message": "Model output reached its generation/context limit.",
+          "repair": "Output budget was exhausted. Omit analysis, architecture descriptions and drafts. Return a smaller complete implementation satisfying the task, with explicit filenames and closed code fences."
+        }
+      ],
+      "candidate_sha256": "83e0f6d0c891eec857eb60b6b2aafd59408416945f575f8e227bcbeceaded0ad",
+      "termination_reasons": [
+        "length"
+      ],
+      "rejected_candidate": "The user wants a complete Tetris game in Python. I need to return final source files only - starting with main.py, followed by other required Python files. Compact complete implementation, no placeholders.\n\nLet me design a Tetris game in Python. I'll use pygame for the GUI since it's the standard for Python games. Let me structure it:\n\n- main.py - entry point\n- tetris.py - game logic (board, pieces, scoring)\n- Maybe keep it compact: main.py + game.py\n\nRequirements:\n1. Tetrominoes fall from top\n2. Player can move/rotate before landing\n3. Completed lines cleared, scoring increases\n4. Game ends when no more pieces can be placed\n5. Board updates after each move/drop\n6. All seven standard tetromino shapes (I, O, T, S, Z, J, L)\n7. Increasing drop speed as game progresses\n\nLet me write a compact but complete implementation. I'll split into:\n- main.py: entry point, game loop\n- game.py: Tetris game logic (board, piece, collision, scoring, levels)\n- Maybe renderer in main.py or separate ui.py\n\nTo keep compact, I'll do main.py + tetris.py (logic) and maybe ui.py. Actually let me do main.py, tetris.py (core logic), and ui.py (rendering). Or just two files: main.py and tetris.py.\n\nLet me write the code:\n\ntetris.py:\n- SHAPES dictionary with 7 tetrominoes, each with rotations\n- Piece class: current shape rotation, position\n- Board class: 10x20 grid, collision detection, line clearing\n- TetrisGame class: game state, scoring, level, speed, game over detection\n\nmain.py:\n- pygame initialization\n- render board, current piece, next piece, score, level, lines\n- handle input: left/right move, down soft drop, up rotate, space hard drop, p pause, r restart\n- game loop with drop timer based on level\n\nLet me write the shapes using rotation states. A common compact approach: define each piece as a list of rotation states, each state a list of (x, y) offsets or a matrix.\n\nStandard approach with matrices:\n\nI: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]]\nO: [[1,1],[1,1]]\nT: [[0,1,0],[1,1,1],[0,0,0]]\nS: [[0,1,1],[1,1,0],[0,0,0]]\nZ: [[1,1,0],[0,1,1],[0,0,0]]\nJ: [[1,0,0],[1,1,1],[0,0,0]]\nL: [[0,0,1],[1,1,1],[0,0,0]]\n\nRotation: rotate matrix clockwise: list(zip(*m[::-1]))\n\nColors for each piece.\n\nScoring: 100/300/500/800 for 1/2/3/4 lines, times level. Soft drop 1 point per cell, hard drop 2 points per cell.\n\nLevel: increases every 10 lines. Drop speed: e.g., max(0.05, 0.8 - (level-1)*0.05) seconds or use frames.\n\nGame over: when new piece collides immediately at spawn.\n\nLet me write compact code.\n\ntetris.py:\n\n```python\nimport random\n\nCOLS, ROWS = 10, 20\n\nSHAPES = {\n    'I': [[(0,0,0,0),(1,1,1,1),(0,0,0,0),(0,0,0,0)]],\n    ...\n}\n```\n\nActually simpler: store base matrices and rotate on the fly.\n\n```python\nBASE = {\n    'I': [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],\n    'O': [[1,1],[1,1]],\n    'T': [[0,1,0],[1,1,1],[0,0,0]],\n    'S': [[0,1,1],[1,1,0],[0,0,0]],\n    'Z': [[1,1,0],[0,1,1],[0,0,0]],\n    'J': [[1,0,0],[1,1,1],[0,0,0]],\n    'L': [[0,0,1],[1,1,1],[0,0,0]],\n}\nCOLORS = {'I': (0,240,240), 'O': (240,240,0), 'T': (160,0,240), 'S': (0,240,0), 'Z': (240,0,0), 'J': (0,0,240), 'L': (240,160,0)}\n\ndef rotate(m):\n    return [list(r) for r in zip(*m[::-1])]\n```\n\nPiece class:\n\n```python\nclass Piece:\n    def __init__(self, kind):\n        self.kind = kind\n        self.m = [row[:] for row in BASE[kind]]\n        self.x = (COLS - len(self.m[0])) // 2\n        self.y = 0\n```\n\nHmm, spawn y: for I piece the filled row is row 1; spawn at y=0 is fine. Actually to be safe spawn at y=0 and check game over if collision.\n\nGame class:\n\n```python\nclass Tetris:\n    def __init__(self):\n        self.reset()\n\n    def reset(self):\n        self.board = [[None]*COLS for _ in range(ROWS)]\n        self.score = 0\n        self.lines = 0\n        self.level = 1\n        self.game_over = False\n        self.bag = []\n        self.next = self._draw()\n        self.piece = None\n        self.spawn()\n\n    def _draw(self):\n        if not self.bag:\n            self.bag = list(BASE.keys())\n            random.shuffle(self.bag)\n        return self.bag.pop()\n\n    def spawn(self):\n        self.piece = Piece(self.next)\n        self.next = self._draw()\n        if self.collides(self.piece, 0, 0):\n            self.game_over = True\n\n    def collides(self, p, dx, dy, m=None):\n        m = m or p.m\n        for r, row in enumerate(m):\n            for c, v in enumerate(row):\n                if v:\n                    x, y = p.x + c + dx, p.y + r + dy\n                    if x < 0 or x >= COLS or y >= ROWS or (y >= 0 and self.board[y][x]):\n                        return True\n        return False\n```\n\nWait, y < 0 should be allowed (above board) for rotation near top? Spawn at y=0 so pieces never go above. But rotation could push cells above? Rotation of matrix keeps same bounding box, so if piece is at y>=0, rotated cells stay within y>=0. Fine. But allow y<0 as valid (no collision) for safety: condition `y >= ROWS or (y >= 0 and board[y][x])` — if y<0, only x bounds checked. That's standard.\n\nMove:\n\n```python\n    def move(self, dx, dy):\n        if not self.collides(self.piece, dx, dy):\n            self.piece.x += dx\n            self.piece.y += dy\n            return True\n        return False\n\n    def rotate_piece(self):\n        m = rotate(self.piece.m)\n        for kick in (0, -1, 1, -2, 2):\n            if not self.collides(self.piece, kick, 0, m):\n                self.piece.m = m\n                self.piece.x += kick\n                return True\n        return False\n```\n\nHard drop:\n\n```python\n    def hard_drop(self):\n        d = 0\n        while self.move(0, 1):\n            d += 1\n        self.score += d * 2\n        self.lock()\n```\n\nSoft drop handled in main loop: move down, +1 score if moved.\n\nLock and clear:\n\n```python\n    def lock(self):\n        p = self.piece\n        for r, row in enumerate(p.m):\n            for c, v in enumerate(row):\n                if v:\n                    self.board[p.y+r][p.x+c] = COLORS[p.kind]\n        cleared = 0\n        new_board = [row for row in self.board if any(cell is None for cell in row)]\n        cleared = ROWS - len(new_board)\n        ...\n```\n\nHmm, board stores colors (tuples) or None. Clearing: keep rows that aren't full, prepend empty rows.\n\n```python\n        full = [i for i, row in enumerate(self.board) if all(row)]\n        for i in full:\n            del self.board[i]\n            self.board.insert(0, [None]*COLS)\n        if full:\n            pts = {1:100, 2:300, 3:500, 4:800}[len(full)]\n            self.score += pts * self.level\n            self.lines += len(full)\n            self.level = self.lines // 10 + 1\n        self.spawn()\n```\n\nDrop interval:\n\n```python\n    def drop_interval(self):\n        return max(0.08, 0.8 - (self.level - 1) * 0.07)\n```\n\nmain.py with pygame:\n\n```python\nimport pygame\nfrom tetris import Tetris, COLS, ROWS, COLORS\n\nCELL = 30\nPAD = 20\nSIDEBAR = 180\nW = PAD*2 + COLS*CELL + SIDEBAR\nH = PAD*2 + ROWS*CELL\n\ndef draw_piece(surface, piece, ox, oy, cell):\n    for r, row in enumerate(piece.m):\n        for c, v in enumerate(row):\n            if v:\n                rect = pygame.Rect(ox + (piece.x+c)*cell, oy + (piece.y+r)*cell, cell, cell)\n                pygame.draw.rect(surface, COLORS[piece.kind], rect)\n                pygame.draw.rect(surface, (40,40,40), rect, 1)\n```\n\nMain loop:\n\n```python\ndef main():\n    pygame.init()\n    screen = pygame.display.set_mode((W, H))\n    pygame.display.set_caption(\"Tetris\")\n    clock = pygame.time.Clock()\n    font = pygame.font.SysFont(\"consolas\", 22)\n    big = pygame.font.SysFont(\"consolas\", 40, bold=True)\n    game = Tetris()\n    drop_t = 0.0\n    running = True\n    while running:\n        dt = clock.tick(60) / 1000.0\n        for e in pygame.event.get():\n            if e.type == pygame.QUIT:\n                running = False\n            elif e.type == pygame.KEYDOWN:\n                if e.key == pygame.K_r:\n                    game.reset(); drop_t = 0\n                if game.game_over:\n                    continue\n                if e.key == pygame.K_LEFT: game.move(-1, 0)\n                elif e.key == pygame.K_RIGHT: game.move(1, 0)\n                elif e.key == pygame.K_DOWN:\n                    if game.move(0, 1): game.score += 1\n                elif e.key == pygame.K_UP: game.rotate_piece()\n                elif e.key == pygame.K_SPACE: game.hard_drop()\n        if not game.game_over:\n            drop_t += dt\n            if drop_t >= game.drop_interval():\n                drop_t = 0\n                if not game.move(0, 1):\n                    game.lock()\n        # draw\n        screen.fill((15,15,25))\n        bx, by = PAD, PAD\n        pygame.draw.rect(screen, (40,40,55), (bx-3, by-3, COLS*CELL+6, ROWS*CELL+6))\n        for y in range(ROWS):\n            for x in range(COLS):\n                col = game.board[y][x]\n                if col:\n                    rect = pygame.Rect(bx+x*CELL, by+y*CELL, CELL, CELL)\n                    pygame.draw.rect(screen, col, rect)\n                    pygame.draw.rect(screen, (10,10,15), rect, 1)\n        if game.piece and not game.game_over:\n            draw_piece(screen, game.piece, bx, by, CELL)\n        # sidebar: next piece, score, level, lines\n        ...\n        if game.game_over:\n            overlay...\n        pygame.display.flip()\n    pygame.quit()\n\nif __name__ == \"__main__\":\n    main()\n```\n\nNext piece preview: draw the next piece matrix at fixed position (ignore piece.x/y).\n\n```python\ndef draw_matrix(surface, m, kind, ox, oy, cell):\n    for r, row in enumerate(m):\n        for c, v in enumerate(row):\n            if v:\n                rect = pygame.Rect(ox+c*cell, oy+r*cell, cell, cell)\n                pygame.draw.rect(surface, COLORS[kind], rect)\n                pygame.draw.rect(surface, (10,10,15), rect, 1)\n```\n\nFor next preview, center it: compute offset based on matrix size.\n\nGhost piece would be nice but keep compact. Maybe add ghost — it's a nice touch but adds code. The task doesn't require it. Keep it simple but complete. I could add a simple ghost: copy piece, drop to bottom, draw with outline. It's ~10 lines. Let me include it for quality — actually, to stay within budget and compactness, I'll include it since it improves playability. Hmm, \"compact complete implementation within the output budget\" — I'll include ghost, it's small.\n\nGhost:\n\n```python\ndef ghost_y(game):\n    p = game.piece\n    gy = p.y\n    while not game.collides(p, 0, gy - p.y + 1):\n        gy += 1\n    return gy\n```\n\nWait, collides(p, dx, dy, m) uses p.x + c + dx. So dy = gy - p.y + 1. Simpler:\n\n```python\ngy = p.y\nwhile not game.collides(p, 0, (gy+1) - p.y):\n    gy += 1\n```\n\nThen draw matrix at (p.x, gy) with dark color.\n\nDraw ghost cells with outline only or dim color.\n\nGame over overlay: semi-transparent surface with \"GAME OVER\", \"Press R to restart\".\n\nPause: add P key toggle. Small addition. Include it.\n\nLet me also handle key repeat: pygame key repeat via pygame.key.set_repeat(150, 50) so holding left/right works. That's nice.\n\nNow file structure: main.py, tetris.py. That's sufficient. Maybe also a README? The instructions say start with main.py followed by every other required Python file. So just Python files. I'll do main.py and tetris.py.\n\nLet me finalize tetris.py:\n\n```python\n\"\"\"Core Tetris logic: board, tetrominoes, movement, rotation, scoring.\"\"\"\nimport random\n\nCOLS, ROWS = 10, 20\n\nBASE = {\n    'I': [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]],\n    'O': [[1, 1], [1, 1]],\n    'T': [[0, 1, 0], [1, 1, 1], [0, 0, 0]],\n    'S': [[0, 1, 1], [1, 1, 0], [0, 0, 0]],\n    'Z': [[1, 1, 0], [0, 1, 1], [0, 0, 0]],\n    'J': [[1, 0, 0], [1, 1, 1], [0, 0, 0]],\n    'L': [[0, 0, 1], [1, 1, 1], [0, 0, 0]],\n}\n\nCOLORS = {\n    'I': (0, 200, 220), 'O': (220, 200, 0), 'T': (170, 0, 220),\n    'S': (0, 200, 60), 'Z': (220, 50, 50), 'J': (40, 80, 230),\n    'L': (230, 150, 20),\n}\n\nLINE_POINTS = {1: 100, 2: 300, 3: 500, 4: 800}\n\n\ndef rotate(m):\n    \"\"\"Rotate a square matrix clockwise.\"\"\"\n    return [list(r) for r in zip(*m[::-1])]\n\n\nclass Piece:\n    def __init__(self, kind):\n        self.kind = kind\n        self.m = [row[:] for row in BASE[kind]]\n        self.x = (COLS - len(self.m[0])) // 2\n        self.y = 0\n\n\nclass Tetris:\n    def __init__(self):\n        self.reset()\n\n    def reset(self):\n        self.board = [[None] * COLS for _ in range(ROWS)]\n        self.score = 0\n        self.lines = 0\n        self.level = 1\n        self.game_over = False\n        self.paused = False\n        self._bag = []\n        self.next = self._from_bag()\n        self.piece = None\n        self._spawn()\n\n    # -- piece supply (7-bag randomizer) --\n    def _from_bag(self):\n        if not self._bag:\n            self._bag = list(BASE)\n            random.shuffle(self._bag)\n        return self._bag.pop()\n\n    def _spawn(self):\n        self.piece = Piece(self.next)\n        self.next = self._from_bag()\n        if self.collides(self.piece, 0, 0):\n            self.game_over = True\n\n    # -- collision --\n    def collides(self, p, dx=0, dy=0, m=None):\n        m = p.m if m is None else m\n        for r, row in enumerate(m):\n            for c, v in enumerate(row):\n                if not v:\n                    continue\n                x, y = p.x + c + dx, p.y + r + dy\n                if x < 0 or x >= COLS or y >= ROWS:\n                    return True\n                if y >= 0 and self.board[y][x]:\n                    return True\n        return False\n\n    # -- player actions --\n    def move(self, dx, dy):\n        if self.piece and not self.collides(self.piece, dx, dy):\n            self.piece.x += dx\n            self.piece.y += dy\n            return True\n        return False\n\n    def rotate(self):\n        if not self.piece:\n            return False\n        m = rotate(self.piece.m)\n        for kick in (0, -1, 1, -2, 2):\n            if not self.collides(self.piece, kick, 0, m):\n                self.piece.m, self.piece.x = m, self.piece.x + kick\n                return True\n        return False\n\n    def soft_drop(self):\n        if self.move(0, 1):\n            self.score += 1\n            return True\n        return False\n\n    def hard_drop(self):\n        dist = 0\n        while self.move(0, 1):\n            dist += 1\n        self.score += 2 * dist\n        self._lock()\n\n    def ghost_y(self):\n        p, gy = self.piece, self.piece.y\n        while not self.collides(p, 0, gy + 1 - p.y):\n            gy += 1\n        return gy\n\n    # -- gravity / locking --\n    def step_down(self):\n        \"\"\"Gravity tick: drop one row or lock the piece.\"\"\"\n        if not self.move(0, 1):\n            self._lock()\n\n    def _lock(self):\n        p = self.piece\n        for r, row in enumerate(p.m):\n            for c, v in enumerate(row):\n                if v:\n                    self.board[p.y + r][p.x + c] = COLORS[p.kind]\n        full = [i for i, row in enumerate(self.board) if all(row)]\n        for i in full:\n            del self.board[i]\n            self.board.insert(0, [None] * COLS)\n        if full:\n            self.score += LINE_POINTS[len(full)] * self.level\n            self.lines += len(full)\n            self.level = self.lines // 10 + 1\n        self._spawn()\n\n    def drop_interval(self):\n        \"\"\"Seconds between gravity steps; shrinks as level rises.\"\"\"\n        return max(0.08, 0.8 - 0.07 * (self.level - 1))\n```\n\nWait — `all(row)` on a row of colors/None: None is falsy, color tuples are truthy. Good.\n\nOne issue: `self.collides(self.piece, 0, 0)` at spawn — piece at y=0. For I piece, filled row is index 1, so y=1 row. Fine.\n\nEdge: `ghost_y` when piece is None — only called when piece exists and not game over.\n\nIn `_lock`, after locking, spawn may set game_over. Good.\n\nNote: `rotate` method name conflicts with module-level `rotate` function? Inside class, `rotate(self)` shadows... no, module function `rotate` is called as `rotate(self.piece.m)` inside method `rotate` — that would be recursion! Inside the class method `rotate`, calling `rotate(...)` refers to the module-level function since class scope doesn't leak into method scope... Actually, within a method body, name resolution: local -> enclosing -> global -> builtin. Class attributes are NOT in the lookup chain for methods. So `rotate(m)` inside method `rotate` resolves to the global module-level `rotate` function. That's correct Python semantics — class scope is not part of the lexical scope chain for methods. So it works. But to avoid confusion, rename the module function to `rot_cw` or rename method to `rotate_piece`. I'll rename the method to `rotate_piece` for clarity and keep module function `rotate`.\n\nmain.py:\n\n```python\n\"\"\"Tetris — pygame front end. Controls: arrows move/rotate, space hard drop, P pause, R restart.\"\"\"\nimport pygame\n\nfrom tetris import Tetris, COLORS, COLS, ROWS\n\nCELL, PAD, SIDEBAR = 30, 20, 200\nW, H = PAD * 2 + COLS * CELL + SIDEBAR, PAD * 2 + ROWS * CELL\nBG, GRID = (15, 15, 25), (45, 45, 60)\nGHOST = (90, 90, 110)\n\n\ndef draw_cell(surf, x, y, color, cell=CELL, outline=(10, 10, 15)):\n    r = pygame.Rect(x, y, cell, cell)\n    pygame.draw.rect(surf, color, r)\n    pygame.draw.rect(surf, outline, r, 1)\n\n\ndef draw_matrix(surf, m, kind, ox, oy, cell=CELL, color=None, outline=(10, 10, 15)):\n    for r, row in enumerate(m):\n        for c, v in enumerate(row):\n            if v:\n                draw_cell(surf, ox + c * cell, oy + r * cell, color or COLORS[kind], cell, outline)\n\n\ndef main():\n    pygame.init()\n    pygame.key.set_repeat(160, 55)\n    screen = pygame.display.set_mode((W, H))\n    pygame.display.set_caption(\"Tetris\")\n    clock = pygame.time.Clock()\n    font = pygame.font.SysFont(\"consolas\", 22)\n    big = pygame.font.SysFont(\"consolas\", 42, bold=True)\n    game = Tetris()\n    drop_t = 0.0\n    running = True\n\n    while running:\n        dt = clock.tick(60) / 1000.0\n        for e in pygame.event.get():\n            if e.type == pygame.QUIT:\n                running = False\n            elif e.type == pygame.KEYDOWN:\n                if e.key == pygame.K_r:\n                    game.reset()\n                    drop_t = 0.0\n                elif e.key == pygame.K_p and not game.game_over:\n                    game.paused = not game.paused\n                elif not game.game_over and not game.paused:\n                    if e.key == pygame.K_LEFT:\n                        game.move(-1, 0)\n                    elif e.key == pygame.K_RIGHT:\n                        game.move(1, 0)\n                    elif e.key == pygame.K_DOWN:\n                        game.soft_drop()\n                    elif e.key == pygame.K_UP:\n                        game.rotate_piece()\n                    elif e.key == pygame.K_SPACE:\n                        game.hard_drop()\n                        drop_t = 0.0\n\n        if not game.game_over and not game.paused:\n            drop_t += dt\n            if drop_t >= game.drop_interval():\n                drop_t = 0.0\n                game.step_down()\n\n        # ---- render ----\n        screen.fill(BG)\n        bx, by = PAD, PAD\n        pygame.draw.rect(screen, GRID, (bx - 4, by - 4, COLS * CELL + 8, ROWS * CELL + 8), 2)\n        for y in range(ROWS):\n            for x in range(COLS):\n                if game.board[y][x]:\n                    draw_cell(screen, bx + x * CELL, by + y * CELL, game.board[y][x])\n        if game.piece and not game.game_over:\n            p = game.piece\n            gy = game.ghost_y()\n            draw_matrix(screen, p.m, p.kind, bx + p.x * CELL, by + gy * CELL, color=GHOST)\n            draw_matrix(screen, p.m, p.kind, bx + p.x * CELL, by + p.y * CELL)\n\n        # sidebar\n        sx = PAD * 2 + COLS * CELL\n        screen.blit(font.render(\"NEXT\", True, (230, 230, 230)), (sx, by))\n        n = game.next\n        off = (4 - len(n[0])) * CELL // 2\n        draw_matrix(screen, n, n, sx + off, by + CELL, color=COLORS[n])\n        ...\n```\n\nHmm, draw_matrix signature: (surf, m, kind, ox, oy, cell, color, outline). For next piece, kind = n (string key). COLORS[n] works. But `color or COLORS[kind]` — if color passed, use it. For next: pass kind=n, no color → COLORS[n]. Fine.\n\nWait, for the I piece preview, matrix is 4 wide, offset 0; for O (2 wide), offset (4-2)*30//2 = 30. Good centering.\n\nSidebar stats:\n\n```python\n        for i, (label, val) in enumerate([(\"SCORE\", game.score), (\"LINES\", game.lines), (\"LEVEL\", game.level)]):\n            y = by + 5 * CELL + i * 2 * CELL\n            screen.blit(font.render(label, True, (150, 150, 160)), (sx, y))\n            screen.blit(big.render(str(val), True, (240, 240, 240)), (sx, y + 28))\n        screen.blit(font.render(\"P: pause  R: restart\", True, (120, 120, 130)), (sx, H - PAD - 24))\n```\n\nHmm, big font 42 might overflow sidebar width 200 for score like \"999999\" — 6 chars * ~23px = 138, ok.\n\nGame over overlay:\n\n```python\n        if game.game_over:\n            ov = pygame.Surface((COLS * CELL, ROWS * CELL), pygame.SRCALPHA)\n            ov.fill((10, 10, 20, 200))\n            screen.blit(ov, (bx, by))\n            t1 = big.render(\"GAME OVER\", True, (255, 80, 80))\n            t2 = font.render(\"Press R to restart\", True, (230, 230, 230))\n            screen.blit(t1, t1.get_rect(center=(bx + COLS * CELL // 2, by + ROWS * CELL // 2 - 20)))\n            screen.blit(t2, t2.get_rect(center=(bx + COLS * CELL // 2, by + ROWS * CELL // 2 + 30)))\n        elif game.paused:\n            similar \"PAUSED\"\n```\n\npygame.display.flip()\npygame.quit()\n\nAlso guard: `if __name__ == \"__main__\": main()`.\n\nOne concern: `draw_matrix` for ghost uses color=GHOST and outline — ghost drawn before actual piece so piece overlaps. Good.\n\nAlso when game over, the locking piece that caused game over: piece was spawned but collides; we don't draw it (game_over check). The board shows locked cells. Fine.\n\nAlso, when game over occurs via spawn collision, the colliding piece isn't drawn — acceptable.\n\nCheck `soft_drop` scoring: +1 per cell. Hard drop +2 per cell. Standard.\n\nLevel speed: level 1 → 0.8s, level 2 → 0.73, ... level 10 → 0.8-0.63=0.17, level 11+ → min 0.08. Good \"increasing drop speed as the game progresses\".\n\nKey repeat set at 160ms delay, 55ms interval — applies to held keys for left/right/down. Note key repeat also affects UP (rotation) and SPACE (hard drop) — holding space would repeatedly hard drop, which is fine-ish but could be annoying. Actually with set_repeat, holding space hard-drops each new piece quickly. That's typical behavior in many implementations; acceptable. Alternatively handle repeat only for left/right/down via event checks... keep simple.\n\nHmm, one subtlety: pygame.key.set_repeat affects KEYDOWN events generation. Holding space → repeated hard drops. Many simple Tetris implementations do this. It's fine.\n\nAlso need to reset drop_t after soft drop? Not necessary.\n\nDouble-check `collides` when y<0: `if x < 0 or x >= COLS or y >= ROWS: return True` then `if y >= 0 and self.board[y][x]`. For y<0, no board check — allowed. Good.\n\nSpawn: Piece x = (COLS - len(m[0]))//2 → I: (10-4)//2=3, O: (10-2)//2=4, others 3-wide: 3. Good.\n\n`_spawn` sets game_over if collision at spawn. But note: piece at y=0 with I piece filled row at r=1 → y=1. If board row 1 occupied → game over. Standard-ish.\n\nPotential issue: after `hard_drop`, `_lock` → `_spawn` may set game_over; then in main loop we check `not game.game_over` for gravity. Good.\n\n`step_down` when piece is None? piece is always set after reset/spawn. On game over, piece exists but we skip gravity. Good.\n\nNow, the instructions: \"Start with main.py, followed by every other required Python file.\" So main.py first, then tetris.py. \"For each file, output its filename alone on a line, then a closed fenced Python code block.\"\n\nAlso: \"Return FINAL SOURCE FILES ONLY. Do not output analysis...\" So no extra commentary. Just:\n\nmain.py\n```python\n...\n```\n\ntetris.py\n```python\n...\n```\n\nWait — but main.py imports tetris; order of presentation is main.py first per instruction. Fine.\n\nShould I include a requirements note? No — only source files. But pygame dependency... The task says Python; pygame is the natural choice. No extra text allowed, so just the code.\n\nLet me also double check draw_matrix default args: `def draw_matrix(surf, m, kind, ox, oy, cell=CELL, color=None, outline=(10,10,15))`. For board cells I use draw_cell directly. For ghost: color=GHOST, outline maybe darker. Fine.\n\nFor next preview: `draw_matrix(screen, BASE[n]... )` — wait, game.next is the kind string; the matrix is BASE[n]. I wrote `draw_matrix(screen, n, n, ...)` — wrong, first arg after surf is m (matrix). Should be `draw_matrix(screen, BASE[n], n, sx + off, by + CELL)`. Need to import BASE in main.py. Or store next as piece-like. Simpler: import BASE from tetris.\n\nActually, let me make Tetris expose `next_matrix` property? Simpler to import BASE. I'll import: `from tetris import Tetris, COLORS, BASE, COLS, ROWS`.\n\nPreview vertical centering: I piece matrix has filled row at r=1; O at rows 0-1. Just draw the full matrix; looks fine.\n\nLet me also compute preview offset: `off = (4 - len(BASE[n][0])) * CELL // 2`.\n\nSidebar layout: W = 20*2 + 300 + 200 = 540, H = 40 + 600 = 640. Sidebar x = 20*2+300 = 340. Width 200 - fits \"SCORE\" etc.\n\nPreview at (sx + off, by + CELL) → y=50. Stats start at by + 5*CELL = 20+150=170. Rows: 170, 230, 290 (label + big number each 60px apart). Controls text at H - PAD - 24 = 596. Good.\n\nLet me write final code carefully.\n\nmain.py:\n\n```python\n\"\"\"Tetris (pygame). Controls: LEFT/RIGHT move, UP rotate, DOWN soft drop,\nSPACE hard drop, P pause, R restart.\"\"\"\nimport pygame\n\nfrom tetris import BASE, COLORS, COLS, ROWS, Tetris\n\nCELL, PAD, SIDEBAR = 30, 20, 200\nW, H = PAD * 2 + COLS * CELL + SIDEBAR, PAD * 2 + ROWS * CELL\nBG, FRAME, GHOST = (15, 15, 25), (70, 70, 90), (85, 85, 105)\nWHITE, GREY, DIM = (240, 240, 240), (150, 150, 160), (110, 110, 125)\n\n\ndef draw_cell(surf, x, y, color, cell=CELL, outline=(10, 10, 15)):\n    r = pygame.Rect(x, y, cell, cell)\n    pygame.draw.rect(surf, color, r)\n    pygame.draw.rect(surf, outline, r, 1)\n\n\ndef draw_matrix(surf, m, kind, ox, oy, cell=CELL, color=None):\n    for r, row in enumerate(m):\n        for c, v in enumerate(row):\n            if v:\n                draw_cell(surf, ox + c * cell, oy + r * cell, color or COLORS[kind], cell)\n\n\ndef draw_sidebar(screen, font, big, game, sx, by):\n    screen.blit(font.render(\"NEXT\", True, GREY), (sx, by))\n    n = game.next\n    off = (4 - len(BASE[n][0])) * CELL // 2\n    draw_matrix(screen, BASE[n], n, sx + off, by + CELL)\n    for i, (label, val) in enumerate(((\"SCORE\", game.score), (\"LINES\", game.lines), (\"LEVEL\", game.level))):\n        y = by + 5 * CELL + i * 2 * CELL\n        screen.blit(font.render(label, True, GREY), (sx, y))\n        screen.blit(big.render(str(val), True, WHITE), (sx, y + 30))\n    screen.blit(font.render(\"P: pause  R: restart\", True, DIM), (sx, H - PAD - 24))\n\n\ndef overlay(screen, big, font, bx, by, title, color):\n    ov = pygame.Surface((COLS * CELL, ROWS * CELL), pygame.SRCALPHA)\n    ov.fill((10, 10, 20, 190))\n    screen.blit(ov, (bx, by))\n    cx, cy = bx + COLS * CELL // 2, by + ROWS * CELL // 2\n    t = big.render(title, True, color)\n    screen.blit(t, t.get_rect(center=(cx, cy - 18)))\n    t = font.render(\"Press R to restart\" if title == \"GAME OVER\" else \"Press P to resume\", True, WHITE)\n    screen.blit(t, t.get_rect(center=(cx, cy + 30)))\n\n\ndef main():\n    pygame.init()\n    pygame.key.set_repeat(170, 60)\n    screen = pygame.display.set_mode((W, H))\n    pygame.display.set_caption(\"Tetris\")\n    clock = pygame.time.Clock()\n    font = pygame.font.SysFont(\"consolas\", 22)\n    big = pygame.font.SysFont(\"consolas\", 40, bold=True)\n    game, drop_t, running = Tetris(), 0.0, True\n\n    while running:\n        dt = clock.tick(60) / 1000.0\n        for e in pygame.event.get():\n            if e.type == pygame.QUIT:\n                running = False\n            elif e.type == pygame.KEYDOWN:\n                if e.key == pygame.K_r:\n                    game.reset()\n                    drop_t = 0.0\n                elif e.key == pygame.K_p and not game.game_over:\n                    game.paused = not game.paused\n                elif not game.game_over and not game.paused:\n                    if e.key == pygame.K_LEFT:\n                        game.move(-1, 0)\n                    elif e.key == pygame.K_RIGHT:\n                        game.move(1, 0)\n                    elif e.key == pygame.K_DOWN:\n                        game.soft_drop()\n                    elif e.key == pygame.K_UP:\n                        game.rotate_piece()\n                    elif e.key == pygame.K_SPACE:\n                        game.hard_drop()\n                        drop_t = 0.0\n\n        if not game.game_over and not game.paused:\n            drop_t += dt"
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "5b972706c96220f94369d72887e19081374fcb444375ed3de03c2e23c4b36cca",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "5b972706c96220f94369d72887e19081374fcb444375ed3de03c2e23c4b36cca",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "df2563778e4af9dcad361bfdf95cd2642d0345cf21800649e39c46312fb67f2f",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "41a4b7cba60fe48a82dea68df25c150b1c1a538a99dbfb89714d4f298e56bd57",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "df2563778e4af9dcad361bfdf95cd2642d0345cf21800649e39c46312fb67f2f",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2e268ff0cef63580c64233b07e8fd026c494a543f47a7717f2245832819f24fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "df2563778e4af9dcad361bfdf95cd2642d0345cf21800649e39c46312fb67f2f",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "22b20af60fbbb56aa0bdac9cf97d946a0b282b753a2bddaf15e83f3e4400e230",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "df2563778e4af9dcad361bfdf95cd2642d0345cf21800649e39c46312fb67f2f",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3713dc9d1785c47081ef36c7e993dd51ecf9c4913bd8e04500b2a4717fc9a3a0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "df2563778e4af9dcad361bfdf95cd2642d0345cf21800649e39c46312fb67f2f",
+        "source_digests": {
+          "main.py": "8801d15f09d9e3db611f3a40c1f5c5ab188b8c6dbba0b9df8b18e29ff1ddcb88"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "source/pure-contract\\content_lab\\startup_probe.py",
+          "data/runs/mpst_contract/r05/19_Tetris/artifact\\main.py",
+          "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-a7otc6hh\\probe.json"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "profile": "tkinter_event_loop",
+        "observation": {
+          "event_loop_observed": true,
+          "mapped_window": true,
+          "widget_count": 2,
+          "callback_errors": []
+        },
+        "id": "8fc1fcd20c6c7176abe708a84d432eb2672bbe2469f7ec26cc892084bd37c2bc"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "df2563778e4af9dcad361bfdf95cd2642d0345cf21800649e39c46312fb67f2f",
+        "source_digests": {
+          "main.py": "8801d15f09d9e3db611f3a40c1f5c5ab188b8c6dbba0b9df8b18e29ff1ddcb88"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "source/pure-contract\\content_lab\\startup_probe.py",
+          "data/runs/mpst_contract/r05/19_Tetris/artifact\\main.py",
+          "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-izvpqd_y\\probe.json"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "profile": "tkinter_event_loop",
+        "observation": {
+          "event_loop_observed": true,
+          "mapped_window": true,
+          "widget_count": 2,
+          "callback_errors": []
+        },
+        "id": "6fdc6cb72c30fe0e7ca94be76509ec6a599e754a1528d80561f9b3b94e5c102a"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "df2563778e4af9dcad361bfdf95cd2642d0345cf21800649e39c46312fb67f2f",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "11f6520c6635b53f110103229e3c834d50c6d0c39ef726f97039c5b334f0d59b",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "df2563778e4af9dcad361bfdf95cd2642d0345cf21800649e39c46312fb67f2f",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "11f6520c6635b53f110103229e3c834d50c6d0c39ef726f97039c5b334f0d59b",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "df2563778e4af9dcad361bfdf95cd2642d0345cf21800649e39c46312fb67f2f",
+        "source_digests": {
+          "main.py": "8801d15f09d9e3db611f3a40c1f5c5ab188b8c6dbba0b9df8b18e29ff1ddcb88"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "source/pure-contract\\content_lab\\startup_probe.py",
+          "data/runs/mpst_contract/r05/19_Tetris/artifact\\main.py",
+          "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-mu7kg424\\probe.json"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "profile": "tkinter_event_loop",
+        "observation": {
+          "event_loop_observed": true,
+          "mapped_window": true,
+          "widget_count": 2,
+          "callback_errors": []
+        },
+        "id": "1a88975b9100c52c341dd799b57a94fec1b5e0ddb4172e9838bd4a7c133751be"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": true,
+      "evidence_id": "1a88975b9100c52c341dd799b57a94fec1b5e0ddb4172e9838bd4a7c133751be"
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "task_index": 26,
+  "project_name": "TextBasedSpaceInvaders",
+  "framework": "ChatDev",
+  "workflow_status": "completed",
+  "workspace": "data/runs/mpst/r01/26_TextBasedSpaceInvaders/artifact",
+  "source_file_count": 10,
+  "python_compile": {
+    "checked": 10,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-01T14:41:52+0800",
+  "judge": {
+    "verdict": "fail",
+    "functional_completeness": 0.85,
+    "executable_likelihood": 0.95,
+    "implemented_requirements": [
+      {
+        "requirement": "Player controls a ship at the bottom of the screen",
+        "fulfilled": true,
+        "evidence": "ship.py sets rect.midbottom to the bottom centre and Game._update_screen draws the ship."
+      },
+      {
+        "requirement": "Horizontal movement of the ship",
+        "fulfilled": true,
+        "evidence": "Ship.update reads LEFT/RIGHT (or A/D) keys and updates self.x within screen bounds."
+      },
+      {
+        "requirement": "Player can fire shots",
+        "fulfilled": true,
+        "evidence": "Ship.fire creates a Bullet when cooldown permits; Game._handle_continuous_fire adds it to self.bullets."
+      },
+      {
+        "requirement": "Shots destroy descending alien rows",
+        "fulfilled": true,
+        "evidence": "Collision loop in Game._check_collisions removes an alien when a bullet rect collides, adds score and explosion."
+      },
+      {
+        "requirement": "Game ends if aliens reach the bottom",
+        "fulfilled": true,
+        "evidence": "Game._check_game_conditions calls fleet.reached_bottom() and switches state to 'game_over'."
+      },
+      {
+        "requirement": "Game ends if the player defeats all aliens",
+        "fulfilled": false,
+        "evidence": "When all aliens are destroyed the code enters a 'wave_clear' state and spawns a new fleet instead of ending the game."
+      },
+      {
+        "requirement": "Multiple alien rows",
+        "fulfilled": true,
+        "evidence": "Settings.alien_rows = 5 and Fleet._create_fleet iterates over rows and columns to build the grid."
+      },
+      {
+        "requirement": "Limited number of lives",
+        "fulfilled": true,
+        "evidence": "Settings.ship_limit = 3, GameStats tracks lives, and _ship_hit decrements lives."
+      },
+      {
+        "requirement": "Score tracking",
+        "fulfilled": true,
+        "evidence": "GameStats.add_score updates score, Scoreboard.show_score renders current and high scores."
+      }
+    ],
+    "critical_issues": [
+      "Missing final win condition: defeating all aliens does not end the game but starts a new wave, contrary to the specification.",
+      "No explicit handling for pausing the game loop (state 'paused' stops updates but still runs the loop, which is acceptable but may be considered incomplete UI feedback)."
+    ],
+    "summary": "The codebase implements a functional Space Invaders clone with ship control, horizontal movement, shooting, multiple alien rows, lives, and scoring. All core mechanics work and the game is likely executable. However, it does not satisfy the requirement that the game ends when the player destroys all aliens; instead it proceeds to a new wave. This missing win condition causes the overall verdict to be a fail despite high functional completeness.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": false
+}

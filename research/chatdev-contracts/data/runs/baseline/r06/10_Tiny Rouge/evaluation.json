@@ -1,0 +1,75 @@
+{
+  "task_index": 10,
+  "project_name": "Tiny Rouge",
+  "framework": "ChatDev",
+  "workflow_status": "completed",
+  "workspace": "data/runs/baseline/r06/10_Tiny Rouge/artifact",
+  "source_file_count": 7,
+  "python_compile": {
+    "checked": 7,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-03T20:09:16+0800",
+  "judge": {
+    "verdict": "fail",
+    "functional_completeness": 0.75,
+    "executable_likelihood": 0.85,
+    "implemented_requirements": [
+      {
+        "requirement": "Fixed 80x80 grid map",
+        "fulfilled": true,
+        "evidence": "config.py defines GRID_SIZE = 80 and map_generator uses config.GRID_SIZE for all loops."
+      },
+      {
+        "requirement": "Player movement using W/A/S/D keys",
+        "fulfilled": true,
+        "evidence": "Game.DIRECTIONS maps pygame.K_w, K_a, K_s, K_d to movement vectors and handle_event processes them."
+      },
+      {
+        "requirement": "Movement only on floor tiles and cannot pass through walls",
+        "fulfilled": true,
+        "evidence": "Game._try_move checks `if tile == config.WALL: return` before allowing movement."
+      },
+      {
+        "requirement": "Goal is to reach the door to proceed to the next level",
+        "fulfilled": false,
+        "evidence": "MapGenerator selects a door position but never writes `config.DOOR` into `grid`; Game._try_move only triggers next level when `tile == config.DOOR`, which never occurs."
+      },
+      {
+        "requirement": "Combat subtracts monster HP from player HP",
+        "fulfilled": true,
+        "evidence": "Game._combat calls `self.player.take_damage(monster.hp)` and logs the result."
+      },
+      {
+        "requirement": "HP restored by 20–30 points when touching a treasure chest",
+        "fulfilled": true,
+        "evidence": "Chest objects are created with a random heal amount between CHEST_HEAL_MIN and CHEST_HEAL_MAX; Game._try_move heals the player with `self.player.heal(heal)`."
+      },
+      {
+        "requirement": "Always at least one valid path from start to door",
+        "fulfilled": true,
+        "evidence": "MapGenerator._path_exists performs a BFS check and the generation loop repeats until a path is confirmed."
+      },
+      {
+        "requirement": "Minimal UI displaying player's current HP and encountered monster stats",
+        "fulfilled": false,
+        "evidence": "ui.py defines drawing of the map, chests, monsters, and player but contains no code that renders HP or monster information on the side panel."
+      }
+    ],
+    "critical_issues": [
+      "Door tile is never marked as `config.DOOR` in the map grid, so the game never detects reaching the door and never advances levels.",
+      "UI panel does not display the required player HP or monster stats, violating the minimal UI requirement.",
+      "Because the door is not marked, the UI also never draws a door tile (it will appear as floor)."
+    ],
+    "summary": "The codebase implements most core mechanics: a fixed 80x80 grid, WASD movement, wall collision, combat, and chest healing, and it guarantees a path from start to a door location. However, the door is not written into the map grid, preventing level progression, and the UI lacks any display of player HP or monster information. These missing pieces are essential to the benchmark, resulting in a failing verdict.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": false
+}

@@ -1,0 +1,38 @@
+{
+  "task_index": 15,
+  "project_name": "SnakeGame",
+  "description": "Design a classic Snake game. The player controls a snake using directional inputs to move around the board and eat 'food' items. Each time the snake eats, it grows in length. The game ends if the snake collides with itself or the boundary. The board updates after each move. Show the current score based on food eaten, and consider offering multiple difficulty levels.",
+  "framework": "ChatDev1.0",
+  "model": "glm-5.3-flash:cloud",
+  "content_contracts_enabled": true,
+  "session_type_enabled": true,
+  "status": "failed",
+  "error": "exit code 1",
+  "failure_type": "content_contract",
+  "project_path": "data/runs/mpst_contract/r11/15_SnakeGame/artifact",
+  "elapsed_seconds": 160.718,
+  "contract_rejections": 1,
+  "violated_rules": [
+    "current_startup_passed"
+  ],
+  "last_diagnostic": "     self.body.pop()\n        return True\n\n\nclass Food:\n    def __init__(self, snake):\n        self.respawn(snake)\n\n    def respawn(self, snake):\n        free = [(x, y) for x in range(COLS) for y in range(ROWS)\n                if (x, y) not in snake.body]\n        self.pos = random.choice(free) if free else None\n\n\nclass Game:\n    def __init__(self, screen, speed):\n        self.screen = screen\n        self.speed = speed\n        self.font = pygame.font.SysFont(None, 30)\n        self.big = pygame.font.SysFont(None, 52)\n        self.clock = pygame.time.Clock()\n        self.reset()\n\n    def reset(self):\n        self.snake = Snake()\n        self.food = Food(self.snake)\n        self.score = 0\n        self.alive = True\n        self.paused = False\n        self.running = True\n        self.quit_app = False\n\n    def handle_events(self):\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                self.running = False\n                self.quit_app = True\n            elif event.type == pygame.KEYDOWN:\n                if event.key in KEY_DIRS:\n                    self.snake.turn(KEY_DIRS[event.key])\n                elif event.key == pygame.K_SPACE and self.alive:\n                    self.paused = not self.paused\n                elif event.key == pygame.K_r and not self.alive:\n                    self.reset()\n                elif event.key == pygame.K_ESCAPE:\n                    self.running = False\n\n    def update(self):\n        if not self.alive or self.paused:\n            return\n        if not self.snake.step():\n            self.alive = False\n            return\n        if self.food.pos and self.snake.body[0] == self.food.pos:\n            self.snake.grow += 1\n            self.score += 1\n            self.food.respawn(self.snake)\n\n    def draw_cell(self, pos, color):\n        rect = (pos[0] * CELL + 1, HUD + pos[1] * CELL + 1, CELL - 2, CELL - 2)\n        pygame.draw.rect(self.screen, color, rect, border_radius=4)\n\n    def draw(self):\n        self.screen.fill(COLORS[\"bg\"])\n        pygame.draw.rect(self.screen, COLORS[\"board\"], (0, HUD, WIDTH, ROWS * CELL))\n        pygame.draw.rect(self.screen, COLORS[\"border\"], (0, HUD, WIDTH, ROWS * CELL), 2)\n        if self.food.pos:\n            self.draw_cell(self.food.pos, COLORS[\"food\"])\n        for i, seg in enumerate(self.snake.body):\n            self.draw_cell(seg, COLORS[\"head\"] if i == 0 else COLORS[\"snake\"])\n        self.screen.blit(self.font.render(f\"Score: {self.score}\", True, COLORS[\"text\"]), (10, 8))\n        hint = self.font.render(\"WASD/Arrows move | Space pause | Esc menu\", True, COLORS[\"text\"])\n        self.screen.blit(hint, (WIDTH - hint.get_width() - 10, 8))\n        cy = HUD + ROWS * CELL // 2\n        if not self.alive:\n            over = self.big.render(\"GAME OVER\", True, COLORS[\"text\"])\n            again = self.font.render(\"Press R to restart\", True, COLORS[\"text\"])\n            self.screen.blit(over, over.get_rect(center=(WIDTH // 2, cy - 20)))\n            self.screen.blit(again, again.get_rect(center=(WIDTH // 2, cy + 20)))\n        elif self.paused:\n            pause = self.big.render(\"Paused\", True, COLORS[\"text\"])\n            self.screen.blit(pause, pause.get_rect(center=(WIDTH // 2, cy)))\n        pygame.display.flip()\n\n    def run(self):\n        interval = 1000 // self.speed\n        last_move = pygame.time.get_ticks()\n        while self.running:\n            self.handle_events()\n            now = pygame.time.get_ticks()\n            if now - last_move >= interval:\n                last_move = now\n                self.update()\n            self.draw()\n            self.clock.tick(60)\n        return self.quit_app\n```\n\ndir: data/runs/mpst_contract/r11/15_SnakeGame/artifact\n**[Software Info]**:\n\n \n\n💰**cost**=unknown\n\n🔨**version_updates**=-1\n\n📃**num_code_files**=3\n\n🏞**num_png_files**=0\n\n📚**num_doc_files**=5\n\n📃**code_lines**=174\n\n📋**env_lines**=-1\n\n📒**manual_lines**=-1\n\n🗣**num_utterances**=14\n\n🤔**num_self_reflections**=0\n\n❓**num_prompt_tokens**=11970\n\n❗**num_completion_tokens**=24338\n\n🌟**num_total_tokens**=36308\n\nTraceback (most recent call last):\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\run.py\", line 136, in <module>\n    chat_chain.execute_chain()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\chat_chain.py\", line 183, in execute_chain\n    content_guard.finish()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\content_guard.py\", line 134, in finish\n    raise ContentViolation(\"chatdev.stage_exit.v1\", findings)\ncontent_lab.chatdev_contracts.ContentViolation: {\"contract\": \"chatdev.stage_exit.v1\", \"violations\": [{\"layer\": \"A\", \"rule\": \"current_startup_passed\", \"path\": \"$\", \"message\": \"Current startup did not pass.\", \"repair\": \"Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior.\"}]}\n",
+  "artifact_pass": false,
+  "evaluation_error": null,
+  "result_path": "data/runs/mpst_contract/r11/15_SnakeGame\\run_result.json",
+  "model_decision_enabled": false,
+  "model_decision_calls": 0,
+  "terminal_contract": "chatdev.stage_exit.v1",
+  "terminal_rules": [
+    "current_startup_passed"
+  ],
+  "audit_checks": 18,
+  "delivered_phases": [
+    "DemandAnalysis",
+    "LanguageChoose",
+    "Coding",
+    "CodeReviewComment",
+    "CodeReviewModification",
+    "TestErrorSummary",
+    "TestModification"
+  ]
+}

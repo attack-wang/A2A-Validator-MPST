@@ -1,0 +1,354 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "Thank you for bringing this new customer's task to my attention. As the Chief Product Officer, I've carefully analyzed the requirements for this classic Snake game project.\n\nThe customer's demands include:\n1. **Interactive gameplay** - Real-time snake control via directional inputs\n2. **Dynamic visual updates** - The board must update after each move\n3. **Score display** - Real-time score tracking based on food eaten\n4. **Multiple difficulty levels** - Adjustable game parameters\n\nGiven these requirements, let me evaluate the potential modalities:\n\n- **Image, Document, PowerPoint, Excel, PDF, Mind Map**: These are static or presentation-oriented formats that cannot support real-time interactivity or gameplay logic — clearly unsuitable.\n- **Website**: While technically possible via HTML/JavaScript, it's primarily designed for presenting resumes, tutorials, products, or ideas rather than delivering a full game experience.\n- **Dashboard**: Designed for visualizing real-time information panels, not for interactive game control.\n- **Application**: This modality is explicitly designed to implement **visualized games** via Python. It fully supports keyboard input handling, real-time rendering (e.g., via Pygame), game loop mechanics, score tracking, and configurable difficulty levels.\n\nBased on this analysis, I strongly recommend the **Application** modality, as it is the only option that can fully realize all the customer's functional requirements — interactive controls, dynamic board updates, scoring, and difficulty settings — in a robust and playable form.\n\nWhat is your opinion on this? Do you agree that Application is the best fit for this Snake game project?"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\nimport tkinter as tk\nimport random\n\nCELL = 20\nCOLS, ROWS = 24, 24\nSPEEDS = {\"Easy\": 200, \"Medium\": 130, \"Hard\": 80}\n\n\nclass SnakeGame:\n    def __init__(self, root):\n        self.root = root\n        root.title(\"Snake\")\n        self.canvas = tk.Canvas(root, width=COLS * CELL, height=ROWS * CELL,\n                                bg=\"black\", highlightthickness=0)\n        self.canvas.pack()\n        top = tk.Frame(root)\n        top.pack(fill=\"x\")\n        self.score_var = tk.StringVar(value=\"Score: 0\")\n        tk.Label(top, textvariable=self.score_var, font=(\"Arial\", 12, \"bold\")).pack(side=\"left\", padx=8)\n        self.level_var = tk.StringVar(value=\"Medium\")\n        for name in SPEEDS:\n            tk.Radiobutton(top, text=name, variable=self.level_var, value=name).pack(side=\"left\")\n        tk.Button(top, text=\"Start / Restart\", command=self.start).pack(side=\"left\", padx=8)\n        root.bind(\"<Key>\", self.on_key)\n        self.running = False\n        self.snake = []\n        self.draw_text(\"Pick a difficulty, then press Start\")\n        root.mainloop()\n\n    def start(self):\n        self.snake = [(COLS // 2, ROWS // 2)]\n        self.direction = (1, 0)\n        self.next_dir = self.direction\n        self.score = 0\n        self.score_var.set(\"Score: 0\")\n        self.food = self.spawn_food()\n        self.delay = SPEEDS[self.level_var.get()]\n        self.running = True\n        self.draw()\n        self.root.after(self.delay, self.tick)\n\n    def spawn_food(self):\n        while True:\n            pos = (random.randrange(COLS), random.randrange(ROWS))\n            if pos not in self.snake:\n                return pos\n\n    def on_key(self, event):\n        mapping = {\"Up\": (0, -1), \"Down\": (0, 1), \"Left\": (-1, 0), \"Right\": (1, 0),\n                   \"w\": (0, -1), \"s\": (0, 1), \"a\": (-1, 0), \"d\": (1, 0)}\n        d = mapping.get(event.keysym)\n        if d and (d[0] != -self.direction[0] or d[1] != -self.direction[1]):\n            self.next_dir = d\n\n    def tick(self):\n        if not self.running:\n            return\n        self.direction = self.next_dir\n        hx, hy = self.snake[0]\n        nx, ny = hx + self.direction[0], hy + self.direction[1]\n        if nx < 0 or nx >= COLS or ny < 0 or ny >= ROWS or (nx, ny) in self.snake:\n            self.running = False\n            self.draw_text(\"Game Over!  Score: %d\\nPress Start to play again\" % self.score)\n            return\n        self.snake.insert(0, (nx, ny))\n        if (nx, ny) == self.food:\n            self.score += 1\n            self.score_var.set(\"Score: %d\" % self.score)\n            self.food = self.spawn_food()\n        else:\n            self.snake.pop()\n        self.draw()\n        self.root.after(self.delay, self.tick)\n\n    def draw(self):\n        c = self.canvas\n        c.delete(\"all\")\n        fx, fy = self.food\n        c.create_rectangle(fx * CELL + 3, fy * CELL + 3,\n                           fx * CELL + CELL - 3, fy * CELL + CELL - 3,\n                           fill=\"red\", outline=\"\")\n        for i, (x, y) in enumerate(self.snake):\n            color = \"#00cc44\" if i == 0 else \"lime\"\n            c.create_rectangle(x * CELL + 1, y * CELL + 1,\n                               x * CELL + CELL - 1, y * CELL + CELL - 1,\n                               fill=color, outline=\"\")\n\n    def draw_text(self, msg):\n        self.canvas.delete(\"all\")\n        self.canvas.create_text(COLS * CELL // 2, ROWS * CELL // 2, text=msg,\n                                fill=\"white\", font=(\"Arial\", 14), justify=\"center\")\n\n\nif __name__ == \"__main__\":\n    SnakeGame(tk.Tk())\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "a76f17504feea70fc757fa2088db42b4a818865137a7c8db4101a7363683c1ce",
+      "result": "{\"verdict\": \"changes_requested\", \"issues\": [{\"file\": \"main.py\", \"line\": 40, \"message\": \"Clicking 'Start / Restart' while a game is running schedules a second concurrent tick loop: tick() re-schedules itself at line 73, so an extra after() call here doubles the snake's speed, and every additional click during play compounds it. Fix by storing the after() id and calling after_cancel on it (or ignoring start() while self.running) before scheduling a new loop.\"}]}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "a76f17504feea70fc757fa2088db42b4a818865137a7c8db4101a7363683c1ce",
+      "result": "main.py\n```python\nimport tkinter as tk\nimport random\n\nCELL = 20\nCOLS, ROWS = 24, 24\nSPEEDS = {\"Easy\": 200, \"Medium\": 130, \"Hard\": 80}\n\n\nclass SnakeGame:\n    def __init__(self, root):\n        self.root = root\n        root.title(\"Snake\")\n        self.canvas = tk.Canvas(root, width=COLS * CELL, height=ROWS * CELL,\n                                bg=\"black\", highlightthickness=0)\n        self.canvas.pack()\n        top = tk.Frame(root)\n        top.pack(fill=\"x\")\n        self.score_var = tk.StringVar(value=\"Score: 0\")\n        tk.Label(top, textvariable=self.score_var, font=(\"Arial\", 12, \"bold\")).pack(side=\"left\", padx=8)\n        self.level_var = tk.StringVar(value=\"Medium\")\n        for name in SPEEDS:\n            tk.Radiobutton(top, text=name, variable=self.level_var, value=name).pack(side=\"left\")\n        tk.Button(top, text=\"Start / Restart\", command=self.start).pack(side=\"left\", padx=8)\n        root.bind(\"<Key>\", self.on_key)\n        self.running = False\n        self.after_id = None\n        self.snake = []\n        self.draw_text(\"Pick a difficulty, then press Start\")\n        root.mainloop()\n\n    def start(self):\n        if self.after_id is not None:\n            self.root.after_cancel(self.after_id)\n            self.after_id = None\n        self.snake = [(COLS // 2, ROWS // 2)]\n        self.direction = (1, 0)\n        self.next_dir = self.direction\n        self.score = 0\n        self.score_var.set(\"Score: 0\")\n        self.food = self.spawn_food()\n        self.delay = SPEEDS[self.level_var.get()]\n        self.running = True\n        self.draw()\n        self.after_id = self.root.after(self.delay, self.tick)\n\n    def spawn_food(self):\n        while True:\n            pos = (random.randrange(COLS), random.randrange(ROWS))\n            if pos not in self.snake:\n                return pos\n\n    def on_key(self, event):\n        mapping = {\"Up\": (0, -1), \"Down\": (0, 1), \"Left\": (-1, 0), \"Right\": (1, 0),\n                   \"w\": (0, -1), \"s\": (0, 1), \"a\": (-1, 0), \"d\": (1, 0)}\n        d = mapping.get(event.keysym)\n        if d and (d[0] != -self.direction[0] or d[1] != -self.direction[1]):\n            self.next_dir = d\n\n    def tick(self):\n        self.after_id = None\n        if not self.running:\n            return\n        self.direction = self.next_dir\n        hx, hy = self.snake[0]\n        nx, ny = hx + self.direction[0], hy + self.direction[1]\n        if nx < 0 or nx >= COLS or ny < 0 or ny >= ROWS or (nx, ny) in self.snake:\n            self.running = False\n            self.draw_text(\"Game Over!  Score: %d\\nPress Start to play again\" % self.score)\n            return\n        self.snake.insert(0, (nx, ny))\n        if (nx, ny) == self.food:\n            self.score += 1\n            self.score_var.set(\"Score: %d\" % self.score)\n            self.food = self.spawn_food()\n        else:\n            self.snake.pop()\n        self.draw()\n        self.after_id = self.root.after(self.delay, self.tick)\n\n    def draw(self):\n        c = self.canvas\n        c.delete(\"all\")\n        fx, fy = self.food\n        c.create_rectangle(fx * CELL + 3, fy * CELL + 3,\n                           fx * CELL + CELL - 3, fy * CELL + CELL - 3,\n                           fill=\"red\", outline=\"\")\n        for i, (x, y) in enumerate(self.snake):\n            color = \"#00cc44\" if i == 0 else \"lime\"\n            c.create_rectangle(x * CELL + 1, y * CELL + 1,\n                               x * CELL + CELL - 1, y * CELL + CELL - 1,\n                               fill=color, outline=\"\")\n\n    def draw_text(self, msg):\n        self.canvas.delete(\"all\")\n        self.canvas.create_text(COLS * CELL // 2, ROWS * CELL // 2, text=msg,\n                                fill=\"white\", font=(\"Arial\", 14), justify=\"center\")\n\n\nif __name__ == \"__main__\":\n    SnakeGame(tk.Tk())\n```"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "4047bd3e1ea7d328680523197321bb73905c05c13a2042a42149e05989b53ed9",
+      "result": "{\"status\": \"passed\", \"test_run_id\": \"5e4e1d2bc42f98b61230635f29f9f9f4f2e6f9285cd2493db291c29e25977271\", \"summary\": \"Startup smoke test passed for main.py (Snake game, tkinter event loop profile): exit code 0, event loop observed, window mapped, 2 widgets present, no callback errors. Source digest matches main.py; no source errors or missing dependencies detected.\"}"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "4047bd3e1ea7d328680523197321bb73905c05c13a2042a42149e05989b53ed9",
+    "source_digests": {
+      "main.py": "18fe7a7e9e208b50312730e3853036fee7196bc66a23c0053c8b73b0a8e2b343"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "source/pure-contract\\content_lab\\startup_probe.py",
+      "data/runs/mpst_contract/r07/15_SnakeGame/artifact\\main.py",
+      "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-9e14n4x0\\probe.json"
+    ],
+    "timeout_seconds": 3,
+    "status": "passed",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "profile": "tkinter_event_loop",
+    "observation": {
+      "event_loop_observed": true,
+      "mapped_window": true,
+      "widget_count": 2,
+      "callback_errors": []
+    },
+    "id": "2913343e6bb3eb76e491ffa66848f277addd5a18f030b698a1f00b7b49632a3d"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "6c7f6f1a959a51647c26d5f81ca6bcfec089f1e0dbff441fa19c0f2e42942339",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "6c7f6f1a959a51647c26d5f81ca6bcfec089f1e0dbff441fa19c0f2e42942339",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "a55ace5ac082ea16c376a5a95230a23c971b5383119619d4adda2783e45ee05e",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "duplicate_source_file",
+          "path": "$",
+          "message": "Return each final file once: main.py",
+          "repair": "Return only final complete files, each as a standalone filename followed by a closed Python code fence. No drafts or analysis."
+        }
+      ],
+      "candidate_sha256": "8fe083621f90b27ae41e5b87776880d11ea814d0a16bf52dac4027a34f1da21c",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": "The user wants a complete Snake game in Python. I need to return final source files only, starting with main.py, followed by other required Python files. Compact complete implementation, no placeholders.\n\nLet me design a Snake game in Python. I could use pygame, but to avoid external dependencies, I could use tkinter which is in the standard library. Tkinter is safer since pygame requires pip install. Let me use tkinter.\n\nDesign:\n- main.py: entry point\n- snake_game.py or game.py: game logic\n- Maybe split into: main.py, game.py, ui.py\n\nLet me keep it compact but complete. Files:\n1. main.py - entry point\n2. game.py - Game logic (snake, food, board, scoring, difficulty)\n3. ui.py - Tkinter UI rendering and input handling\n\nGame features:\n- Directional inputs (arrow keys + WASD)\n- Snake moves on grid, eats food, grows\n- Game over on self-collision or boundary collision\n- Score based on food eaten\n- Multiple difficulty levels (Easy, Medium, Hard) affecting speed\n- Board updates after each move\n\nLet me write the code.\n\ngame.py:\n\n```python\nimport random\n\nDIFFICULTIES = {\n    \"Easy\": (150, 10),\n    \"Medium\": (100, 15),\n    \"Hard\": (60, 20),\n}\n\nclass GameOver(Exception):\n    pass\n\nclass Game:\n    def __init__(self, cols=24, rows=24, difficulty=\"Medium\"):\n        self.cols = cols\n        self.rows = rows\n        self.set_difficulty(difficulty)\n        self.reset()\n\n    def set_difficulty(self, difficulty):\n        if difficulty not in DIFFICULTIES:\n            difficulty = \"Medium\"\n        self.difficulty = difficulty\n        self.tick_ms, self.speed_bonus = DIFFICULTIES[difficulty]\n\n    def reset(self):\n        cx, cy = self.cols // 2, self.rows // 2\n        self.snake = [(cx, cy), (cx - 1, cy), (cx - 2, cy)]\n        self.direction = (1, 0)\n        self.next_direction = self.direction\n        self.score = 0\n        self.best = 0\n        self.game_over = False\n        self.paused = False\n        self.food = None\n        self.spawn_food()\n\n    def spawn_food(self):\n        free = [(x, y) for x in range(self.cols) for y in range(self.rows)\n                if (x, y) not in self.snake]\n        self.food = random.choice(free) if free else None\n\n    def set_direction(self, direction):\n        dx, dy = direction\n        cdx, cdy = self.direction\n        if (dx, dy) != (-cdx, -cdy) and (dx, dy) != self.direction:\n            self.next_direction = (dx, dy)\n\n    def step(self):\n        if self.game_over or self.paused:\n            return\n        self.direction = self.next_direction\n        dx, dy = self.direction\n        hx, hy = self.snake[0]\n        nx, ny = hx + dx, hy + dy\n        if nx < 0 or nx >= self.cols or ny < 0 or ny >= self.rows:\n            self.game_over = True\n            return\n        body = self.snake[:-1] if (nx, ny) != self.food else self.snake\n        if (nx, ny) in body:\n            self.game_over = True\n            return\n        self.snake.insert(0, (nx, ny))\n        if (nx, ny) == self.food:\n            self.score += 1\n            self.best = max(self.best, self.score)\n            self.spawn_food()\n        else:\n            self.snake.pop()\n```\n\nWait, self-collision check: if the new head position equals the tail position and the tail will move away (not eating), it's actually safe. But simpler: check against snake minus tail when not eating. Let me handle: if eating, tail stays, so check against full snake; if not eating, tail moves, so check against snake[:-1]. Actually the code above: body = self.snake[:-1] if not eating else self.snake. Hmm, but the check happens before insert. Let me redo:\n\n```python\neating = (nx, ny) == self.food\nbody = self.snake if eating else self.snake[:-1]\nif (nx, ny) in body:\n    self.game_over = True\n    return\n```\n\nThat's correct.\n\nui.py with tkinter:\n\n```python\nimport tkinter as tk\n\nCELL = 22\n\nclass SnakeUI:\n    def __init__(self, root, game):\n        self.root = root\n        self.game = game\n        self.canvas = tk.Canvas(root, width=game.cols*CELL, height=game.rows*CELL, bg=\"#101418\", highlightthickness=0)\n        self.canvas.pack()\n        top = tk.Frame(root)\n        top.pack(fill=\"x\")\n        self.score_var = tk.StringVar()\n        self.diff_var = tk.StringVar(value=game.difficulty)\n        tk.Label(top, textvariable=self.score_var).pack(side=\"left\", padx=8)\n        for name in (\"Easy\", \"Medium\", \"Hard\"):\n            tk.Radiobutton(top, text=name, variable=self.diff_var, value=name, command=self.change_difficulty).pack(side=\"left\")\n        tk.Button(top, text=\"New Game\", command=self.new_game).pack(side=\"left\", padx=8)\n        root.bind(\"<Key>\", self.on_key)\n        self.after_id = None\n        self.update_score()\n        self.draw()\n        self.schedule()\n\n    ...\n```\n\nKey handling: arrow keys and WASD, space to pause, r to restart.\n\nColors: snake head different color, food red.\n\nDraw grid cells.\n\nSchedule: self.root.after(self.game.tick_ms, self.loop). In loop: game.step(); draw; update score; if game over show message; reschedule with possibly updated tick (difficulty change).\n\nDifficulty change mid-game: apply new tick. Simplest: changing difficulty resets the game or just changes speed. I'll make it change speed and reset game for fairness? The task says \"consider offering multiple difficulty levels\" — changing speed is enough. I'll apply speed change immediately and restart the loop timing.\n\nLet me write it fully.\n\nmain.py:\n\n```python\nimport tkinter as tk\nfrom game import Game\nfrom ui import SnakeUI\n\ndef main():\n    root = tk.Tk()\n    root.title(\"Snake\")\n    game = Game()\n    ui = SnakeUI(root, game)\n    root.mainloop()\n\nif __name__ == \"__main__\":\n    main()\n```\n\nui.py full:\n\n```python\nimport tkinter as tk\n\nCELL = 22\nHEAD_COLOR = \"#7ee787\"\nBODY_COLOR = \"#2ea043\"\nFOOD_COLOR = \"#f85149\"\nBG_COLOR = \"#101418\"\nGRID_COLOR = \"#1b2127\"\nTEXT_COLOR = \"#e6edf3\"\n\nKEY_DIRS = {\n    \"Up\": (0, -1), \"Down\": (0, 1), \"Left\": (-1, 0), \"Right\": (1, 0),\n    \"w\": (0, -1), \"s\": (0, 1), \"a\": (-1, 0), \"d\": (1, 0),\n    \"W\": (0, -1), \"S\": (0, 1), \"A\": (-1, 0), \"D\": (1, 0),\n}\n\nclass SnakeUI:\n    def __init__(self, root, game):\n        self.root = root\n        self.game = game\n        root.title(\"Snake — Tkinter\")\n        root.resizable(False, False)\n\n        top = tk.Frame(root)\n        top.pack(fill=\"x\", padx=8, pady=6)\n        self.score_var = tk.StringVar()\n        tk.Label(top, textvariable=self.score_var, font=(\"TkDefaultFont\", 11, \"bold\")).pack(side=\"left\")\n        self.diff_var = tk.StringVar(value=game.difficulty)\n        for name in (\"Easy\", \"Medium\", \"Hard\"):\n            tk.Radiobutton(top, text=name, variable=self.diff_var, value=name,\n                           command=self.change_difficulty).pack(side=\"left\", padx=4)\n        tk.Button(top, text=\"New Game\", command=self.new_game).pack(side=\"right\")\n\n        self.canvas = tk.Canvas(root, width=game.cols * CELL, height=game.rows * CELL,\n                                bg=BG_COLOR, highlightthickness=0)\n        self.canvas.pack(padx=8, pady=(0, 8))\n\n        self.help_var = tk.StringVar(value=\"Arrows/WASD to move · Space pause · R restart\")\n        tk.Label(root, textvariable=self.help_var, fg=\"#8b949e\").pack(pady=(0, 6))\n\n        root.bind(\"<Key>\", self.on_key)\n        self._after = None\n        self.update_score()\n        self.draw()\n        self.schedule()\n\n    # --- scheduling -------------------------------------------------\n    def schedule(self):\n        if self._after is not None:\n            self.root.after_cancel(self._after)\n        self._after = self.root.after(self.game.tick_ms, self.tick)\n\n    def tick(self):\n        self._after = None\n        self.game.step()\n        self.update_score()\n        self.draw()\n        if not self.game.game_over:\n            self.schedule()\n\n    # --- commands ---------------------------------------------------\n    def on_key(self, event):\n        key = event.keysym\n        if key in KEY_DIRS:\n            self.game.set_direction(KEY_DIRS[key])\n        elif key == \"space\":\n            self.game.paused = not self.game.paused\n            self.draw()\n        elif key in (\"r\", \"R\"):\n            self.new_game()\n\n    def change_difficulty(self):\n        self.game.set_difficulty(self.diff_var.get())\n        self.new_game()\n\n    def new_game(self):\n        self.game.reset()\n        self.update_score()\n        self.draw()\n        self.schedule()\n\n    # --- rendering --------------------------------------------------\n    def update_score(self):\n        self.score_var.set(f\"Score: {self.game.score}   Best: {self.game.best}\")\n\n    def draw(self):\n        c = self.canvas\n        c.delete(\"all\")\n        g = self.game\n        for x in range(g.cols):\n            for y in range(g.rows):\n                if (x + y) % 2 == 0:\n                    c.create_rectangle(x*CELL, y*CELL, (x+1)*CELL, (y+1)*CELL,\n                                       fill=GRID_COLOR, outline=\"\")\n        if g.food:\n            fx, fy = g.food\n            c.create_oval(fx*CELL+3, fy*CELL+3, (fx+1)*CELL-3, (fy+1)*CELL-3,\n                          fill=FOOD_COLOR, outline=\"\")\n        for i, (x, y) in enumerate(g.snake):\n            color = HEAD_COLOR if i == 0 else BODY_COLOR\n            c.create_rectangle(x*CELL+1, y*CELL+1, (x+1)*CELL-1, (y+1)*CELL-1,\n                               fill=color, outline=\"\")\n        if g.paused:\n            self.overlay(\"PAUSED — press Space\")\n        elif g.game_over:\n            self.overlay(f\"GAME OVER — Score {g.score} · press R\")\n\n    def overlay(self, text):\n        c = self.canvas\n        w = c.winfo_width() or g.cols*CELL  # hmm\n```\n\nCareful with overlay: use canvas dimensions from game.\n\n```python\n    def overlay(self, text):\n        c = self.canvas\n        w = self.game.cols * CELL\n        h = self.game.rows * CELL\n        c.create_rectangle(w*0.15, h*0.4, w*0.85, h*0.6, fill=\"#000000\", stipple=\"gray50\", outline=\"\")\n        c.create_text(w//2, h//2, text=text, fill=TEXT_COLOR, font=(\"TkDefaultFont\", 14, \"bold\"))\n```\n\nBest score tracking: keep best across resets within session. In reset(), don't reset best. In game.py reset: self.best stays if exists. Let me set self.best = 0 in __init__ before reset, and reset() shouldn't touch best. Actually in my Game.reset I set self.best = 0 — that would wipe best on new game. Fix: initialize best in __init__ only.\n\n```python\n    def __init__(self, cols=24, rows=24, difficulty=\"Medium\"):\n        self.cols = cols\n        self.rows = rows\n        self.best = 0\n        self.set_difficulty(difficulty)\n        self.reset()\n```\n\nAnd reset doesn't touch best. Score update: best = max(best, score) when eating.\n\nAlso when game over, update best too (in case... score only increments on eating, so best already updated). Fine.\n\nAlso handle window close: cancel after to avoid errors — tkinter handles after_cancel automatically on destroy mostly, but pending after callback on destroyed widgets can raise. It's fine typically; mainloop exits. To be safe, bind WM_DELETE_WINDOW to cancel and destroy.\n\nActually when root is destroyed, pending after callbacks won't run because mainloop exits. Fine.\n\nOne more consideration: tick_ms changes with difficulty; schedule uses game.tick_ms each time, so it adapts.\n\nAlso speed could increase slightly as score grows? Optional. Keep simple: maybe reduce tick slightly per food for \"speed bonus\"? I defined speed_bonus but not used. Remove it or implement: tick = base - min(score, 20)*2? Keep simple — difficulty only. I'll remove speed_bonus.\n\nEdge case: spawn_food when no free cells — snake fills board; food None; game continues; eating check (nx,ny) == None never true. Fine — win condition effectively. Could show \"YOU WIN\" when food is None. Add: if g.food is None and not game_over → overlay \"YOU WIN!\". Minor.\n\nLet me also make sure set_direction prevents reversing: if snake length is 1 reversing is fine, but our snake starts length 3, always fine. The check (dx,dy) != (-cdx,-cdy) uses current direction; but if two key presses happen within one tick (e.g., pressing Up then Left quickly while moving Right), next_direction gets overwritten — pressing Up sets next=(0,-1) valid vs direction (1,0); then Left sets next=(-1,0), which vs direction (1,0) is a reversal — blocked. Good. But classic bug: moving Right, press Up (queued), then press Left — Left compared against current direction Right → reversal → blocked, but after Up executes, Left would be legal. Minor; acceptable. Could compare against next_direction instead: if next_direction is (0,-1) (up), pressing Left is fine. Compare against self.next_direction to allow two quick turns:\n\n```python\n    def set_direction(self, direction):\n        cdx, cdy = self.next_direction\n        if (dx, dy) != (-cdx, -cdy) and (dx, dy) != (cdx, cdy):\n            self.next_direction = (dx, dy)\n```\n\nHmm, comparing against next_direction: moving Right, next=Up (queued), press Left: Left vs Up not reversal → allowed, next=Left. Then tick: direction=Left. That's a legal double turn within one tick? Snake moving right, then next tick moves up... wait no — only one tick happened; direction goes from Right directly to Left — that IS a reversal effectively because the intermediate Up never executed. Snake moving right, head at (5,5), body extends left. Next tick direction=Left → head at (4,5) which is body → collision. Bad!\n\nSo comparing against next_direction is wrong. Compare against current direction (the last executed one). But then the double-turn issue: press Up then Left quickly → Left blocked (vs Right). Player must wait a tick. That's standard behavior in many implementations and safe. Alternatively queue two moves. Keep simple: compare against current direction. Safe.\n\nActually a better approach: keep a small queue of pending directions (max 2). On each tick, pop one. This allows quick turns. But compactness matters. I'll do the simple safe version.\n\nHmm, but there's a subtle issue: pressing Up twice while moving Right: first Up sets next=(0,-1). Second Up: (0,-1) == next → ignored by the != check. Fine.\n\nNow, game over on wall: also could wrap-around option? Task says game ends on boundary collision. Good.\n\nScore display: \"Score: X Best: Y\". Difficulty radio buttons. New Game button. Pause. Restart key.\n\nLet me also add a status label showing difficulty? The radio shows it.\n\nWrite final files:\n\nmain.py:\n\n```python\n\"\"\"Entry point for the classic Snake game.\"\"\"\nimport tkinter as tk\n\nfrom game import Game\nfrom ui import SnakeUI\n\n\ndef main():\n    root = tk.Tk()\n    game = Game()\n    SnakeUI(root, game)\n    root.mainloop()\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\ngame.py:\n\n```python\n\"\"\"Core Snake game logic: board, snake movement, food, scoring, difficulty.\"\"\"\nimport random\n\nDIFFICULTIES = {\n    \"Easy\": 150,\n    \"Medium\": 100,\n    \"Hard\": 60,\n}\n\nDIRS = {\n    \"up\": (0, -1),\n    \"down\": (0, 1),\n    \"left\": (-1, 0),\n    \"right\": (1, 0),\n}\n\n\nclass Game:\n    def __init__(self, cols=24, rows=24, difficulty=\"Medium\"):\n        self.cols = cols\n        self.rows = rows\n        self.best = 0\n        self.set_difficulty(difficulty)\n        self.reset()\n\n    def set_difficulty(self, difficulty):\n        self.difficulty = difficulty if difficulty in DIFFICULTIES else \"Medium\"\n        self.tick_ms = DIFFICULTIES[self.difficulty]\n\n    def reset(self):\n        cx, cy = self.cols // 2, self.rows // 2\n        self.snake = [(cx, cy), (cx - 1, cy), (cx - 2, cy)]\n        self.direction = DIRS[\"right\"]\n        self.next_direction = self.direction\n        self.score = 0\n        self.game_over = False\n        self.paused = False\n        self.spawn_food()\n\n    def spawn_food(self):\n        occupied = set(self.snake)\n        free = [(x, y) for x in range(self.cols) for y in range(self.rows)\n                if (x, y) not in occupied]\n        self.food = random.choice(free) if free else None\n\n    def set_direction(self, name):\n        d = DIRS.get(name)\n        if d is None:\n            return\n        cdx, cdy = self.direction\n        if d != (-cdx, -cdy) and d != self.direction:\n            self.next_direction = d\n\n    def step(self):\n        \"\"\"Advance the board by one move; updates score and game-over state.\"\"\"\n        if self.game_over or self.paused:\n            return\n        self.direction = self.next_direction\n        dx, dy = self.direction\n        hx, hy = self.snake[0]\n        nx, ny = hx + dx, hy + dy\n\n        if not (0 <= nx < self.cols and 0 <= ny < self.rows):\n            self.game_over = True\n            return\n\n        eating = (nx, ny) == self.food\n        body = self.snake if eating else self.snake[:-1]\n        if (nx, ny) in body:\n            self.game_over = True\n            return\n\n        self.snake.insert(0, (nx, ny))\n        if eating:\n            self.score += 1\n            self.best = max(self.best, self.score)\n            self.spawn_food()\n        else:\n            self.snake.pop()\n```\n\nui.py:\n\n```python\n\"\"\"Tkinter front-end: rendering, input handling, difficulty selection.\"\"\"\nimport tkinter as tk\n\nCELL = 22\nBG = \"#101418\"\nGRID = \"#1a2026\"\nHEAD = \"#7ee787\"\nBODY = \"#2ea043\"\nFOOD = \"#f85149\"\nFG = \"#e6edf3\"\nDIM = \"#8b949e\"\n\nKEY_DIRS = {\n    \"Up\": \"up\", \"Down\": \"down\", \"Left\": \"left\", \"Right\": \"right\",\n    \"w\": \"up\", \"s\": \"down\", \"a\": \"left\", \"d\": \"right\",\n    \"W\": \"up\", \"S\": \"down\", \"A\": \"left\", \"D\": \"right\",\n}\n\n\nclass SnakeUI:\n    def __init__(self, root, game):\n        self.root = root\n        self.game = game\n        root.title(\"Snake\")\n        root.resizable(False, False)\n\n        top = tk.Frame(root)\n        top.pack(fill=\"x\", padx=10, pady=(8, 4))\n        self.score_var = tk.StringVar()\n        tk.Label(top, textvariable=self.score_var,\n                 font=(\"TkDefaultFont\", 11, \"bold\")).pack(side=\"left\")\n        self.diff_var = tk.StringVar(value=game.difficulty)\n        for name in (\"Easy\", \"Medium\", \"Hard\"):\n            tk.Radiobutton(top, text=name, variable=self.diff_var, value=name,\n                           command=self.change_difficulty).pack(side=\"left\", padx=4)\n        tk.Button(top, text=\"New Game\", command=self.new_game).pack(side=\"right\")\n\n        self.canvas = tk.Canvas(root, width=game.cols * CELL, height=game.rows * CELL,\n                                bg=BG, highlightthickness=0)\n        self.canvas.pack(padx=10, pady=4)\n\n        tk.Label(root, text=\"Arrows/WASD move · Space pause · R restart\",\n                 fg=DIM).pack(pady=(0, 8))\n\n        root.bind(\"<Key>\", self.on_key)\n        root.protocol(\"WM_DELETE_WINDOW\", self.close)\n        self._after = None\n        self.refresh()\n        self.schedule()\n\n    def close(self):\n        if self._after is not None:\n            self.root.after_cancel(self._after)\n        self.root.destroy()\n\n    def schedule(self):\n        if self._after is not None:\n            self.root.after_cancel(self._after)\n        self._after = self.root.after(self.game.tick_ms, self.tick)\n\n    def tick(self):\n        self._after = None\n        self.game.step()\n        self.refresh()\n        if not self.game.game_over:\n            self.schedule()\n\n    def on_key(self, event):\n        if event.keysym in KEY_DIRS:\n            self.game.set_direction(KEY_DIRS[event.keysym])\n        elif event.keysym == \"space\":\n            self.game.paused = not self.game.paused\n            self.refresh()\n        elif event.keysym in (\"r\", \"R\"):\n            self.new_game()\n\n    def change_difficulty(self):\n        self.game.set_difficulty(self.diff_var.get())\n        self.new_game()\n\n    def new_game(self):\n        self.game.reset()\n        self.refresh()\n        self.schedule()\n\n    def refresh(self):\n        self.score_var.set(f\"Score: {self.game.score}    Best: {self.game.best}\")\n        self.draw()\n\n    def draw(self):\n        c = self.canvas\n        g = self.game\n        c.delete(\"all\")\n        for x in range(g.cols):\n            for y in range(g.rows):\n                if (x + y) % 2 == 0:\n                    c.create_rectangle(x * CELL, y * CELL, (x + 1) * CELL, (y + 1) * CELL,\n                                       fill=GRID, outline=\"\")\n        if g.food:\n            fx, fy = g.food\n            c.create_oval(fx * CELL + 3, fy * CELL + 3, (fx + 1) * CELL - 3, (fy + 1) * CELL - 3,\n                          fill=FOOD, outline=\"\")\n        for i, (x, y) in enumerate(g.snake):\n            c.create_rectangle(x * CELL + 1, y * CELL + 1, (x + 1) * CELL - 1, (y + 1) * CELL - 1,\n                               fill=HEAD if i == 0 else BODY, outline=\"\")\n        if g.game_over:\n            self.overlay(f\"GAME OVER — Score {g.score} · press R to restart\")\n        elif g.paused:\n            self.overlay(\"PAUSED — press Space to resume\")\n        elif g.food is None:\n            self.overlay(\"YOU WIN — board is full!\")\n\n    def overlay(self, text):\n        c = self.canvas\n        w, h = self.game.cols * CELL, self.game.rows * CELL\n        c.create_rectangle(w * 0.12, h * 0.40, w * 0.88, h * 0.60,\n                           fill=\"#000000\", stipple=\"gray50\", outline=\"\")\n        c.create_text(w / 2, h / 2, text=text, fill=FG,\n                      font=(\"TkDefaultFont\", 13, \"bold\"))\n```\n\nCheck: after game over, tick stops scheduling. Pressing R restarts and reschedules. Good.\n\nPause: game.step returns early when paused; tick still runs and reschedules. Good.\n\nDifficulty change: set_difficulty + new_game → reset and reschedule with new tick_ms. Good.\n\nOne issue: on_key when game over — pressing arrow keys calls set_direction which updates next_direction but game is over; harmless. R restarts. Fine.\n\nAnother: when window closed via WM_DELETE_WINDOW → close() cancels after and destroys. Good.\n\nCheck the reversal guard with next_direction vs direction: set_direction compares against self.direction (last executed). Good.\n\nPotential issue: `event.keysym` for space is \"space\". Yes.\n\nRadiobutton command change_difficulty reads diff_var — already set by radio. Good.\n\nGrid drawing loop: 24x24 = 576 rectangles each redraw — fine performance-wise at 10 fps.\n\nCanvas size: 24*22 = 528 px. Good.\n\nEverything is complete, no placeholders. Three files: main.py, game.py, ui.py.\n\nThe instructions: \"Start with main.py, followed by every other required Python file.\" So order: main.py, game.py, ui.py.\n\nOutput format: filename alone on a line, then closed fenced python code block. No analysis. So I should output just the files. The system prompt says respond appropriately as Programmer, but user explicitly says return final source files only. Follow that.\n\nLet me double-check game.py logic once more:\n\n- Initial snake: [(12,12),(11,12),(10,12)] moving right. Food spawns randomly not on snake.\n- step: direction=next; new head; boundary check; eating check; body collision check; insert; grow or pop.\n- Collision with tail cell when not eating: body = snake[:-1] excludes tail → moving into tail cell is allowed (tail moves away). Correct.\n- When eating: body = full snake → moving into any segment including tail is death. Correct (tail doesn't move).\n\nScore: +1 per food. Best tracked.\n\nDifficulty: Easy 150ms, Medium 100ms, Hard 60ms per move.\n\nAll good. Also add docstrings minimal. Ensure no unused imports: game.py uses random. ui.py uses tk. main.py uses tk, Game, SnakeUI.\n\nOne more: in ui.py, `root.protocol(\"WM_DELETE_WINDOW\", self.close)` — good.\n\nFont tuple (\"TkDefaultFont\", 11, \"bold\") works in tkinter.\n\nstipple=\"gray50\" valid for create_rectangle with fill. Yes.\n\nFinal check on output budget: compact, fine.main.py\n\n```python\n\"\"\"Entry point for the classic Snake game (tkinter, standard library only).\"\"\"\nimport tkinter as tk\n\nfrom game import Game\nfrom ui import SnakeUI\n\n\ndef main():\n    root = tk.Tk()\n    game = Game()\n    SnakeUI(root, game)\n    root.mainloop()\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\ngame.py\n\n```python\n\"\"\"Core Snake logic: board, snake movement, food, scoring, difficulty levels.\"\"\"\nimport random\n\nDIFFICULTIES = {\n    \"Easy\": 150,   # milliseconds per move\n    \"Medium\": 100,\n    \"Hard\": 60,\n}\n\nDIRS = {\n    \"up\": (0, -1),\n    \"down\": (0, 1),\n    \"left\": (-1, 0),\n    \"right\": (1, 0),\n}\n\n\nclass Game:\n    def __init__(self, cols=24, rows=24, difficulty=\"Medium\"):\n        self.cols = cols\n        self.rows = rows\n        self.best = 0\n        self.set_difficulty(difficulty)\n        self.reset()\n\n    def set_difficulty(self, difficulty):\n        self.difficulty = difficulty if difficulty in DIFFICULTIES else \"Medium\"\n        self.tick_ms = DIFFICULTIES[self.difficulty]\n\n    def reset(self):\n        cx, cy = self.cols // 2, self.rows // 2\n        self.snake = [(cx, cy), (cx - 1, cy), (cx - 2, cy)]\n        self.direction = DIRS[\"right\"]\n        self.next_direction = self.direction\n        self.score = 0\n        self.game_over = False\n        self.paused = False\n        self.spawn_food()\n\n    def spawn_food(self):\n        occupied = set(self.snake)\n        free = [(x, y) for x in range(self.cols) for y in range(self.rows)\n                if (x, y) not in occupied]\n        self.food = random.choice(free) if free else None\n\n    def set_direction(self, name):\n        d = DIRS.get(name)\n        if d is None:\n            return\n        cdx, cdy = self.direction\n        if d != (-cdx, -cdy) and d != self.direction:  # no reversing / no-op\n            self.next_direction = d\n\n    def step(self):\n        \"\"\"Advance the board by one move; updates score and game-over state.\"\"\"\n        if self.game_over or self.paused:\n            return\n        self.direction = self.next_direction\n        dx, dy = self.direction\n        hx, hy = self.snake[0]\n        nx, ny = hx + dx, hy + dy\n\n        if not (0 <= nx < self.cols and 0 <= ny < self.rows):\n            self.game_over = True  # boundary collision\n            return\n\n        eating = (nx, ny) == self.food\n        body = self.snake if eating else self.snake[:-1]\n        if (nx, ny) in body:\n            self.game_over = True  # self collision\n            return\n\n        self.snake.insert(0, (nx, ny))\n        if eating:\n            self.score += 1\n            self.best = max(self.best, self.score)\n            self.spawn_food()\n        else:\n            self.snake.pop()\n```\n\nui.py\n\n```python\n\"\"\"Tkinter front-end: rendering, keyboard input, difficulty selection.\"\"\"\nimport tkinter as tk\n\nCELL = 22\nBG = \"#101418\"\nGRID = \"#1a2026\"\nHEAD = \"#7ee787\"\nBODY = \"#2ea043\"\nFOOD = \"#f85149\"\nFG = \"#e6edf3\"\nDIM = \"#8b949e\"\n\nKEY_DIRS = {\n    \"Up\": \"up\", \"Down\": \"down\", \"Left\": \"left\", \"Right\": \"right\",\n    \"w\": \"up\", \"s\": \"down\", \"a\": \"left\", \"d\": \"right\",\n    \"W\": \"up\", \"S\": \"down\", \"A\": \"left\", \"D\": \"right\",\n}\n\n\nclass SnakeUI:\n    def __init__(self, root, game):\n        self.root = root\n        self.game = game\n        root.title(\"Snake\")\n        root.resizable(False, False)\n\n        top = tk.Frame(root)\n        top.pack(fill=\"x\", padx=10, pady=(8, 4))\n        self.score_var = tk.StringVar()\n        tk.Label(top, textvariable=self.score_var,\n                 font=(\"TkDefaultFont\", 11, \"bold\")).pack(side=\"left\")\n        self.diff_var = tk.StringVar(value=game.difficulty)\n        for name in (\"Easy\", \"Medium\", \"Hard\"):\n            tk.Radiobutton(top, text=name, variable=self.diff_var, value=name,\n                           command=self.change_difficulty).pack(side=\"left\", padx=4)\n        tk.Button(top, text=\"New Game\", command=self.new_game).pack(side=\"right\")\n\n        self.canvas = tk.Canvas(root, width=game.cols * CELL, height=game.rows * CELL,\n                                bg=BG, highlightthickness=0)\n        self.canvas.pack(padx=10, pady=4)\n\n        tk.Label(root, text=\"Arrows/WASD move · Space pause · R restart\",\n                 fg=DIM).pack(pady=(0, 8))\n\n        root.bind(\"<Key>\", self.on_key)\n        root.protocol(\"WM_DELETE_WINDOW\", self.close)\n        self._after = None\n        self.refresh()\n        self.schedule()\n\n    def close(self):\n        if self._after is not None:\n            self.root.after_cancel(self._after)\n        self.root.destroy()\n\n    def schedule(self):\n        if self._after is not None:\n            self.root.after_cancel(self._after)\n        self._after = self.root.after(self.game.tick_ms, self.tick)\n\n    def tick(self):\n        self._after = None\n        self.game.step()\n        self.refresh()\n        if not self.game.game_over:\n            self.schedule()\n\n    def on_key(self, event):\n        if event.keysym in KEY_DIRS:\n            self.game.set_direction(KEY_DIRS[event.keysym])\n        elif event.keysym == \"space\":\n            self.game.paused = not self.game.paused\n            self.refresh()\n        elif event.keysym in (\"r\", \"R\"):\n            self.new_game()\n\n    def change_difficulty(self):\n        self.game.set_difficulty(self.diff_var.get())\n        self.new_game()\n\n    def new_game(self):\n        self.game.reset()\n        self.refresh()\n        self.schedule()\n\n    def refresh(self):\n        self.score_var.set(f\"Score: {self.game.score}    Best: {self.game.best}\")\n        self.draw()\n\n    def draw(self):\n        c = self.canvas\n        g = self.game\n        c.delete(\"all\")\n        for x in range(g.cols):\n            for y in range(g.rows):\n                if (x + y) % 2 == 0:\n                    c.create_rectangle(x * CELL, y * CELL, (x + 1) * CELL, (y + 1) * CELL,\n                                       fill=GRID, outline=\"\")\n        if g.food:\n            fx, fy = g.food\n            c.create_oval(fx * CELL + 3, fy * CELL + 3, (fx + 1) * CELL - 3, (fy + 1) * CELL - 3,\n                          fill=FOOD, outline=\"\")\n        for i, (x, y) in enumerate(g.snake):\n            c.create_rectangle(x * CELL + 1, y * CELL + 1, (x + 1) * CELL - 1, (y + 1) * CELL - 1,\n                               fill=HEAD if i == 0 else BODY, outline=\"\")\n        if g.game_over:\n            self.overlay(f\"GAME OVER — Score {g.score} · press R to restart\")\n        elif g.paused:\n            self.overlay(\"PAUSED — press Space to resume\")\n        elif g.food is None:\n            self.overlay(\"YOU WIN — board is full!\")\n\n    def overlay(self, text):\n        c = self.canvas\n        w, h = self.game.cols * CELL, self.game.rows * CELL\n        c.create_rectangle(w * 0.12, h * 0.40, w * 0.88, h * 0.60,\n                           fill=\"#000000\", stipple=\"gray50\", outline=\"\")\n        c.create_text(w / 2, h / 2, text=text, fill=FG,\n                      font=(\"TkDefaultFont\", 13, \"bold\"))\n```"
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "output_truncated",
+          "path": "$",
+          "message": "Model output reached its generation/context limit.",
+          "repair": "Output budget was exhausted. Omit analysis, architecture descriptions and drafts. Return a smaller complete implementation satisfying the task, with explicit filenames and closed code fences."
+        }
+      ],
+      "candidate_sha256": "bad275549747046f7e82b9442b60d585268fc276e1e6b989db3f80160d0bf668",
+      "termination_reasons": [
+        "length"
+      ],
+      "rejected_candidate": "main.py\n```python\nimport random\nimport sys\n\ntry:\n    import pygame\nexcept ImportError:\n    sys.exit(\"pygame is required. Install it with: pip install pygame\")\n\nCELL = 20\nCOLS, ROWS = 30, 22\nHUD_HEIGHT = 40\nWIDTH = COLS * CELL\nHEIGHT = ROWS * CELL + HUD_HEIGHT\nBOARD_TOP = HUD_HEIGHT\nFPS = 60\n\nBG = (18, 18, 28)\nBOARD_BG = (24, 26, 38)\nGRID = (35, 38, 55)\nHUD_BG = (30, 32, 46)\nHEAD = (0, 230, 130)\nBODY = (0, 170, 95)\nFOOD = (235, 80, 80)\nWHITE = (255, 255, 255)\nGRAY = (170, 170, 190)\nLIGHT = (205, 205, 225)\n\nDIFFICULTIES = [\n    (\"Easy\", 8, 1),\n    (\"Medium\", 13, 2),\n    (\"Hard\", 20, 3),\n]\n\n\ndef draw_text(surface, font, text, color, center):\n    img = font.render(text, True, color)\n    surface.blit(img, img.get_rect(center=center))\n\n\nclass SnakeGame:\n    def __init__(self, speed, points):\n        self.speed = speed\n        self.points = points\n        self.reset()\n\n    def reset(self):\n        cx, cy = COLS // 2, ROWS // 2\n        self.snake = [(cx, cy), (cx - 1, cy), (cx - 2, cy)]\n        self.direction = (1, 0)\n        self.pending = []\n        self.score = 0\n        self.alive = True\n        self.won = False\n        self.spawn_food()\n\n    def spawn_food(self):\n        occupied = set(self.snake)\n        free = [(x, y) for x in range(COLS) for y in range(ROWS) if (x, y) not in occupied]\n        self.food = random.choice(free) if free else None\n\n    def set_direction(self, new_dir):\n        last = self.pending[-1] if self.pending else self.direction\n        if new_dir != last and (new_dir[0] + last[0], new_dir[1] + last[1]) != (0, 0):\n            if len(self.pending) < 2:\n                self.pending.append(new_dir)\n\n    def step(self):\n        if self.pending:\n            self.direction = self.pending.pop(0)\n        hx, hy = self.snake[0]\n        nx, ny = hx + self.direction[0], hy + self.direction[1]\n        ate = self.food == (nx, ny)\n        body = self.snake if ate else self.snake[:-1]\n        if not (0 <= nx < COLS and 0 <= ny < ROWS) or (nx, ny) in body:\n            self.alive = False\n            return\n        self.snake.insert(0, (nx, ny))\n        if ate:\n            self.score += self.points\n            self.spawn_food()\n            if self.food is None:\n                self.won = True\n                self.alive = False\n        else:\n            self.snake.pop()\n\n\ndef draw_game(screen, font, small, game, diff_name):\n    screen.fill(BG)\n    pygame.draw.rect(screen, HUD_BG, (0, 0, WIDTH, HUD_HEIGHT))\n    draw_text(screen, font, \"Score: {}\".format(game.score), WHITE, (100, HUD_HEIGHT // 2))\n    draw_text(screen, small, \"Difficulty: {}   (ESC: menu)\".format(diff_name), GRAY, (WIDTH - 150, HUD_HEIGHT //"
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "5a665a1fc9ff66c39053852bf19689b567a9afaecefc10a903b7e776a49fc5f1",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "5a665a1fc9ff66c39053852bf19689b567a9afaecefc10a903b7e776a49fc5f1",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "a76f17504feea70fc757fa2088db42b4a818865137a7c8db4101a7363683c1ce",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3637f09a8ee8a1e2a294367a3ddfffd08b18e73c8bc733cba9d4e079e75914bc",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "a76f17504feea70fc757fa2088db42b4a818865137a7c8db4101a7363683c1ce",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b32d1d67b82ee9e9c38e78b83ca62665a5d53fb7366e01da8cb2012363e7f963",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "a76f17504feea70fc757fa2088db42b4a818865137a7c8db4101a7363683c1ce",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "missing_source_files",
+          "path": "$",
+          "message": "No explicitly declared Python source files were delivered.",
+          "repair": "Stop analysis. Start with main.py on its own line followed by a fenced Python code block. Return compact complete executable files only."
+        }
+      ],
+      "candidate_sha256": "e0f7cef5db13f0cce2cadf0306fa6b94eda28308882ffea1c72e983b2abcd7c0",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": "The review found an issue: clicking \"Start / Restart\" while a game is running schedules a second concurrent tick loop. Fix by storing the after() id and calling after_cancel, or ignoring start() while self.running.\n\nI'll fix by storing `self.after_id` and cancelling it in start() before scheduling a new loop. Also cancel when game over (optional, but tick returns without scheduling on game over, so the id is stale — cancelling a stale id is harmless in tkinter? after_cancel with an invalid id is generally safe). Let me implement:\n\n```python\ndef start(self):\n    if getattr(self, \"after_id\", None):\n        self.root.after_cancel(self.after_id)\n    ...\n    self.after_id = self.root.after(self.delay, self.tick)\n```\n\nAnd in tick, update self.after_id each time. On game over, set self.after_id = None.\n\nAlso guard: if self.running, maybe just restart anyway — but with after_cancel it's fine to restart. Actually simplest: cancel existing scheduled tick then start fresh. That handles restart during play correctly.\n\nLet me write the full file.\n\n```python\nimport tkinter as tk\nimport random\n\nCELL = 20\nCOLS, ROWS = 24, 24\nSPEEDS = {\"Easy\": 200, \"Medium\": 130, \"Hard\": 80}\n\n\nclass SnakeGame:\n    def __init__(self, root):\n        self.root = root\n        root.title(\"Snake\")\n        self.canvas = tk.Canvas(root, width=COLS * CELL, height=ROWS * CELL,\n                                bg=\"black\", highlightthickness=0)\n        self.canvas.pack()\n        top = tk.Frame(root)\n        top.pack(fill=\"x\")\n        self.score_var = tk.StringVar(value=\"Score: 0\")\n        tk.Label(top, textvariable=self.score_var, font=(\"Arial\", 12, \"bold\")).pack(side=\"left\", padx=8)\n        self.level_var = tk.StringVar(value=\"Medium\")\n        for name in SPEEDS:\n            tk.Radiobutton(top, text=name, variable=self.level_var, value=name).pack(side=\"left\")\n        tk.Button(top, text=\"Start / Restart\", command=self.start).pack(side=\"left\", padx=8)\n        root.bind(\"<Key>\", self.on_key)\n        self.running = False\n        self.after_id = None\n        self.snake = []\n        self.draw_text(\"Pick a difficulty, then press Start\")\n        root.mainloop()\n\n    def start(self):\n        if self.after_id is not None:\n            self.root.after_cancel(self.after_id)\n            self.after_id = None\n        self.snake = [(COLS // 2, ROWS // 2)]\n        self.direction = (1, 0)\n        self.next_dir = self.direction\n        self.score = 0\n        self.score_var.set(\"Score: 0\")\n        self.food = self.spawn_food()\n        self.delay = SPEEDS[self.level_var.get()]\n        self.running = True\n        self.draw()\n        self.after_id = self.root.after(self.delay, self.tick)\n\n    def spawn_food(self):\n        while True:\n            pos = (random.randrange(COLS), random.randrange(ROWS))\n            if pos not in self.snake:\n                return pos\n\n    def on_key(self, event):\n        mapping = {\"Up\": (0, -1), \"Down\": (0, 1), \"Left\": (-1, 0), \"Right\": (1, 0),\n                   \"w\": (0, -1), \"s\": (0, 1), \"a\": (-1, 0), \"d\": (1, 0)}\n        d = mapping.get(event.keysym)\n        if d and (d[0] != -self.direction[0] or d[1] != -self.direction[1]):\n            self.next_dir = d\n\n    def tick(self):\n        self.after_id = None\n        if not self.running:\n            return\n        self.direction = self.next_dir\n        hx, hy = self.snake[0]\n        nx, ny = hx + self.direction[0], hy + self.direction[1]\n        if nx < 0 or nx >= COLS or ny < 0 or ny >= ROWS or (nx, ny) in self.snake:\n            self.running = False\n            self.draw_text(\"Game Over!  Score: %d\\nPress Start to play again\" % self.score)\n            return\n        self.snake.insert(0, (nx, ny))\n        if (nx, ny) == self.food:\n            self.score += 1\n            self.score_var.set(\"Score: %d\" % self.score)\n            self.food = self.spawn_food()\n        else:\n            self.snake.pop()\n        self.draw()\n        self.after_id = self.root.after(self.delay, self.tick)\n```\n\nWait — there's a subtle issue with self-collision check: `(nx, ny) in self.snake` checks against the snake including the tail, but the tail will move away this tick unless food is eaten. Classic implementations often allow moving into the tail cell that's about to vacate. But the original code did this, and the review didn't flag it, so keep as-is to avoid changing behavior beyond the fix. Actually, keeping consistent with the original is safer for the review.\n\nAlso, in tick, when game over, after_id is None already (set at top). Good.\n\nOne more consideration: after_cancel with a stale id — since we set after_id = None at the start of tick, and cancel before scheduling in start, it's consistent.\n\nOutput only main.py.main.py\n```python\nimport tkinter as tk\nimport random\n\nCELL = 20\nCOLS, ROWS = 24, 24\nSPEEDS = {\"Easy\": 200, \"Medium\": 130, \"Hard\": 80}\n\n\nclass SnakeGame:\n    def __init__(self, root):\n        self.root = root\n        root.title(\"Snake\")\n        self.canvas = tk.Canvas(root, width=COLS * CELL, height=ROWS * CELL,\n                                bg=\"black\", highlightthickness=0)\n        self.canvas.pack()\n        top = tk.Frame(root)\n        top.pack(fill=\"x\")\n        self.score_var = tk.StringVar(value=\"Score: 0\")\n        tk.Label(top, textvariable=self.score_var, font=(\"Arial\", 12, \"bold\")).pack(side=\"left\", padx=8)\n        self.level_var = tk.StringVar(value=\"Medium\")\n        for name in SPEEDS:\n            tk.Radiobutton(top, text=name, variable=self.level_var, value=name).pack(side=\"left\")\n        tk.Button(top, text=\"Start / Restart\", command=self.start).pack(side=\"left\", padx=8)\n        root.bind(\"<Key>\", self.on_key)\n        self.running = False\n        self.after_id = None\n        self.snake = []\n        self.draw_text(\"Pick a difficulty, then press Start\")\n        root.mainloop()\n\n    def start(self):\n        if self.after_id is not None:\n            self.root.after_cancel(self.after_id)\n            self.after_id = None\n        self.snake = [(COLS // 2, ROWS // 2)]\n        self.direction = (1, 0)\n        self.next_dir = self.direction\n        self.score = 0\n        self.score_var.set(\"Score: 0\")\n        self.food = self.spawn_food()\n        self.delay = SPEEDS[self.level_var.get()]\n        self.running = True\n        self.draw()\n        self.after_id = self.root.after(self.delay, self.tick)\n\n    def spawn_food(self):\n        while True:\n            pos = (random.randrange(COLS), random.randrange(ROWS))\n            if pos not in self.snake:\n                return pos\n\n    def on_key(self, event):\n        mapping = {\"Up\": (0, -1), \"Down\": (0, 1), \"Left\": (-1, 0), \"Right\": (1, 0),\n                   \"w\": (0, -1), \"s\": (0, 1), \"a\": (-1, 0), \"d\": (1, 0)}\n        d = mapping.get(event.keysym)\n        if d and (d[0] != -self.direction[0] or d[1] != -self.direction[1]):\n            self.next_dir = d\n\n    def tick(self):\n        self.after_id = None\n        if not self.running:\n            return\n        self.direction = self.next_dir\n        hx, hy = self.snake[0]\n        nx, ny = hx + self.direction[0], hy + self.direction[1]\n        if nx < 0 or nx >= COLS or ny < 0 or ny >= ROWS or (nx, ny) in self.snake:\n            self.running = False\n            self.draw_text(\"Game Over!  Score: %d\\nPress Start to play again\" % self.score)\n            return\n        self.snake.insert(0, (nx, ny))\n        if (nx, ny) == self.food:\n            self.score += 1\n            self.score_var.set(\"Score: %d\" % self.score)\n            self.food = self.spawn_food()\n        else:\n            self.snake.pop()\n        self.draw()\n        self.after_id = self.root.after(self.delay, self.tick)\n\n    def draw(self):\n        c = self.canvas\n        c.delete(\"all\")\n        fx, fy = self.food\n        c.create_rectangle(fx * CELL + 3, fy * CELL + 3,\n                           fx * CELL + CELL - 3, fy * CELL + CELL - 3,\n                           fill=\"red\", outline=\"\")\n        for i, (x, y) in enumerate(self.snake):\n            color = \"#00cc44\" if i == 0 else \"lime\"\n            c.create_rectangle(x * CELL + 1, y * CELL + 1,\n                               x * CELL + CELL - 1, y * CELL + CELL - 1,\n                               fill=color, outline=\"\")\n\n    def draw_text(self, msg):\n        self.canvas.delete(\"all\")\n        self.canvas.create_text(COLS * CELL // 2, ROWS * CELL // 2, text=msg,\n                                fill=\"white\", font=(\"Arial\", 14), justify=\"center\")\n\n\nif __name__ == \"__main__\":\n    SnakeGame(tk.Tk())\n```"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "a76f17504feea70fc757fa2088db42b4a818865137a7c8db4101a7363683c1ce",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "37a5a98dc7d1e703d6b36f873ab3f4415e18dcfe86f69ca6d007bf64d50782b9",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "a76f17504feea70fc757fa2088db42b4a818865137a7c8db4101a7363683c1ce",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "37a5a98dc7d1e703d6b36f873ab3f4415e18dcfe86f69ca6d007bf64d50782b9",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "4047bd3e1ea7d328680523197321bb73905c05c13a2042a42149e05989b53ed9",
+        "source_digests": {
+          "main.py": "18fe7a7e9e208b50312730e3853036fee7196bc66a23c0053c8b73b0a8e2b343"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "source/pure-contract\\content_lab\\startup_probe.py",
+          "data/runs/mpst_contract/r07/15_SnakeGame/artifact\\main.py",
+          "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-tvzdz3fm\\probe.json"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "profile": "tkinter_event_loop",
+        "observation": {
+          "event_loop_observed": true,
+          "mapped_window": true,
+          "widget_count": 2,
+          "callback_errors": []
+        },
+        "id": "3c7b44f190efda133b66603ef0de32c81cbd3f57c2c2e30f2fb6fe535463bd0d"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "4047bd3e1ea7d328680523197321bb73905c05c13a2042a42149e05989b53ed9",
+        "source_digests": {
+          "main.py": "18fe7a7e9e208b50312730e3853036fee7196bc66a23c0053c8b73b0a8e2b343"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "source/pure-contract\\content_lab\\startup_probe.py",
+          "data/runs/mpst_contract/r07/15_SnakeGame/artifact\\main.py",
+          "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-olk85hhy\\probe.json"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "profile": "tkinter_event_loop",
+        "observation": {
+          "event_loop_observed": true,
+          "mapped_window": true,
+          "widget_count": 2,
+          "callback_errors": []
+        },
+        "id": "5e4e1d2bc42f98b61230635f29f9f9f4f2e6f9285cd2493db291c29e25977271"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "4047bd3e1ea7d328680523197321bb73905c05c13a2042a42149e05989b53ed9",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "de2a9dacddbe9b398e672d0ec657dfd7cd9d04ea4386f151ae9fd863343a15a3",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "4047bd3e1ea7d328680523197321bb73905c05c13a2042a42149e05989b53ed9",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "de2a9dacddbe9b398e672d0ec657dfd7cd9d04ea4386f151ae9fd863343a15a3",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "4047bd3e1ea7d328680523197321bb73905c05c13a2042a42149e05989b53ed9",
+        "source_digests": {
+          "main.py": "18fe7a7e9e208b50312730e3853036fee7196bc66a23c0053c8b73b0a8e2b343"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "source/pure-contract\\content_lab\\startup_probe.py",
+          "data/runs/mpst_contract/r07/15_SnakeGame/artifact\\main.py",
+          "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-9e14n4x0\\probe.json"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "profile": "tkinter_event_loop",
+        "observation": {
+          "event_loop_observed": true,
+          "mapped_window": true,
+          "widget_count": 2,
+          "callback_errors": []
+        },
+        "id": "2913343e6bb3eb76e491ffa66848f277addd5a18f030b698a1f00b7b49632a3d"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": true,
+      "evidence_id": "2913343e6bb3eb76e491ffa66848f277addd5a18f030b698a1f00b7b49632a3d"
+    }
+  ]
+}

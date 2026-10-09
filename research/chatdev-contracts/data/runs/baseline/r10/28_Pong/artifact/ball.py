@@ -1,0 +1,1 @@
+self.serve_direction = 1  # +1: toward right player, -1: toward left player

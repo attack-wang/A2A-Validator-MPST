@@ -1,0 +1,298 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Application"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\nimport pygame\nimport random\nimport sys\n\nWIDTH, HEIGHT = 800, 600\nFPS = 60\nBG = (8, 10, 22)\nWHITE = (235, 235, 235)\nGREEN = (70, 220, 130)\nRED = (230, 80, 80)\nBLUE = (90, 170, 255)\nYELLOW = (250, 215, 90)\n\nALIEN_ROWS, ALIEN_COLS = 4, 8\nALIEN_SPEED = 1.2\nALIEN_DESCENT = 18\nPLAYER_SPEED = 6\nBULLET_SPEED = 9\nENEMY_BULLET_SPEED = 5\nSTART_LIVES = 3\n\n\nclass Ship:\n    def __init__(self):\n        self.w, self.h = 48, 24\n        self.x = WIDTH // 2 - self.w // 2\n        self.y = HEIGHT - 60\n        self.lives = START_LIVES\n        self.cooldown = 0\n        self.invuln = 0\n\n    @property\n    def rect(self):\n        return pygame.Rect(int(self.x), self.y, self.w, self.h)\n\n    def update(self, keys):\n        if keys[pygame.K_LEFT] or keys[pygame.K_a]:\n            self.x -= PLAYER_SPEED\n        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:\n            self.x += PLAYER_SPEED\n        self.x = max(0, min(WIDTH - self.w, self.x))\n        self.cooldown = max(0, self.cooldown - 1)\n        self.invuln = max(0, self.invuln - 1)\n\n    def draw(self, surf):\n        if self.invuln and (self.invuln // 4) % 2 == 0:\n            return\n        r = self.rect\n        pygame.draw.polygon(surf, WHITE, [\n            (r.centerx, r.top), (r.right, r.bottom),\n            (r.right - 9, r.bottom), (r.centerx, r.bottom - 11),\n            (r.left + 9, r.bottom), (r.left, r.bottom)])\n\n\nclass Alien:\n    COLORS = [RED, BLUE, GREEN, YELLOW]\n\n    def __init__(self, col, row):\n        self.w, self.h = 36, 24\n        self.x = 90 + col * 78\n        self.y = 70 + row * 55\n        self.row = row\n        self.wobble = random.randrange(2)\n\n    @property\n    def rect(self):\n        return pygame.Rect(int(self.x), int(self.y), self.w, self.h)\n\n    def draw(self, surf, frame):\n        r = self.rect\n        c = self.COLORS[self.row % len(self.COLORS)]\n        pygame.draw.rect(surf, c, (r.x, r.y + 6, r.w, r.h - 6), border_radius=7)\n        pygame.draw.rect(surf, c, (r.x + 7, r.y + 2, r.w - 14, 8), border_radius=4)\n        off = 2 if (frame // 20 + self.wobble) % 2 else -2\n        pygame.draw.circle(surf, BG, (r.centerx - 8 + off, r.y + 13), 3)\n        pygame.draw.circle(surf, BG, (r.centerx + 8 + off, r.y + 13), 3)\n\n\nclass Game:\n    def __init__(self):\n        pygame.init()\n        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))\n        pygame.display.set_caption(\"Space Invaders\")\n        self.clock = pygame.time.Clock()\n        self.font = pygame.font.SysFont(None, 30)\n        self.big = pygame.font.SysFont(None, 64)\n        self.stars = [(random.randrange(WIDTH), random.randrange(HEIGHT),\n                       random.choice((1, 1, 2))) for _ in range(90)]\n        self.reset()\n\n    def reset(self):\n        self.ship = Ship()\n        self.aliens = [Alien(c, r) for r in range(ALIEN_ROWS) for c in range(ALIEN_COLS)]\n        self.bullets = []\n        self.bombs = []\n        self.dir = 1\n        self.score = 0\n        self.state = \"play\"\n        self.fire_timer = 60\n        self.frame = 0\n\n    def march(self):\n        speed = ALIEN_SPEED + (ALIEN_ROWS * ALIEN_COLS - len(self.aliens)) * 0.05\n        if any(a.x <= 0 or a.x + a.w >= WIDTH for a in self.aliens):\n            self.dir *= -1\n            for a in self.aliens:\n                a.y += ALIEN_DESCENT\n        else:\n            for a in self.aliens:\n                a.x += self.dir * speed\n\n    def update(self):\n        self.frame += 1\n        self.ship.update(pygame.key.get_pressed())\n\n        for b in self.bullets[:]:\n            b.y -= BULLET_SPEED\n            if b.bottom < 0:\n                self.bullets.remove(b)\n\n        if self.frame % 2 == 0:\n            self.march()\n\n        self.fire_timer -= 1\n        if self.fire_timer <= 0 and self.aliens:\n            s = random.choice(self.aliens).rect\n            self.bombs.append(pygame.Rect(s.centerx - 2, s.bottom, 4, 12))\n            self.fire_timer = random.randint(40, 90)\n\n        for b in self.bombs[:]:\n            b.y += ENEMY_BULLET_SPEED\n            if b.top > HEIGHT:\n                self.bombs.remove(b)\n\n        for b in self.bullets[:]:\n            for a in self.aliens:\n                if b.colliderect(a.rect):\n                    self.aliens.remove(a)\n                    self.bullets.remove(b)\n                    self.score += 10 + (ALIEN_ROWS - 1 - a.row) * 5\n                    break\n\n        if self.ship.invuln == 0:\n            for b in self.bombs[:]:\n                if b.colliderect(self.ship.rect):\n                    self.bombs.remove(b)\n                    self.ship.lives -= 1\n                    self.ship.invuln = 90\n                    if self.ship.lives <= 0:\n                        self.state = \"over\"\n                    break\n\n        if any(a.rect.bottom >= self.ship.rect.top for a in self.aliens):\n            self.state = \"over\"\n        elif not self.aliens:\n            self.state = \"win\"\n\n    def draw(self):\n        self.screen.fill(BG)\n        for x, y, s in self.stars:\n            pygame.draw.circle(self.screen, (70, 75, 95), (x, y), s)\n        for a in self.aliens:\n            a.draw(self.screen, self.frame)\n        self.ship.draw(self.screen)\n        for b in self.bullets:\n            pygame.draw.rect(self.screen, YELLOW, b)\n        for b in self.bombs:\n            pygame.draw.rect(self.screen, RED, b)\n        pygame.draw.rect(self.screen, (40, 45, 60), (0, HEIGHT - 26, WIDTH, 26))\n        hud = self.font.render(f\"SCORE {self.score}    LIVES {self.ship.lives}\", True, WHITE)\n        self.screen.blit(hud, (14, 8))\n        if self.state != \"play\":\n            win = self.state == \"win\"\n            t = self.big.render(\"YOU WIN!\" if win else \"GAME OVER\", True, GREEN if win else RED)\n            sub = self.font.render(f\"Final score: {self.score}  |  R = restart, ESC = quit\", True, WHITE)\n            self.screen.blit(t, t.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 24)))\n            self.screen.blit(sub, sub.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 34)))\n\n    def run(self):\n        while True:\n            for e in pygame.event.get():\n                if e.type == pygame.QUIT:\n                    pygame.quit()\n                    sys.exit()\n                if e.type == pygame.KEYDOWN:\n                    if e.key == pygame.K_ESCAPE:\n                        pygame.quit()\n                        sys.exit()\n                    if self.state == \"play\" and e.key == pygame.K_SPACE and self.ship.cooldown == 0:\n                        r = self.ship.rect\n                        self.bullets.append(pygame.Rect(r.centerx - 2, r.top - 12, 4, 14))\n                        self.ship.cooldown = 18\n                    elif self.state != \"play\" and e.key == pygame.K_r:\n                        self.reset()\n            if self.state == \"play\":\n                self.update()\n            self.draw()\n            pygame.display.flip()\n            self.clock.tick(FPS)\n\n\nif __name__ == \"__main__\":\n    Game().run()\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "d51911f9df045dfa099a63d73b2076ae2ca361adbbb6b06681ec616d61192114",
+      "result": "{\"verdict\": \"finished\", \"issues\": []}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "d51911f9df045dfa099a63d73b2076ae2ca361adbbb6b06681ec616d61192114",
+      "result": " Finished"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "d51911f9df045dfa099a63d73b2076ae2ca361adbbb6b06681ec616d61192114",
+      "result": "{\"status\": \"failed\", \"test_run_id\": \"664ad4d51f0a224bbae29fab8dd09dd230e5e250a6f9ce4388b3e7fcd11242a3\", \"summary\": \"Startup smoke test failed with exit code 1 due to ModuleNotFoundError: No module named 'pygame' raised at main.py line 1. This is a missing dependency in the host Python environment, not a source code defect; the game code is syntactically valid and requires pygame to be installed (e.g., pip install pygame) in the invoked interpreter before re-running.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "d51911f9df045dfa099a63d73b2076ae2ca361adbbb6b06681ec616d61192114",
+      "result": "main.py\n```python\nimport sys\nimport random\n\ntry:\n    import pygame\nexcept ImportError:\n    sys.exit(\"pygame is required to run Space Invaders. Install it with: pip install pygame\")\n\nWIDTH, HEIGHT = 800, 600\nFPS = 60\nBG = (8, 10, 22)\nWHITE = (235, 235, 235)\nGREEN = (70, 220, 130)\nRED = (230, 80, 80)\nBLUE = (90, 170, 255)\nYELLOW = (250, 215, 90)\n\nALIEN_ROWS, ALIEN_COLS = 4, 8\nALIEN_SPEED = 1.2\nALIEN_DESCENT = 18\nPLAYER_SPEED = 6\nBULLET_SPEED = 9\nENEMY_BULLET_SPEED = 5\nSTART_LIVES = 3\n\n\nclass Ship:\n    def __init__(self):\n        self.w, self.h = 48, 24\n        self.x = WIDTH // 2 - self.w // 2\n        self.y = HEIGHT - 60\n        self.lives = START_LIVES\n        self.cooldown = 0\n        self.invuln = 0\n\n    @property\n    def rect(self):\n        return pygame.Rect(int(self.x), self.y, self.w, self.h)\n\n    def update(self, keys):\n        if keys[pygame.K_LEFT] or keys[pygame.K_a]:\n            self.x -= PLAYER_SPEED\n        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:\n            self.x += PLAYER_SPEED\n        self.x = max(0, min(WIDTH - self.w, self.x))\n        self.cooldown = max(0, self.cooldown - 1)\n        self.invuln = max(0, self.invuln - 1)\n\n    def draw(self, surf):\n        if self.invuln and (self.invuln // 4) % 2 == 0:\n            return\n        r = self.rect\n        pygame.draw.polygon(surf, WHITE, [\n            (r.centerx, r.top), (r.right, r.bottom),\n            (r.right - 9, r.bottom), (r.centerx, r.bottom - 11),\n            (r.left + 9, r.bottom), (r.left, r.bottom)])\n\n\nclass Alien:\n    COLORS = [RED, BLUE, GREEN, YELLOW]\n\n    def __init__(self, col, row):\n        self.w, self.h = 36, 24\n        self.x = 90 + col * 78\n        self.y = 70 + row * 55\n        self.row = row\n        self.wobble = random.randrange(2)\n\n    @property\n    def rect(self):\n        return pygame.Rect(int(self.x), int(self.y), self.w, self.h)\n\n    def draw(self, surf, frame):\n        r = self.rect\n        c = self.COLORS[self.row % len(self.COLORS)]\n        pygame.draw.rect(surf, c, (r.x, r.y + 6, r.w, r.h - 6), border_radius=7)\n        pygame.draw.rect(surf, c, (r.x + 7, r.y + 2, r.w - 14, 8), border_radius=4)\n        off = 2 if (frame // 20 + self.wobble) % 2 else -2\n        pygame.draw.circle(surf, BG, (r.centerx - 8 + off, r.y + 13), 3)\n        pygame.draw.circle(surf, BG, (r.centerx + 8 + off, r.y + 13), 3)\n\n\nclass Game:\n    def __init__(self):\n        pygame.init()\n        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))\n        pygame.display.set_caption(\"Space Invaders\")\n        self.clock = pygame.time.Clock()\n        self.font = pygame.font.SysFont(None, 30)\n        self.big = pygame.font.SysFont(None, 64)\n        self.stars = [(random.randrange(WIDTH), random.randrange(HEIGHT),\n                       random.choice((1, 1, 2))) for _ in range(90)]\n        self.reset()\n\n    def reset(self):\n        self.ship = Ship()\n        self.aliens = [Alien(c, r) for r in range(ALIEN_ROWS) for c in range(ALIEN_COLS)]\n        self.bullets = []\n        self.bombs = []\n        self.dir = 1\n        self.score = 0\n        self.state = \"play\"\n        self.fire_timer = 60\n        self.frame = 0\n\n    def march(self):\n        speed = ALIEN_SPEED + (ALIEN_ROWS * ALIEN_COLS - len(self.aliens)) * 0.05\n        if any(a.x <= 0 or a.x + a.w >= WIDTH for a in self.aliens):\n            self.dir *= -1\n            for a in self.aliens:\n                a.y += ALIEN_DESCENT\n        else:\n            for a in self.aliens:\n                a.x += self.dir * speed\n\n    def update(self):\n        self.frame += 1\n        self.ship.update(pygame.key.get_pressed())\n\n        for b in self.bullets[:]:\n            b.y -= BULLET_SPEED\n            if b.bottom < 0:\n                self.bullets.remove(b)\n\n        if self.frame % 2 == 0:\n            self.march()\n\n        self.fire_timer -= 1\n        if self.fire_timer <= 0 and self.aliens:\n            s = random.choice(self.aliens).rect\n            self.bombs.append(pygame.Rect(s.centerx - 2, s.bottom, 4, 12))\n            self.fire_timer = random.randint(40, 90)\n\n        for b in self.bombs[:]:\n            b.y += ENEMY_BULLET_SPEED\n            if b.top > HEIGHT:\n                self.bombs.remove(b)\n\n        for b in self.bullets[:]:\n            for a in self.aliens:\n                if b.colliderect(a.rect):\n                    self.aliens.remove(a)\n                    self.bullets.remove(b)\n                    self.score += 10 + (ALIEN_ROWS - 1 - a.row) * 5\n                    break\n\n        if self.ship.invuln == 0:\n            for b in self.bombs[:]:\n                if b.colliderect(self.ship.rect):\n                    self.bombs.remove(b)\n                    self.ship.lives -= 1\n                    self.ship.invuln = 90\n                    if self.ship.lives <= 0:\n                        self.state = \"over\"\n                    break\n\n        if any(a.rect.bottom >= self.ship.rect.top for a in self.aliens):\n            self.state = \"over\"\n        elif not self.aliens:\n            self.state = \"win\"\n\n    def draw(self):\n        self.screen.fill(BG)\n        for x, y, s in self.stars:\n            pygame.draw.circle(self.screen, (70, 75, 95), (x, y), s)\n        for a in self.aliens:\n            a.draw(self.screen, self.frame)\n        self.ship.draw(self.screen)\n        for b in self.bullets:\n            pygame.draw.rect(self.screen, YELLOW, b)\n        for b in self.bombs:\n            pygame.draw.rect(self.screen, RED, b)\n        pygame.draw.rect(self.screen, (40, 45, 60), (0, HEIGHT - 26, WIDTH, 26))\n        hud = self.font.render(f\"SCORE {self.score}    LIVES {self.ship.lives}\", True, WHITE)\n        self.screen.blit(hud, (14, 8))\n        if self.state != \"play\":\n            win = self.state == \"win\"\n            t = self.big.render(\"YOU WIN!\" if win else \"GAME OVER\", True, GREEN if win else RED)\n            sub = self.font.render(f\"Final score: {self.score}  |  R = restart, ESC = quit\", True, WHITE)\n            self.screen.blit(t, t.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 24)))\n            self.screen.blit(sub, sub.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 34)))\n\n    def run(self):\n        while True:\n            for e in pygame.event.get():\n                if e.type == pygame.QUIT:\n                    pygame.quit()\n                    sys.exit()\n                if e.type == pygame.KEYDOWN:\n                    if e.key == pygame.K_ESCAPE:\n                        pygame.quit()\n                        sys.exit()\n                    if self.state == \"play\" and e.key == pygame.K_SPACE and self.ship.cooldown == 0:\n                        r = self.ship.rect\n                        self.bullets.append(pygame.Rect(r.centerx - 2, r.top - 12, 4, 14))\n                        self.ship.cooldown = 18\n                    elif self.state != \"play\" and e.key == pygame.K_r:\n                        self.reset()\n            if self.state == \"play\":\n                self.update()\n            self.draw()\n            pygame.display.flip()\n            self.clock.tick(FPS)\n\n\nif __name__ == \"__main__\":\n    Game().run()\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "6e96352aadc6212b5a1cedb7c65cf0ed07a55137eb37b70545b850c7fc48e3d5",
+    "source_digests": {
+      "main.py": "e89ce2aca95dec0a5cc538b94dcae4d5890322ac7324ef325ee6c250676cab62"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "main.py"
+    ],
+    "timeout_seconds": 3,
+    "status": "failed",
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "pygame is required to run Space Invaders. Install it with: pip install pygame\n",
+    "profile": "process_exit",
+    "id": "769dcf3dd7c328abdc6993f959dd6f10ef441046ed0a13ad3e6d8cfb510f91b7"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "76230d3892d3451ea4dc3d6ad5d9470b26bc4e4f1ed3bf8a99756169bb8a500b",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "57d005c3b71920cefd5b63883aac3200365d1f8a4aa4b23a48238444adb055e7",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "694727febe0da2b3189164abc1aaf73bed6bf9a49fefed87cf2dee67010438be",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "80d71e83627aaedd2d94b839f95073a683f59cab898da894cc386f659fc42355",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "80d71e83627aaedd2d94b839f95073a683f59cab898da894cc386f659fc42355",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "d51911f9df045dfa099a63d73b2076ae2ca361adbbb6b06681ec616d61192114",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "4db7906f7413bb4f6a6ac470f006522b3784e3bdd25af23fb4cd7102b4ed7d93",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "d51911f9df045dfa099a63d73b2076ae2ca361adbbb6b06681ec616d61192114",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2e268ff0cef63580c64233b07e8fd026c494a543f47a7717f2245832819f24fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "d51911f9df045dfa099a63d73b2076ae2ca361adbbb6b06681ec616d61192114",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "bda0968517b5ceb931e5ee0674b4972e6dec01582e64e55333b1dd432f6d6d21",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "d51911f9df045dfa099a63d73b2076ae2ca361adbbb6b06681ec616d61192114",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3713dc9d1785c47081ef36c7e993dd51ecf9c4913bd8e04500b2a4717fc9a3a0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "d51911f9df045dfa099a63d73b2076ae2ca361adbbb6b06681ec616d61192114",
+        "source_digests": {
+          "main.py": "79398f883fb834373898379a72fe5f5a58c2d61d252ab4621c45486353786200"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r04/26_TextBasedSpaceInvaders/artifact\\main.py\", line 1, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+        "profile": "process_exit",
+        "id": "664ad4d51f0a224bbae29fab8dd09dd230e5e250a6f9ce4388b3e7fcd11242a3"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "d51911f9df045dfa099a63d73b2076ae2ca361adbbb6b06681ec616d61192114",
+        "source_digests": {
+          "main.py": "79398f883fb834373898379a72fe5f5a58c2d61d252ab4621c45486353786200"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r04/26_TextBasedSpaceInvaders/artifact\\main.py\", line 1, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+        "profile": "process_exit",
+        "id": "664ad4d51f0a224bbae29fab8dd09dd230e5e250a6f9ce4388b3e7fcd11242a3"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "d51911f9df045dfa099a63d73b2076ae2ca361adbbb6b06681ec616d61192114",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "886b22baab503eaac7fd9ca57cbeb033097c31e59566d58eba764391c7a4cbad",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "d51911f9df045dfa099a63d73b2076ae2ca361adbbb6b06681ec616d61192114",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "e7626465d6a67d99754f56702e75502311de12e664184029c22010177f7b6cb3",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "d51911f9df045dfa099a63d73b2076ae2ca361adbbb6b06681ec616d61192114",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "e0b67afbbc3de4bca8ebce010b9daca1386208e9fbc6c11ea24d586e31083308",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "d51911f9df045dfa099a63d73b2076ae2ca361adbbb6b06681ec616d61192114",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "e0b67afbbc3de4bca8ebce010b9daca1386208e9fbc6c11ea24d586e31083308",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "6e96352aadc6212b5a1cedb7c65cf0ed07a55137eb37b70545b850c7fc48e3d5",
+        "source_digests": {
+          "main.py": "e89ce2aca95dec0a5cc538b94dcae4d5890322ac7324ef325ee6c250676cab62"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "pygame is required to run Space Invaders. Install it with: pip install pygame\n",
+        "profile": "process_exit",
+        "id": "769dcf3dd7c328abdc6993f959dd6f10ef441046ed0a13ad3e6d8cfb510f91b7"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": false,
+      "evidence_id": "769dcf3dd7c328abdc6993f959dd6f10ef441046ed0a13ad3e6d8cfb510f91b7",
+      "violations": [
+        {
+          "layer": "A",
+          "rule": "current_startup_passed",
+          "path": "$",
+          "message": "Current startup did not pass.",
+          "repair": "Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior."
+        }
+      ]
+    }
+  ]
+}

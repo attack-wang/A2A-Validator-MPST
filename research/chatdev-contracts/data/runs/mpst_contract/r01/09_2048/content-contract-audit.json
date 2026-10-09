@@ -1,0 +1,302 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "\n\nTypically in ChatDev, the CPO gives a recommendation first, then the CEO agrees, then one terminates. But since I'm responding first, I should give my opinion and ask for the CEO's agreement. Actually, in the standard ChatDev flow, the CEO speaks first, then CPO responds. Here I'm being asked to respond, so I should give my opinion.\n\nLet me give a clear recommendation: Application (Python) for the 2048 game, since it requires keyboard input (arrow keys) and real-time visual rendering, which suits an interactive application. I'll express this and invite agreement.As the Chief Product Officer, I've analyzed the customer's requirements for this task. The customer wants a standard 2048 game with the following key characteristics:\n\n1. **Interactive gameplay** — players control tiles via arrow keys in real-time\n2. **Dynamic visual rendering** — a 4x4 grid with tiles that slide, merge, and update after every move\n3. **Real-time state tracking** — current score and highest tile must be displayed and updated continuously\n4. **Game logic** — random tile generation, merge mechanics, and end-game detection\n\nGiven these requirements, interactivity and real-time visual feedback are essential. Among the modalities we've used before, a static format (Image, Document, PowerPoint, PDF, etc.) clearly cannot deliver playable gameplay. The two viable candidates are:\n\n- **Application (Python)**: Well-suited for implementing a visualized game with keyboard event handling, game loop logic, and graphical rendering (e.g., via Pygame or Tkinter). This matches our past experience with visualized games and tools.\n- **Website (HTML)**: Could also work using JavaScript, but the customer's description of arrow-key controls and a classic desktop-style game aligns more naturally with a standalone application.\n\nMy recommendation is the **Application** modality, as it best fits the interactive, visualized game nature of 2048 and is directly realizable with our existing capabilities.\n\nDo you agree with proceeding with an Application implemented via Python? If we both concur, I will finalize the decision."
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\n\"\"\"Terminal 2048: arrow keys slide tiles; merge equal tiles to reach 2048.\"\"\"\nimport sys\n\nfrom game import add_tile, can_move, highest_tile, move, new_board\n\nCLEAR = \"\\033[2J\\033[H\"\nBORDER = \"+\" + \"-----+\" * 4\nDIRECTIONS = ('up', 'down', 'left', 'right')\nWASD = {'w': 'up', 's': 'down', 'a': 'left', 'd': 'right'}\n\n\ndef read_key():\n    \"\"\"Return 'up'/'down'/'left'/'right', 'quit', or '' for ignored keys.\"\"\"\n    try:\n        import msvcrt\n        ch = msvcrt.getwch()\n        if ch in ('\\x00', '\\xe0'):\n            ch = msvcrt.getwch()\n            return {'H': 'up', 'P': 'down', 'K': 'left', 'M': 'right'}.get(ch, '')\n        return WASD.get(ch.lower(), 'quit' if ch.lower() == 'q' else '')\n    except ImportError:\n        import select\n        import termios\n        import tty\n        fd = sys.stdin.fileno()\n        old = termios.tcgetattr(fd)\n        try:\n            tty.setraw(fd)\n            ch = sys.stdin.read(1)\n            if ch == '\\x1b':\n                ready, _, _ = select.select([sys.stdin], [], [], 0.1)\n                if ready:\n                    seq = sys.stdin.read(2)\n                    if len(seq) == 2 and seq[0] == '[':\n                        return {'A': 'up', 'B': 'down',\n                                'C': 'right', 'D': 'left'}.get(seq[1], '')\n                return ''\n            if ch in WASD:\n                return WASD[ch]\n            return 'quit' if ch.lower() == 'q' else ''\n        finally:\n            termios.tcsetattr(fd, termios.TCSADRAIN, old)\n\n\ndef render(board, score, best):\n    print(CLEAR, end=\"\")\n    print(\"2048 | Score: {} | Highest tile: {}\".format(score, best))\n    print(BORDER)\n    for row in board:\n        cells = [\"{:>4} \".format(v) if v else \"  .  \" for v in row]\n        print(\"|\" + \"|\".join(cells) + \"|\")\n        print(BORDER)\n    print(\"Move: arrow keys (or WASD). Quit: q.\")\n\n\ndef main():\n    board = new_board()\n    score = 0\n    best = highest_tile(board)\n    render(board, score, best)\n    while True:\n        key = read_key()\n        if key == 'quit':\n            print(\"Bye! Score: {} | Highest tile: {}\".format(score, best))\n            return\n        if key not in DIRECTIONS:\n            continue\n        moved, gained = move(board, key)\n        if not moved:\n            continue\n        score += gained\n        add_tile(board)\n        best = max(best, highest_tile(board))\n        render(board, score, best)\n        if not can_move(board):\n            print(\"Game over! Final score: {} | Highest tile: {}\".format(score, best))\n            return\n\n\nif __name__ == '__main__':\n    main()\n```\n\ngame.py\n```python\n\"\"\"Core 2048 logic: 4x4 grid, slides, merges, spawns, and game-over checks.\"\"\"\nimport random\n\nSIZE = 4\n\n\ndef new_board():\n    \"\"\"Return a fresh board with two starting tiles.\"\"\"\n    board = [[0] * SIZE for _ in range(SIZE)]\n    add_tile(board)\n    add_tile(board)\n    return board\n\n\ndef add_tile(board):\n    \"\"\"Spawn a 2 (90%) or 4 (10%) in a random empty cell.\"\"\"\n    empty = [(r, c) for r in range(SIZE) for c in range(SIZE) if board[r][c] == 0]\n    if not empty:\n        return False\n    r, c = random.choice(empty)\n    board[r][c] = 2 if random.random() < 0.9 else 4\n    return True\n\n\ndef _slide(values):\n    \"\"\"Slide a line left, merging equal neighbours once; return (line, gained).\"\"\"\n    tiles = [v for v in values if v]\n    line, gained, i = [], 0, 0\n    while i < len(tiles):\n        if i + 1 < len(tiles) and tiles[i] == tiles[i + 1]:\n            merged = tiles[i] * 2\n            line.append(merged)\n            gained += merged\n            i += 2\n        else:\n            line.append(tiles[i])\n            i += 1\n    line += [0] * (SIZE - len(line))\n    return line, gained\n\n\ndef move(board, direction):\n    \"\"\"Apply 'up'/'down'/'left'/'right'; return (moved, score_gained).\"\"\"\n    moved, gained = False, 0\n    if direction in ('left', 'right'):\n        for r in range(SIZE):\n            row = board[r][::-1] if direction == 'right' else list(board[r])\n            line, s = _slide(row)\n            if direction == 'right':\n                line = line[::-1]\n            if line != board[r]:\n                moved = True\n                board[r] = line\n            gained += s\n    else:\n        for c in range(SIZE):\n            col = [board[r][c] for r in range(SIZE)]\n            if direction == 'down':\n                col.reverse()\n            line, s = _slide(col)\n            if direction == 'down':\n                line.reverse()\n            for r in range(SIZE):\n                if board[r][c] != line[r]:\n                    moved = True\n                board[r][c] = line[r]\n            gained += s\n    return moved, gained\n\n\ndef can_move(board):\n    \"\"\"True while any cell is empty or any adjacent pair is equal.\"\"\"\n    for r in range(SIZE):\n        for c in range(SIZE):\n            v = board[r][c]\n            if v == 0:\n                return True\n            if c + 1 < SIZE and board[r][c + 1] == v:\n                return True\n            if r + 1 < SIZE and board[r + 1][c] == v:\n                return True\n    return False\n\n\ndef highest_tile(board):\n    \"\"\"Largest tile currently on the board.\"\"\"\n    return max(max(row) for row in board)\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "f59e5e3371acd15139de1b776227b28f71119d6a3943d6893ad8428b7ff607ba",
+      "result": "{\"verdict\": \"finished\", \"issues\": []}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "f59e5e3371acd15139de1b776227b28f71119d6a3943d6893ad8428b7ff607ba",
+      "result": " Finished"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "f59e5e3371acd15139de1b776227b28f71119d6a3943d6893ad8428b7ff607ba",
+      "result": "{\"status\": \"inconclusive\", \"test_run_id\": \"7508e4e6f77063882f3d6889f90126237310edbfed11abb69b6186001d073d5c\", \"summary\": \"Startup smoke timed out after 3s with no exit code, stdout, or stderr. This is expected for main.py, an interactive 2048 game that enters a blocking keyboard-input loop and only exits on 'q' or game over; the timeout does not indicate a source error, missing dependency, or unsupported invocation. Inconclusive result establishes neither a code defect nor successful execution; interactive verification with key input is required.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "f59e5e3371acd15139de1b776227b28f71119d6a3943d6893ad8428b7ff607ba",
+      "result": "main.py\n```python\n\"\"\"Terminal 2048: arrow keys slide tiles; merge equal tiles to reach 2048.\"\"\"\nimport os\nimport sys\n\nfrom game import add_tile, can_move, highest_tile, move, new_board\n\nCLEAR = \"\\033[2J\\033[H\"\nBORDER = \"+\" + \"-----+\" * 4\nDIRECTIONS = ('up', 'down', 'left', 'right')\nWASD = {'w': 'up', 's': 'down', 'a': 'left', 'd': 'right'}\n\nif sys.platform == 'win32':\n    try:\n        os.system(\"\")  # Enable ANSI escape processing on Windows consoles.\n    except OSError:\n        pass\n\n\ndef read_key():\n    \"\"\"Return 'up'/'down'/'left'/'right', 'quit', or '' for ignored keys.\"\"\"\n    try:\n        import msvcrt\n        ch = msvcrt.getwch()\n        if ch in ('\\x00', '\\xe0'):\n            ch = msvcrt.getwch()\n            return {'H': 'up', 'P': 'down', 'K': 'left', 'M': 'right'}.get(ch, '')\n        return WASD.get(ch.lower(), 'quit' if ch.lower() == 'q' else '')\n    except ImportError:\n        import select\n        import termios\n        import tty\n        fd = sys.stdin.fileno()\n        old = termios.tcgetattr(fd)\n        try:\n            tty.setraw(fd)\n            ch = sys.stdin.read(1)\n            if ch == '\\x1b':\n                ready, _, _ = select.select([sys.stdin], [], [], 0.1)\n                if ready:\n                    seq = sys.stdin.read(2)\n                    if len(seq) == 2 and seq[0] == '[':\n                        return {'A': 'up', 'B': 'down',\n                                'C': 'right', 'D': 'left'}.get(seq[1], '')\n                return ''\n            if ch in WASD:\n                return WASD[ch]\n            return 'quit' if ch.lower() == 'q' else ''\n        finally:\n            termios.tcsetattr(fd, termios.TCSADRAIN, old)\n\n\ndef render(board, score, best):\n    print(CLEAR, end=\"\")\n    print(\"2048 | Score: {} | Highest tile: {}\".format(score, best))\n    print(BORDER)\n    for row in board:\n        cells = [\"{:>4} \".format(v) if v else \"  .  \" for v in row]\n        print(\"|\" + \"|\".join(cells) + \"|\")\n        print(BORDER)\n    print(\"Move: arrow keys (or WASD). Quit: q.\", flush=True)\n\n\ndef main():\n    board = new_board()\n    score = 0\n    best = highest_tile(board)\n    render(board, score, best)\n    while True:\n        key = read_key()\n        if key == 'quit':\n            print(\"Bye! Score: {} | Highest tile: {}\".format(score, best))\n            return\n        if key not in DIRECTIONS:\n            continue\n        moved, gained = move(board, key)\n        if not moved:\n            continue\n        score += gained\n        add_tile(board)\n        best = max(best, highest_tile(board))\n        render(board, score, best)\n        if not can_move(board):\n            print(\"Game over! Final score: {} | Highest tile: {}\".format(score, best))\n            return\n\n\nif __name__ == '__main__':\n    main()\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "398561a9158862779bee2e26bde78eb1d0ed0997d1cdc07121ab9cb93b7e2c33",
+    "source_digests": {
+      "game.py": "d0f13a757726232d5441800654dc6d1b66b0d332966d91f7bfa1c2a00bdfc661",
+      "main.py": "cdeed12dcbaee66c88921ee61ebb0fa59a4c3bd18c286fa4bc85e7d322b663e6"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "main.py"
+    ],
+    "timeout_seconds": 3,
+    "status": "inconclusive",
+    "exit_code": null,
+    "stdout": "\u001b[2J\u001b[H2048 | Score: 0 | Highest tile: 2\n+-----+-----+-----+-----+\n|   2 |  .  |  .  |  .  |\n+-----+-----+-----+-----+\n|  .  |  .  |  .  |  .  |\n+-----+-----+-----+-----+\n|  .  |   2 |  .  |  .  |\n+-----+-----+-----+-----+\n|  .  |  .  |  .  |  .  |\n+-----+-----+-----+-----+\nMove: arrow keys (or WASD). Quit: q.\n",
+    "stderr": "Startup exceeded the time limit; success has not been established.",
+    "profile": "process_exit",
+    "id": "25c938ba8bb9d8e90b455b1b53ea32bfd41903bf77e9919a18ad46c66f59a21a"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "70cb2aa7ad9a8c2d69503b22c4fb96cdea9a71328f1345b1ea20c8ca46f4c56e",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "bca1e227b4034da34a2aab4c9e745e44ae68200f5e9b8093cb665e1b0f6540a5",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "694727febe0da2b3189164abc1aaf73bed6bf9a49fefed87cf2dee67010438be",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "187001ad409be2c865c569675841ea5d1df49a71b870764c6ef33cedbd7921b5",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "187001ad409be2c865c569675841ea5d1df49a71b870764c6ef33cedbd7921b5",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "f59e5e3371acd15139de1b776227b28f71119d6a3943d6893ad8428b7ff607ba",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "41a4b7cba60fe48a82dea68df25c150b1c1a538a99dbfb89714d4f298e56bd57",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "f59e5e3371acd15139de1b776227b28f71119d6a3943d6893ad8428b7ff607ba",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2e268ff0cef63580c64233b07e8fd026c494a543f47a7717f2245832819f24fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "f59e5e3371acd15139de1b776227b28f71119d6a3943d6893ad8428b7ff607ba",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8700fb183943e095d13134cd4e69d7c20578218ffc78582ca4a8388a666754b",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "f59e5e3371acd15139de1b776227b28f71119d6a3943d6893ad8428b7ff607ba",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3713dc9d1785c47081ef36c7e993dd51ecf9c4913bd8e04500b2a4717fc9a3a0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "f59e5e3371acd15139de1b776227b28f71119d6a3943d6893ad8428b7ff607ba",
+        "source_digests": {
+          "game.py": "d0f13a757726232d5441800654dc6d1b66b0d332966d91f7bfa1c2a00bdfc661",
+          "main.py": "9de5db2eec0c108bfa37b718d81bf79ccab3729b508e11aa0d401800d5da29a7"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "inconclusive",
+        "exit_code": null,
+        "stdout": "",
+        "stderr": "Startup exceeded the time limit; success has not been established.",
+        "profile": "process_exit",
+        "id": "7508e4e6f77063882f3d6889f90126237310edbfed11abb69b6186001d073d5c"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "f59e5e3371acd15139de1b776227b28f71119d6a3943d6893ad8428b7ff607ba",
+        "source_digests": {
+          "game.py": "d0f13a757726232d5441800654dc6d1b66b0d332966d91f7bfa1c2a00bdfc661",
+          "main.py": "9de5db2eec0c108bfa37b718d81bf79ccab3729b508e11aa0d401800d5da29a7"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "inconclusive",
+        "exit_code": null,
+        "stdout": "",
+        "stderr": "Startup exceeded the time limit; success has not been established.",
+        "profile": "process_exit",
+        "id": "7508e4e6f77063882f3d6889f90126237310edbfed11abb69b6186001d073d5c"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "f59e5e3371acd15139de1b776227b28f71119d6a3943d6893ad8428b7ff607ba",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "d933616eb85d04195b7251e1850c2dd12c06a9d6f18388386fc01dbbec74bdaa",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "f59e5e3371acd15139de1b776227b28f71119d6a3943d6893ad8428b7ff607ba",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "bff462d124e6874b71fe2f0cd12dab6f7911dd6788b2cb8839d57e10ba37b364",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "f59e5e3371acd15139de1b776227b28f71119d6a3943d6893ad8428b7ff607ba",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "84af2cc2e8a1248298212a471e921ad054ffab677df41470fe9406f67dc22e1a",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "f59e5e3371acd15139de1b776227b28f71119d6a3943d6893ad8428b7ff607ba",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "84af2cc2e8a1248298212a471e921ad054ffab677df41470fe9406f67dc22e1a",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "398561a9158862779bee2e26bde78eb1d0ed0997d1cdc07121ab9cb93b7e2c33",
+        "source_digests": {
+          "game.py": "d0f13a757726232d5441800654dc6d1b66b0d332966d91f7bfa1c2a00bdfc661",
+          "main.py": "cdeed12dcbaee66c88921ee61ebb0fa59a4c3bd18c286fa4bc85e7d322b663e6"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "inconclusive",
+        "exit_code": null,
+        "stdout": "\u001b[2J\u001b[H2048 | Score: 0 | Highest tile: 2\n+-----+-----+-----+-----+\n|   2 |  .  |  .  |  .  |\n+-----+-----+-----+-----+\n|  .  |  .  |  .  |  .  |\n+-----+-----+-----+-----+\n|  .  |   2 |  .  |  .  |\n+-----+-----+-----+-----+\n|  .  |  .  |  .  |  .  |\n+-----+-----+-----+-----+\nMove: arrow keys (or WASD). Quit: q.\n",
+        "stderr": "Startup exceeded the time limit; success has not been established.",
+        "profile": "process_exit",
+        "id": "25c938ba8bb9d8e90b455b1b53ea32bfd41903bf77e9919a18ad46c66f59a21a"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": false,
+      "evidence_id": "25c938ba8bb9d8e90b455b1b53ea32bfd41903bf77e9919a18ad46c66f59a21a",
+      "violations": [
+        {
+          "layer": "A",
+          "rule": "current_startup_passed",
+          "path": "$",
+          "message": "Current startup did not pass.",
+          "repair": "Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "task_index": 9,
+  "project_name": "2048",
+  "description": "Design a standard 2048 game using a 4x4 grid. Players combine tiles by pressing arrow keys to slide them in one direction. Tiles with the same number merge into one, doubling the value. After each move, a new tile appears in a random empty cell. The game ends when no moves are possible. Track and display the current score and highest tile reached.",
+  "framework": "ChatDev1.0",
+  "model": "glm-5.3-flash:cloud",
+  "content_contracts_enabled": true,
+  "session_type_enabled": true,
+  "status": "failed",
+  "error": "exit code 1",
+  "failure_type": "content_contract",
+  "project_path": "data/runs/mpst_contract/r02/09_2048/artifact",
+  "elapsed_seconds": 235.531,
+  "contract_rejections": 4,
+  "violated_rules": [
+    "output_truncated",
+    "summary_evidence",
+    "output_truncated",
+    "current_startup_passed"
+  ],
+  "last_diagnostic": "ue, TEXT_COLOR)\n-    screen.blit(score_text, (GAP, 18))\n-    screen.blit(best_text, (WIDTH - best_text.get_width() - GAP, 18))\n-    for row in range(GRID_SIZE):\n-        for col in range(GRID_SIZE):\n-            draw_tile(screen, fonts, game.grid[row][col], row, col)\n-    if message:\n-        overlay = pygame.Surface((WIDTH, WIDTH), pygame.SRCALPHA)\n-        overlay.fill((238, 228, 218, 170))\n-        screen.blit(overlay, (0, HEADER))\n-        center_x, center_y = WIDTH // 2, HEADER + WIDTH // 2\n-        msg = fonts['overlay'].render(message, True, TEXT_COLOR)\n-        hint = fonts['header'].render(\"Press R to restart, Q to quit\", True, TEXT_COLOR)\n-        screen.blit(msg, msg.get_rect(center=(center_x, center_y - 25)))\n-        screen.blit(hint, hint.get_rect(center=(center_x, center_y + 25)))\n-    pygame.display.flip()\n+    def draw(self):\n+        c = self.canvas\n+        c.delete(\"all\")\n+        c.create_text(GAP, HEADER // 2, anchor=\"w\", fill=TEXT_COLOR,\n+                      text=\"Score: {}\".format(self.game.score),\n+                      font=(\"Helvetica\", 16, \"bold\"))\n+        c.create_text(WIDTH - GAP, HEADER // 2, anchor=\"e\", fill=TEXT_COLOR,\n+                      text=\"Highest tile: {}\".format(self.game.best),\n+                      font=(\"Helvetica\", 16, \"bold\"))\n+        for r in range(GRID_SIZE):\n+            for col in range(GRID_SIZE):\n+                x = GAP + col * (CELL_SIZE + GAP)\n+                y = HEADER + GAP + r * (CELL_SIZE + GAP)\n+                value = self.game.grid[r][col]\n+                fill = TILE_COLORS.get(value, BG_COLOR if value == 0 else \"#3c3a32\")\n+                c.create_rectangle(x, y, x + CELL_SIZE, y + CELL_SIZE,\n+                                   fill=fill, width=0)\n+                if value:\n+                    size = 30 if value < 100 else 26 if value < 1000 else 22\n+                    color = TEXT_COLOR if value <= 4 else LIGHT_TEXT\n+                    c.create_text(x + CELL_SIZE // 2, y + CELL_SIZE // 2,\n+                                  text=str(value), fill=color,\n+                                  font=(\"Helvetica\", size, \"bold\"))\n+        if not self.game.can_move():\n+            c.create_rectangle(GAP, HEADER + GAP, WIDTH - GAP, HEIGHT - GAP,\n+                               fill=\"#eee4da\", stipple=\"gray50\", width=0)\n+            cx, cy = WIDTH // 2, HEADER + WIDTH // 2\n+            c.create_text(cx, cy - 22, text=\"Game over!\", fill=TEXT_COLOR,\n+                          font=(\"Helvetica\", 26, \"bold\"))\n+            c.create_text(cx, cy + 22, text=\"Press R to restart, Q to quit\",\n+                          fill=TEXT_COLOR, font=(\"Helvetica\", 14))\n \n \n def main():\n-    pygame.init()\n-    screen = pygame.display.set_mode((WIDTH, HEIGHT))\n-    pygame.display.set_caption(\"2048\")\n-    fonts = make_fonts()\n-    game = Game(GRID_SIZE)\n-    message = \"\"\n-    clock = pygame.time.Clock()\n-    running = True\n-    while running:\n-        for event in pygame.event.get():\n-            if event.type == pygame.QUIT:\n-                running = False\n-            elif event.type == pygame.KEYDOWN:\n-                if event.key in KEY_MAP:\n-                    game.move(KEY_MAP[event.key])\n-                elif event.key == pygame.K_r:\n-                    game.reset()\n-                    message = \"\"\n-                elif event.key == pygame.K_q:\n-                    running = False\n-        if not game.can_move():\n-            message = \"Game over!\"\n-        draw(screen, fonts, game, message)\n-        clock.tick(60)\n-    pygame.quit()\n-    sys.exit(0)\n+    root = tk.Tk()\n+    GameApp(root)\n+    root.mainloop()\n \n \n if __name__ == \"__main__\":\n```\n\ndir: data/runs/mpst_contract/r02/09_2048/artifact\n**[Software Info]**:\n\n \n\n💰**cost**=unknown\n\n🔨**version_updates**=-1\n\n📃**num_code_files**=2\n\n🏞**num_png_files**=0\n\n📚**num_doc_files**=5\n\n📃**code_lines**=164\n\n📋**env_lines**=-1\n\n📒**manual_lines**=-1\n\n🗣**num_utterances**=14\n\n🤔**num_self_reflections**=0\n\n❓**num_prompt_tokens**=21097\n\n❗**num_completion_tokens**=33089\n\n🌟**num_total_tokens**=54186\n\nTraceback (most recent call last):\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\run.py\", line 136, in <module>\n    chat_chain.execute_chain()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\chat_chain.py\", line 183, in execute_chain\n    content_guard.finish()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\content_guard.py\", line 134, in finish\n    raise ContentViolation(\"chatdev.stage_exit.v1\", findings)\ncontent_lab.chatdev_contracts.ContentViolation: {\"contract\": \"chatdev.stage_exit.v1\", \"violations\": [{\"layer\": \"A\", \"rule\": \"current_startup_passed\", \"path\": \"$\", \"message\": \"Current startup did not pass.\", \"repair\": \"Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior.\"}]}\n",
+  "artifact_pass": true,
+  "evaluation_error": null,
+  "result_path": "data/runs/mpst_contract/r02/09_2048\\run_result.json",
+  "model_decision_enabled": false,
+  "model_decision_calls": 0,
+  "terminal_contract": "chatdev.stage_exit.v1",
+  "terminal_rules": [
+    "current_startup_passed"
+  ],
+  "audit_checks": 21,
+  "delivered_phases": [
+    "DemandAnalysis",
+    "LanguageChoose",
+    "Coding",
+    "CodeReviewComment",
+    "CodeReviewModification",
+    "TestErrorSummary",
+    "TestModification"
+  ]
+}

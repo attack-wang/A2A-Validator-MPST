@@ -1,0 +1,289 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Application"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\n\"\"\"Connect Four - a two-player console game.\"\"\"\n\n\nROWS, COLS = 6, 7\nEMPTY = \".\"\n\n\ndef new_board():\n    \"\"\"Create an empty Connect Four board.\"\"\"\n    return [[EMPTY] * COLS for _ in range(ROWS)]\n\n\ndef print_board(board):\n    \"\"\"Display the board with column numbers beneath it.\"\"\"\n    for row in board:\n        print(\" \".join(row))\n    print(\" \".join(str(c + 1) for c in range(COLS)))\n\n\ndef drop_disc(board, col, disc):\n    \"\"\"Place a disc in the given column; return its row, or -1 if full.\"\"\"\n    for r in range(ROWS - 1, -1, -1):\n        if board[r][col] == EMPTY:\n            board[r][col] = disc\n            return r\n    return -1\n\n\ndef is_full(board):\n    \"\"\"Return True when the board has no empty cells left.\"\"\"\n    return all(board[0][c] != EMPTY for c in range(COLS))\n\n\ndef winning_line(board, row, col, disc):\n    \"\"\"Check all directions from the last move for four in a row.\"\"\"\n    directions = ((0, 1), (1, 0), (1, 1), (1, -1))\n    for dr, dc in directions:\n        count = 1\n        for sign in (1, -1):\n            r, c = row + dr * sign, col + dc * sign\n            while 0 <= r < ROWS and 0 <= c < COLS and board[r][c] == disc:\n                count += 1\n                r += dr * sign\n                c += dc * sign\n        if count >= 4:\n            return True\n    return False\n\n\ndef get_move(board, player):\n    \"\"\"Prompt until the player enters a valid, non-full column.\"\"\"\n    while True:\n        try:\n            col = int(input(f\"Player {player}, choose a column (1-{COLS}): \").strip()) - 1\n        except ValueError:\n            print(\"Invalid input. Please enter a number.\")\n            continue\n        if not 0 <= col < COLS:\n            print(f\"Column must be between 1 and {COLS}.\")\n        elif board[0][col] != EMPTY:\n            print(\"That column is full. Choose another.\")\n        else:\n            return col\n\n\ndef main():\n    board = new_board()\n    players = (\"X\", \"O\")\n    turn = 0\n    print(\"Welcome to Connect Four! Connect four discs to win.\")\n    print_board(board)\n    while True:\n        player = players[turn % 2]\n        col = get_move(board, player)\n        row = drop_disc(board, col, player)\n        print_board(board)\n        if winning_line(board, row, col, player):\n            print(f\"Player {player} wins!\")\n            break\n        if is_full(board):\n            print(\"It's a draw!\")\n            break\n        turn += 1\n\n\nif __name__ == \"__main__\":\n    main()\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "3f6a69ff7c3e1753824269cef0a43f200bd0196833186a8ea25f0b3fa5737c8c",
+      "result": "{\"verdict\": \"finished\", \"issues\": []}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "3f6a69ff7c3e1753824269cef0a43f200bd0196833186a8ea25f0b3fa5737c8c",
+      "result": " Finished"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "3f6a69ff7c3e1753824269cef0a43f200bd0196833186a8ea25f0b3fa5737c8c",
+      "result": "{\"status\": \"failed\", \"test_run_id\": \"47384c57687bd33d3890d3694fa340509410f49a6138a6bdefc100b8d8bfa689\", \"summary\": \"Startup smoke test failed (exit code 1) with EOFError at the input() call in get_move. The program itself started correctly: welcome banner, empty 6x7 board, and column prompt were printed to stdout. The failure is an unsupported invocation pattern, not a missing dependency or game-logic defect: main.py is an interactive console game that blocks on stdin, while the smoke harness ran it with no stdin attached and a 3-second timeout, so reading a line raised EOFError. This inconclusive check does not establish a code defect; validating actual gameplay would require piping scripted moves (e.g., echo of column choices) into stdin or running interactively.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "3f6a69ff7c3e1753824269cef0a43f200bd0196833186a8ea25f0b3fa5737c8c",
+      "result": "main.py\n```python\n\"\"\"Connect Four - a two-player console game.\"\"\"\n\n\nROWS, COLS = 6, 7\nEMPTY = \".\"\n\n\ndef new_board():\n    \"\"\"Create an empty Connect Four board.\"\"\"\n    return [[EMPTY] * COLS for _ in range(ROWS)]\n\n\ndef print_board(board):\n    \"\"\"Display the board with column numbers beneath it.\"\"\"\n    for row in board:\n        print(\" \".join(row))\n    print(\" \".join(str(c + 1) for c in range(COLS)))\n\n\ndef drop_disc(board, col, disc):\n    \"\"\"Place a disc in the given column; return its row, or -1 if full.\"\"\"\n    for r in range(ROWS - 1, -1, -1):\n        if board[r][col] == EMPTY:\n            board[r][col] = disc\n            return r\n    return -1\n\n\ndef is_full(board):\n    \"\"\"Return True when the board has no empty cells left.\"\"\"\n    return all(board[0][c] != EMPTY for c in range(COLS))\n\n\ndef winning_line(board, row, col, disc):\n    \"\"\"Check all directions from the last move for four in a row.\"\"\"\n    directions = ((0, 1), (1, 0), (1, 1), (1, -1))\n    for dr, dc in directions:\n        count = 1\n        for sign in (1, -1):\n            r, c = row + dr * sign, col + dc * sign\n            while 0 <= r < ROWS and 0 <= c < COLS and board[r][c] == disc:\n                count += 1\n                r += dr * sign\n                c += dc * sign\n        if count >= 4:\n            return True\n    return False\n\n\ndef get_move(board, player):\n    \"\"\"Prompt until the player enters a valid, non-full column.\"\"\"\n    while True:\n        try:\n            line = input(f\"Player {player}, choose a column (1-{COLS}): \").strip()\n        except EOFError:\n            print(\"\\nInput stream closed. Exiting Connect Four.\")\n            raise SystemExit(0)\n        except KeyboardInterrupt:\n            print(\"\\nInterrupted. Goodbye!\")\n            raise SystemExit(130)\n        try:\n            col = int(line) - 1\n        except ValueError:\n            print(\"Invalid input. Please enter a number.\")\n            continue\n        if not 0 <= col < COLS:\n            print(f\"Column must be between 1 and {COLS}.\")\n        elif board[0][col] != EMPTY:\n            print(\"That column is full. Choose another.\")\n        else:\n            return col\n\n\ndef main():\n    board = new_board()\n    players = (\"X\", \"O\")\n    turn = 0\n    print(\"Welcome to Connect Four! Connect four discs to win.\")\n    print_board(board)\n    while True:\n        player = players[turn % 2]\n        col = get_move(board, player)\n        row = drop_disc(board, col, player)\n        print_board(board)\n        if winning_line(board, row, col, player):\n            print(f\"Player {player} wins!\")\n            break\n        if is_full(board):\n            print(\"It's a draw!\")\n            break\n        turn += 1\n\n\nif __name__ == \"__main__\":\n    main()\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "8ed29c6fd3462bc689ca2270c13477005836b98a822bc6867fe683fdd82f8c90",
+    "source_digests": {
+      "main.py": "a0d3ced0512d6383db796a3c6b54ad1a0374c1da6e094aee058cff85cd5dde23"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "main.py"
+    ],
+    "timeout_seconds": 3,
+    "status": "passed",
+    "exit_code": 0,
+    "stdout": "Welcome to Connect Four! Connect four discs to win.\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n1 2 3 4 5 6 7\nPlayer X, choose a column (1-7): \nInput stream closed. Exiting Connect Four.\n",
+    "stderr": "",
+    "profile": "process_exit",
+    "id": "c3a16251b8050f9923491967b0c57d12e9dd6c05f1b0c30626673a92e2b08c02"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b99a15be08579c181c7710b6f0e463ada8fc364ee43a54386457e24d408d3fd1",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "57d005c3b71920cefd5b63883aac3200365d1f8a4aa4b23a48238444adb055e7",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "69f4b67878dd399cdf8a7254e54774040bf59cb5cd8e68462ba04756ae295816",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "cc4e61ec58ee69ff67d607657d7f317a9edd8472fd164c290795bff407e2ed5e",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "cc4e61ec58ee69ff67d607657d7f317a9edd8472fd164c290795bff407e2ed5e",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "3f6a69ff7c3e1753824269cef0a43f200bd0196833186a8ea25f0b3fa5737c8c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "41a4b7cba60fe48a82dea68df25c150b1c1a538a99dbfb89714d4f298e56bd57",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "3f6a69ff7c3e1753824269cef0a43f200bd0196833186a8ea25f0b3fa5737c8c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2e268ff0cef63580c64233b07e8fd026c494a543f47a7717f2245832819f24fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "3f6a69ff7c3e1753824269cef0a43f200bd0196833186a8ea25f0b3fa5737c8c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8700fb183943e095d13134cd4e69d7c20578218ffc78582ca4a8388a666754b",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "3f6a69ff7c3e1753824269cef0a43f200bd0196833186a8ea25f0b3fa5737c8c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3713dc9d1785c47081ef36c7e993dd51ecf9c4913bd8e04500b2a4717fc9a3a0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "3f6a69ff7c3e1753824269cef0a43f200bd0196833186a8ea25f0b3fa5737c8c",
+        "source_digests": {
+          "main.py": "eb24772499a0ddd610290fab163fa93838e437ce1fb2678064adbc7b2a94657d"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "Welcome to Connect Four! Connect four discs to win.\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n1 2 3 4 5 6 7\nPlayer X, choose a column (1-7): ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r07/16_ConnectFour/artifact\\main.py\", line 87, in <module>\n    main()\n  File \"data/runs/mpst_contract/r07/16_ConnectFour/artifact\\main.py\", line 74, in main\n    col = get_move(board, player)\n          ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"data/runs/mpst_contract/r07/16_ConnectFour/artifact\\main.py\", line 54, in get_move\n    col = int(input(f\"Player {player}, choose a column (1-{COLS}): \").strip()) - 1\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "47384c57687bd33d3890d3694fa340509410f49a6138a6bdefc100b8d8bfa689"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "3f6a69ff7c3e1753824269cef0a43f200bd0196833186a8ea25f0b3fa5737c8c",
+        "source_digests": {
+          "main.py": "eb24772499a0ddd610290fab163fa93838e437ce1fb2678064adbc7b2a94657d"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "Welcome to Connect Four! Connect four discs to win.\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n1 2 3 4 5 6 7\nPlayer X, choose a column (1-7): ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r07/16_ConnectFour/artifact\\main.py\", line 87, in <module>\n    main()\n  File \"data/runs/mpst_contract/r07/16_ConnectFour/artifact\\main.py\", line 74, in main\n    col = get_move(board, player)\n          ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"data/runs/mpst_contract/r07/16_ConnectFour/artifact\\main.py\", line 54, in get_move\n    col = int(input(f\"Player {player}, choose a column (1-{COLS}): \").strip()) - 1\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "47384c57687bd33d3890d3694fa340509410f49a6138a6bdefc100b8d8bfa689"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "3f6a69ff7c3e1753824269cef0a43f200bd0196833186a8ea25f0b3fa5737c8c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "8944b51785e98b654e191b0dcd61fe09024c4e825bb66cafb29b53dd020c6202",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "3f6a69ff7c3e1753824269cef0a43f200bd0196833186a8ea25f0b3fa5737c8c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "7c8acf5e2c2b5e2ea78e0c89314040c05d4e0154af0f86eaec12eb139d7e703e",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "3f6a69ff7c3e1753824269cef0a43f200bd0196833186a8ea25f0b3fa5737c8c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "c9b96d6df603cfea2bef6897b44db6a5b6c5c52867f70264c0cd42425bafd82f",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "3f6a69ff7c3e1753824269cef0a43f200bd0196833186a8ea25f0b3fa5737c8c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "c9b96d6df603cfea2bef6897b44db6a5b6c5c52867f70264c0cd42425bafd82f",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "8ed29c6fd3462bc689ca2270c13477005836b98a822bc6867fe683fdd82f8c90",
+        "source_digests": {
+          "main.py": "a0d3ced0512d6383db796a3c6b54ad1a0374c1da6e094aee058cff85cd5dde23"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "Welcome to Connect Four! Connect four discs to win.\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n1 2 3 4 5 6 7\nPlayer X, choose a column (1-7): \nInput stream closed. Exiting Connect Four.\n",
+        "stderr": "",
+        "profile": "process_exit",
+        "id": "c3a16251b8050f9923491967b0c57d12e9dd6c05f1b0c30626673a92e2b08c02"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": true,
+      "evidence_id": "c3a16251b8050f9923491967b0c57d12e9dd6c05f1b0c30626673a92e2b08c02"
+    }
+  ]
+}

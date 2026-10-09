@@ -1,0 +1,301 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "As the Chief Product Officer, I've carefully considered the customer's need for a budget tracker to monitor expenses and savings. Let me share my analysis of the suitable modalities:\n\n- **Excel**: Familiar for financial data, but limited in interactivity and user experience for ongoing tracking.\n- **Dashboard**: Great for visualizing real-time information, but a budget tracker requires data *input* capabilities (adding expenses, setting savings goals), not just display.\n- **Application**: This is my strong recommendation. A Python-based application can provide a complete solution: interactive forms for recording expenses, category management, persistent data storage, savings goal tracking, and built-in visualizations (pie charts for expense breakdown, line charts for spending trends). It fully covers both \"monitoring\" and \"managing\" aspects of the customer's request.\n\nIn my opinion, an **Application** best satisfies the customer's demand — it is realizable, interactive, and delivers a polished user experience for day-to-day budget tracking.\n\nCEO, do you agree with the Application modality, or do you have a different preference?"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\n\"\"\"Budget Tracker - monitor expenses and savings.\"\"\"\nfrom storage import load_data, save_data\nfrom tracker import BudgetTracker\n\nMENU = \"\"\"\n=== Budget Tracker ===\n1) Add expense\n2) Add income\n3) List transactions\n4) Delete transaction\n5) Set category budget\n6) View budgets\n7) Set savings goal\n8) Summary & savings progress\n9) Monthly report\n0) Save & exit\n\"\"\"\n\n\ndef fmt(x):\n    return f\"${x:,.2f}\"\n\n\ndef ask_amount(prompt):\n    while True:\n        try:\n            v = float(input(prompt).strip())\n            if v <= 0:\n                print(\"Amount must be positive.\")\n                continue\n            return v\n        except ValueError:\n            print(\"Enter a valid number.\")\n\n\ndef ask_nonempty(prompt):\n    while True:\n        s = input(prompt).strip()\n        if s:\n            return s\n        print(\"Value cannot be empty.\")\n\n\ndef show_txs(tracker):\n    if not tracker.transactions:\n        print(\"No transactions recorded.\")\n        return\n    for t in tracker.transactions:\n        print(f\"  [{t.id}] {t.date}  {t.tx_type.upper():7} {t.category:<15} {fmt(t.amount):>12}  {t.note}\")\n\n\ndef add_tx(tracker, tx_type):\n    amount = ask_amount(\"Amount: \")\n    category = ask_nonempty(\"Category: \")\n    note = input(\"Note (optional): \").strip()\n    t = tracker.add_transaction(amount, category, tx_type, note)\n    print(f\"Added {tx_type} [{t.id}].\")\n\n\ndef delete_tx(tracker):\n    show_txs(tracker)\n    tid = input(\"Transaction ID to delete: \").strip()\n    print(\"Deleted.\" if tracker.remove_transaction(tid) else \"ID not found.\")\n\n\ndef set_budget(tracker):\n    cat = ask_nonempty(\"Category: \")\n    lim = ask_amount(\"Monthly limit: \")\n    tracker.set_budget(cat, lim)\n    print(f\"Budget for {cat} set to {fmt(lim)}.\")\n\n\ndef set_goal(tracker):\n    goal = ask_amount(\"Savings goal: \")\n    tracker.set_savings_goal(goal)\n    print(f\"Savings goal set to {fmt(goal)}.\")\n\n\ndef show_summary(tracker):\n    income, expenses, net = tracker.totals()\n    print(f\"\\nIncome:      {fmt(income)}\")\n    print(f\"Expenses:    {fmt(expenses)}\")\n    print(f\"Net savings: {fmt(net)}\")\n    saved, goal, pct = tracker.savings_progress()\n    if goal > 0:\n        bar = \"#\" * int(pct // 5)\n        print(f\"Goal {fmt(goal)}: saved {fmt(saved)} ({pct:.1f}%) [{bar:<20}]\")\n\n\ndef show_budgets(tracker):\n    status = tracker.budget_status()\n    if not status:\n        print(\"No budgets set. Use 'Set category budget' first.\")\n        return\n    for cat, s in status.items():\n        flag = \"OVER!\" if s[\"remaining\"] < 0 else \"ok\"\n        print(f\"  {cat:<15} limit {fmt(s['limit']):>10} spent {fmt(s['spent']):>10} \"\n              f\"remaining {fmt(s['remaining']):>10} [{flag}]\")\n\n\ndef show_report(tracker):\n    month = input(\"Month (YYYY-MM, blank for all): \").strip() or None\n    income, expenses, net, rows = tracker.monthly_report(month)\n    print(f\"\\nReport for {month or 'all time'}\")\n    print(f\"  Income:   {fmt(income)}\")\n    print(f\"  Expenses: {fmt(expenses)}\")\n    print(f\"  Net:      {fmt(net)}\")\n    cats = tracker.category_expenses(rows)\n    if cats:\n        print(\"  Spending by category:\")\n        for cat, amt in sorted(cats.items(), key=lambda kv: -kv[1]):\n            print(f\"    {cat:<15} {fmt(amt):>10}\")\n\n\ndef main():\n    tracker = BudgetTracker(load_data())\n    actions = {\n        \"1\": lambda: add_tx(tracker, \"expense\"),\n        \"2\": lambda: add_tx(tracker, \"income\"),\n        \"3\": lambda: show_txs(tracker),\n        \"4\": lambda: delete_tx(tracker),\n        \"5\": lambda: set_budget(tracker),\n        \"6\": lambda: show_budgets(tracker),\n        \"7\": lambda: set_goal(tracker),\n        \"8\": lambda: show_summary(tracker),\n        \"9\": lambda: show_report(tracker),\n    }\n    while True:\n        print(MENU)\n        choice = input(\"Choose an option: \").strip()\n        if choice == \"0\":\n            save_data(tracker.persist())\n            print(\"Data saved. Goodbye!\")\n            break\n        action = actions.get(choice)\n        if action:\n            action()\n        else:\n            print(\"Invalid option.\")\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nmodels.py\n```python\nfrom dataclasses import dataclass, field, asdict\nfrom datetime import datetime\nimport uuid\n\n\n@dataclass\nclass Transaction:\n    amount: float\n    category: str\n    tx_type: str  # \"expense\" or \"income\"\n    note: str = \"\"\n    date: str = field(default_factory=lambda: datetime.now().strftime(\"%Y-%m-%d\"))\n    id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])\n\n    def to_dict(self):\n        return asdict(self)\n\n    @classmethod\n    def from_dict(cls, d):\n        return cls(\n            amount=float(d[\"amount\"]),\n            category=d[\"category\"],\n            tx_type=d[\"tx_type\"],\n            note=d.get(\"note\", \"\"),\n            date=d.get(\"date\", datetime.now().strftime(\"%Y-%m-%d\")),\n            id=d.get(\"id\", uuid.uuid4().hex[:8]),\n        )\n```\n\nstorage.py\n```python\nimport json\nimport os\n\nDATA_FILE = \"budget_data.json\"\n\nEMPTY_DATA = {\"transactions\": [], \"budgets\": {}, \"savings_goal\": 0.0}\n\n\ndef load_data(path=DATA_FILE):\n    if not os.path.exists(path):\n        return dict(EMPTY_DATA)\n    try:\n        with open(path, \"r\", encoding=\"utf-8\") as f:\n            data = json.load(f)\n    except (json.JSONDecodeError, OSError):\n        return dict(EMPTY_DATA)\n    data.setdefault(\"transactions\", [])\n    data.setdefault(\"budgets\", {})\n    data.setdefault(\"savings_goal\", 0.0)\n    return data\n\n\ndef save_data(data, path=DATA_FILE):\n    with open(path, \"w\", encoding=\"utf-8\") as f:\n        json.dump(data, f, indent=2)\n```\n\ntracker.py\n```python\nfrom models import Transaction\n\n\nclass BudgetTracker:\n    def __init__(self, data):\n        self.data = data\n        self.transactions = [Transaction.from_dict(t) for t in data.get(\"transactions\", [])]\n        self.budgets = dict(data.get(\"budgets\", {}))\n        self.savings_goal = float(data.get(\"savings_goal\", 0.0))\n\n    def persist(self):\n        self.data[\"transactions\"] = [t.to_dict() for t in self.transactions]\n        self.data[\"budgets\"] = self.budgets\n        self.data[\"savings_goal\"] = self.savings_goal\n        return self.data\n\n    def add_transaction(self, amount, category, tx_type, note=\"\"):\n        tx = Transaction(round(amount, 2), category, tx_type, note)\n        self.transactions.append(tx)\n        return tx\n\n    def remove_transaction(self, tx_id):\n        before = len(self.transactions)\n        self.transactions = [t for t in self.transactions if t.id != tx_id]\n        return len(self.transactions) < before\n\n    def set_budget(self, category, limit):\n        self.budgets[category] = round(limit, 2)\n\n    def set_savings_goal(self, goal):\n        self.savings_goal = round(goal, 2)\n\n    def totals(self):\n        income = sum(t.amount for t in self.transactions if t.tx_type == \"income\")\n        expenses = sum(t.amount for t in self.transactions if t.tx_type == \"expense\")\n        return income, expenses, income - expenses\n\n    def category_expenses(self, rows=None):\n        cats = {}\n        for t in (rows if rows is not None else self.transactions):\n            if t.tx_type == \"expense\":\n                cats[t.category] = cats.get(t.category, 0.0) + t.amount\n        return cats\n\n    def budget_status(self):\n        spent = self.category_expenses()\n        return {\n            cat: {\n                \"limit\": lim,\n                \"spent\": round(spent.get(cat, 0.0), 2),\n                \"remaining\": round(lim - spent.get(cat, 0.0), 2),\n            }\n            for cat, lim in self.budgets.items()\n        }\n\n    def savings_progress(self):\n        _, _, net = self.totals()\n        pct = (net / self.savings_goal * 100) if self.savings_goal > 0 else 0.0\n        return net, self.savings_goal, min(max(pct, 0.0), 100.0)\n\n    def monthly_report(self, month=None):\n        rows = [t for t in self.transactions if month is None or t.date.startswith(month)]\n        income = sum(t.amount for t in rows if t.tx_type == \"income\")\n        expenses = sum(t.amount for t in rows if t.tx_type == \"expense\")\n        return income, expenses, income - expenses, rows\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "c676708c1231911fd2c0797166683f239ea01af8e669a60e073b83f1ab1dac91",
+      "result": "{\"verdict\": \"changes_requested\", \"issues\": [{\"file\": \"tracker.py\", \"line\": 46, \"message\": \"budget_status() computes 'spent' from all-time expenses via category_expenses(), but budgets are defined as monthly limits (main.py set_budget prompts 'Monthly limit'), so remaining/OVER flags become incorrect once prior months' transactions exist. Filter transactions to the current month (e.g., t.date startswith the current YYYY-MM) when summing spent per category.\"}]}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "c676708c1231911fd2c0797166683f239ea01af8e669a60e073b83f1ab1dac91",
+      "result": "tracker.py\n```python\nfrom datetime import datetime\n\nfrom models import Transaction\n\n\nclass BudgetTracker:\n    def __init__(self, data):\n        self.data = data\n        self.transactions = [Transaction.from_dict(t) for t in data.get(\"transactions\", [])]\n        self.budgets = dict(data.get(\"budgets\", {}))\n        self.savings_goal = float(data.get(\"savings_goal\", 0.0))\n\n    def persist(self):\n        self.data[\"transactions\"] = [t.to_dict() for t in self.transactions]\n        self.data[\"budgets\"] = self.budgets\n        self.data[\"savings_goal\"] = self.savings_goal\n        return self.data\n\n    def add_transaction(self, amount, category, tx_type, note=\"\"):\n        tx = Transaction(round(amount, 2), category, tx_type, note)\n        self.transactions.append(tx)\n        return tx\n\n    def remove_transaction(self, tx_id):\n        before = len(self.transactions)\n        self.transactions = [t for t in self.transactions if t.id != tx_id]\n        return len(self.transactions) < before\n\n    def set_budget(self, category, limit):\n        self.budgets[category] = round(limit, 2)\n\n    def set_savings_goal(self, goal):\n        self.savings_goal = round(goal, 2)\n\n    def totals(self):\n        income = sum(t.amount for t in self.transactions if t.tx_type == \"income\")\n        expenses = sum(t.amount for t in self.transactions if t.tx_type == \"expense\")\n        return income, expenses, income - expenses\n\n    def category_expenses(self, rows=None):\n        cats = {}\n        for t in (rows if rows is not None else self.transactions):\n            if t.tx_type == \"expense\":\n                cats[t.category] = cats.get(t.category, 0.0) + t.amount\n        return cats\n\n    def budget_status(self):\n        current_month = datetime.now().strftime(\"%Y-%m\")\n        month_rows = [t for t in self.transactions if t.date.startswith(current_month)]\n        spent = self.category_expenses(month_rows)\n        return {\n            cat: {\n                \"limit\": lim,\n                \"spent\": round(spent.get(cat, 0.0), 2),\n                \"remaining\": round(lim - spent.get(cat, 0.0), 2),\n            }\n            for cat, lim in self.budgets.items()\n        }\n\n    def savings_progress(self):\n        _, _, net = self.totals()\n        pct = (net / self.savings_goal * 100) if self.savings_goal > 0 else 0.0\n        return net, self.savings_goal, min(max(pct, 0.0), 100.0)\n\n    def monthly_report(self, month=None):\n        rows = [t for t in self.transactions if month is None or t.date.startswith(month)]\n        income = sum(t.amount for t in rows if t.tx_type == \"income\")\n        expenses = sum(t.amount for t in rows if t.tx_type == \"expense\")\n        return income, expenses, income - expenses, rows\n```"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "bf953408dbe6cdd872d0cf3925d5467a4803aa9bec14566b80e2e1a94281a8fd",
+      "result": "{\"status\": \"failed\", \"test_run_id\": \"36d75b31544c6f7859edbf4ccc44c5934f8cfe49c0d6a28972baa7afc57f39de\", \"summary\": \"Startup smoke run exited with code 1: the CLI launched, imported all modules, and printed the menu correctly, then crashed with EOFError at input() in main.py line 130 because the non-interactive harness supplied no stdin. This is an unsupported invocation of an interactive console app (empty stdin), not a source error or missing dependency; no code defect is established by this check.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "bf953408dbe6cdd872d0cf3925d5467a4803aa9bec14566b80e2e1a94281a8fd",
+      "result": "main.py\n```python\n\"\"\"Budget Tracker - monitor expenses and savings.\"\"\"\nfrom storage import load_data, save_data\nfrom tracker import BudgetTracker\n\nMENU = \"\"\"\n=== Budget Tracker ===\n1) Add expense\n2) Add income\n3) List transactions\n4) Delete transaction\n5) Set category budget\n6) View budgets\n7) Set savings goal\n8) Summary & savings progress\n9) Monthly report\n0) Save & exit\n\"\"\"\n\n\ndef fmt(x):\n    return f\"${x:,.2f}\"\n\n\ndef ask_amount(prompt):\n    while True:\n        try:\n            v = float(input(prompt).strip())\n        except ValueError:\n            print(\"Enter a valid number.\")\n            continue\n        if v <= 0:\n            print(\"Amount must be positive.\")\n            continue\n        return v\n\n\ndef ask_nonempty(prompt):\n    while True:\n        s = input(prompt).strip()\n        if s:\n            return s\n        print(\"Value cannot be empty.\")\n\n\ndef show_txs(tracker):\n    if not tracker.transactions:\n        print(\"No transactions recorded.\")\n        return\n    for t in tracker.transactions:\n        print(f\"  [{t.id}] {t.date}  {t.tx_type.upper():7} {t.category:<15} {fmt(t.amount):>12}  {t.note}\")\n\n\ndef add_tx(tracker, tx_type):\n    amount = ask_amount(\"Amount: \")\n    category = ask_nonempty(\"Category: \")\n    note = input(\"Note (optional): \").strip()\n    t = tracker.add_transaction(amount, category, tx_type, note)\n    print(f\"Added {tx_type} [{t.id}].\")\n\n\ndef delete_tx(tracker):\n    show_txs(tracker)\n    tid = input(\"Transaction ID to delete: \").strip()\n    print(\"Deleted.\" if tracker.remove_transaction(tid) else \"ID not found.\")\n\n\ndef set_budget(tracker):\n    cat = ask_nonempty(\"Category: \")\n    lim = ask_amount(\"Monthly limit: \")\n    tracker.set_budget(cat, lim)\n    print(f\"Budget for {cat} set to {fmt(lim)}.\")\n\n\ndef set_goal(tracker):\n    goal = ask_amount(\"Savings goal: \")\n    tracker.set_savings_goal(goal)\n    print(f\"Savings goal set to {fmt(goal)}.\")\n\n\ndef show_summary(tracker):\n    income, expenses, net = tracker.totals()\n    print(f\"\\nIncome:      {fmt(income)}\")\n    print(f\"Expenses:    {fmt(expenses)}\")\n    print(f\"Net savings: {fmt(net)}\")\n    saved, goal, pct = tracker.savings_progress()\n    if goal > 0:\n        bar = \"#\" * int(pct // 5)\n        print(f\"Goal {fmt(goal)}: saved {fmt(saved)} ({pct:.1f}%) [{bar:<20}]\")\n\n\ndef show_budgets(tracker):\n    status = tracker.budget_status()\n    if not status:\n        print(\"No budgets set. Use 'Set category budget' first.\")\n        return\n    for cat, s in status.items():\n        flag = \"OVER!\" if s[\"remaining\"] < 0 else \"ok\"\n        print(f\"  {cat:<15} limit {fmt(s['limit']):>10} spent {fmt(s['spent']):>10} \"\n              f\"remaining {fmt(s['remaining']):>10} [{flag}]\")\n\n\ndef show_report(tracker):\n    month = input(\"Month (YYYY-MM, blank for all): \").strip() or None\n    income, expenses, net, rows = tracker.monthly_report(month)\n    print(f\"\\nReport for {month or 'all time'}\")\n    print(f\"  Income:   {fmt(income)}\")\n    print(f\"  Expenses: {fmt(expenses)}\")\n    print(f\"  Net:      {fmt(net)}\")\n    cats = tracker.category_expenses(rows)\n    if cats:\n        print(\"  Spending by category:\")\n        for cat, amt in sorted(cats.items(), key=lambda kv: -kv[1]):\n            print(f\"    {cat:<15} {fmt(amt):>10}\")\n\n\ndef main():\n    tracker = BudgetTracker(load_data())\n    actions = {\n        \"1\": lambda: add_tx(tracker, \"expense\"),\n        \"2\": lambda: add_tx(tracker, \"income\"),\n        \"3\": lambda: show_txs(tracker),\n        \"4\": lambda: delete_tx(tracker),\n        \"5\": lambda: set_budget(tracker),\n        \"6\": lambda: show_budgets(tracker),\n        \"7\": lambda: set_goal(tracker),\n        \"8\": lambda: show_summary(tracker),\n        \"9\": lambda: show_report(tracker),\n    }\n    try:\n        while True:\n            print(MENU)\n            choice = input(\"Choose an option: \").strip()\n            if choice == \"0\":\n                break\n            action = actions.get(choice)\n            if action:\n                action()\n            else:\n                print(\"Invalid option.\")\n    except (EOFError, KeyboardInterrupt):\n        # End of input (e.g. closed stdin or Ctrl+C): save and exit cleanly.\n        pass\n    save_data(tracker.persist())\n    print(\"Data saved. Goodbye!\")\n\n\nif __name__ == \"__main__\":\n    main()\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "f34ad7e3c01f6f78802b06b803132fbf3555cd24b96a4b6c3b04739f94060e64",
+    "source_digests": {
+      "main.py": "352c717d7b5a61ddb0713a1f307b4f9c00214ee1b55f8f6acb88f2411936ea0c",
+      "models.py": "398f49a67b75a0de04cc40ce68df5228cb3700db2721c6b278a5be6f376647c3",
+      "storage.py": "2b32a8101240b17c8358e30106eac8902c3bc8aa7ae4fecfd3b899d3c33019a5",
+      "tracker.py": "8d1cbf34a90dbf54b076f1f817fbefb825bf73fe35352ece76030f741d05a214"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "main.py"
+    ],
+    "timeout_seconds": 3,
+    "status": "passed",
+    "exit_code": 0,
+    "stdout": "\n=== Budget Tracker ===\n1) Add expense\n2) Add income\n3) List transactions\n4) Delete transaction\n5) Set category budget\n6) View budgets\n7) Set savings goal\n8) Summary & savings progress\n9) Monthly report\n0) Save & exit\n\nChoose an option: Data saved. Goodbye!\n",
+    "stderr": "",
+    "profile": "process_exit",
+    "id": "689ee373ed468537a87d045466169840ec0321092d7c3c5b32827c5198917b15"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "4d4fd974ce30c0f573726669d41791f28c84fde948240108b8da61473e2ec1dd",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "4d4fd974ce30c0f573726669d41791f28c84fde948240108b8da61473e2ec1dd",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "694727febe0da2b3189164abc1aaf73bed6bf9a49fefed87cf2dee67010438be",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "ae1856bc0c4ef25988a3f23690b95899b73da4558021fc346612a4b25cfce0b2",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "ae1856bc0c4ef25988a3f23690b95899b73da4558021fc346612a4b25cfce0b2",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "c676708c1231911fd2c0797166683f239ea01af8e669a60e073b83f1ab1dac91",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3421d5fdc80836742d471fa117a2d4bfe57282f466ff75a7ff3cd875e2ccf763",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "c676708c1231911fd2c0797166683f239ea01af8e669a60e073b83f1ab1dac91",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "6283fd0d39a098d846be780f1acd298a36113283a996acbac319a42c3b47d8ca",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "c676708c1231911fd2c0797166683f239ea01af8e669a60e073b83f1ab1dac91",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "10ede97c8f4c323753024054ce3faab16aecd5d8b2d3fc0a30daf7ee648f990c",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "c676708c1231911fd2c0797166683f239ea01af8e669a60e073b83f1ab1dac91",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "10ede97c8f4c323753024054ce3faab16aecd5d8b2d3fc0a30daf7ee648f990c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "bf953408dbe6cdd872d0cf3925d5467a4803aa9bec14566b80e2e1a94281a8fd",
+        "source_digests": {
+          "main.py": "37e8a3f2c7b30b3827e30afe16d0d4e3eaa9ed4151c094a75f8fcf3937d06c40",
+          "models.py": "398f49a67b75a0de04cc40ce68df5228cb3700db2721c6b278a5be6f376647c3",
+          "storage.py": "2b32a8101240b17c8358e30106eac8902c3bc8aa7ae4fecfd3b899d3c33019a5",
+          "tracker.py": "8d1cbf34a90dbf54b076f1f817fbefb825bf73fe35352ece76030f741d05a214"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "\n=== Budget Tracker ===\n1) Add expense\n2) Add income\n3) List transactions\n4) Delete transaction\n5) Set category budget\n6) View budgets\n7) Set savings goal\n8) Summary & savings progress\n9) Monthly report\n0) Save & exit\n\nChoose an option: ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r02/04_BudgetTracker/artifact\\main.py\", line 143, in <module>\n    main()\n  File \"data/runs/mpst_contract/r02/04_BudgetTracker/artifact\\main.py\", line 130, in main\n    choice = input(\"Choose an option: \").strip()\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "36d75b31544c6f7859edbf4ccc44c5934f8cfe49c0d6a28972baa7afc57f39de"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "bf953408dbe6cdd872d0cf3925d5467a4803aa9bec14566b80e2e1a94281a8fd",
+        "source_digests": {
+          "main.py": "37e8a3f2c7b30b3827e30afe16d0d4e3eaa9ed4151c094a75f8fcf3937d06c40",
+          "models.py": "398f49a67b75a0de04cc40ce68df5228cb3700db2721c6b278a5be6f376647c3",
+          "storage.py": "2b32a8101240b17c8358e30106eac8902c3bc8aa7ae4fecfd3b899d3c33019a5",
+          "tracker.py": "8d1cbf34a90dbf54b076f1f817fbefb825bf73fe35352ece76030f741d05a214"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "\n=== Budget Tracker ===\n1) Add expense\n2) Add income\n3) List transactions\n4) Delete transaction\n5) Set category budget\n6) View budgets\n7) Set savings goal\n8) Summary & savings progress\n9) Monthly report\n0) Save & exit\n\nChoose an option: ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r02/04_BudgetTracker/artifact\\main.py\", line 143, in <module>\n    main()\n  File \"data/runs/mpst_contract/r02/04_BudgetTracker/artifact\\main.py\", line 130, in main\n    choice = input(\"Choose an option: \").strip()\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "36d75b31544c6f7859edbf4ccc44c5934f8cfe49c0d6a28972baa7afc57f39de"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "bf953408dbe6cdd872d0cf3925d5467a4803aa9bec14566b80e2e1a94281a8fd",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "d40f308109aed3b9cd59a09a2abc1de8ac3fc62b7e0239f44d5312ce700fe278",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "bf953408dbe6cdd872d0cf3925d5467a4803aa9bec14566b80e2e1a94281a8fd",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "42e5249e6786fb66cad21453e2fc4b5970e0c50bfa511c8b331b7da69fdd5606",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "bf953408dbe6cdd872d0cf3925d5467a4803aa9bec14566b80e2e1a94281a8fd",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "5fdd717875dbd410b1a39be92b001856e6d5411832a0be12d3cfbd417657ee6a",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "bf953408dbe6cdd872d0cf3925d5467a4803aa9bec14566b80e2e1a94281a8fd",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "5fdd717875dbd410b1a39be92b001856e6d5411832a0be12d3cfbd417657ee6a",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "f34ad7e3c01f6f78802b06b803132fbf3555cd24b96a4b6c3b04739f94060e64",
+        "source_digests": {
+          "main.py": "352c717d7b5a61ddb0713a1f307b4f9c00214ee1b55f8f6acb88f2411936ea0c",
+          "models.py": "398f49a67b75a0de04cc40ce68df5228cb3700db2721c6b278a5be6f376647c3",
+          "storage.py": "2b32a8101240b17c8358e30106eac8902c3bc8aa7ae4fecfd3b899d3c33019a5",
+          "tracker.py": "8d1cbf34a90dbf54b076f1f817fbefb825bf73fe35352ece76030f741d05a214"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "\n=== Budget Tracker ===\n1) Add expense\n2) Add income\n3) List transactions\n4) Delete transaction\n5) Set category budget\n6) View budgets\n7) Set savings goal\n8) Summary & savings progress\n9) Monthly report\n0) Save & exit\n\nChoose an option: Data saved. Goodbye!\n",
+        "stderr": "",
+        "profile": "process_exit",
+        "id": "689ee373ed468537a87d045466169840ec0321092d7c3c5b32827c5198917b15"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": true,
+      "evidence_id": "689ee373ed468537a87d045466169840ec0321092d7c3c5b32827c5198917b15"
+    }
+  ]
+}

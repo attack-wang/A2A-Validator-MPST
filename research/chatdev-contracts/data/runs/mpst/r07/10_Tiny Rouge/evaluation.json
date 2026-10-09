@@ -1,0 +1,81 @@
+{
+  "task_index": 10,
+  "project_name": "Tiny Rouge",
+  "framework": "ChatDev",
+  "workflow_status": "completed",
+  "workspace": "data/runs/mpst/r07/10_Tiny Rouge/artifact",
+  "source_file_count": 7,
+  "python_compile": {
+    "checked": 7,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-04T02:08:35+0800",
+  "judge": {
+    "verdict": "fail",
+    "functional_completeness": 0.65,
+    "executable_likelihood": 0.4,
+    "implemented_requirements": [
+      {
+        "requirement": "Fixed 80x80 grid map",
+        "fulfilled": true,
+        "evidence": "config.py: GRID_SIZE = 80  # fixed 80x80 grid map (customer requirement)\nmap_generator.py uses GRID_SIZE for all grid dimensions."
+      },
+      {
+        "requirement": "Player movement using W/A/S/D keys",
+        "fulfilled": false,
+        "evidence": "main.py defines read_key() that returns \"w\", \"a\", \"s\", \"d\" for arrow keys, but no code maps those characters to Game.handle_move(dx, dy) nor a game loop that calls it."
+      },
+      {
+        "requirement": "Player can move only on floor tiles and cannot pass through walls",
+        "fulfilled": true,
+        "evidence": "game.py: handle_move() checks if self.grid[ny][nx] == TILE_WALL and aborts movement."
+      },
+      {
+        "requirement": "Goal is to reach the door to proceed to the next level",
+        "fulfilled": true,
+        "evidence": "game.py: if (nx, ny) == self.door.pos: self._next_level()"
+      },
+      {
+        "requirement": "Combat resolves by subtracting monster’s HP from the player's HP",
+        "fulfilled": true,
+        "evidence": "game.py: _fight_monster() calls self.player.take_damage(monster.hp) where monster.hp is the monster’s HP."
+      },
+      {
+        "requirement": "HP is restored by 20–30 points when the player touches a treasure chest",
+        "fulfilled": true,
+        "evidence": "entities.py: TreasureChest sets self.heal_amount = random.randint(CHEST_HEAL_MIN, CHEST_HEAL_MAX) (20‑30).\n_game.py: _pickup_chest_at() calls self.player.heal(chest.heal_amount)."
+      },
+      {
+        "requirement": "Always at least one valid path from the starting position to the door",
+        "fulfilled": true,
+        "evidence": "map_generator.py: generate_level() runs BFS; if no path, _carve_l_path() creates an L‑shaped corridor guaranteeing connectivity. The returned path is stored as safe_path."
+      },
+      {
+        "requirement": "Minimal UI displaying the player's current HP and encountered monster stats",
+        "fulfilled": true,
+        "evidence": "ui.py renders \"HP: {} / {}\" with a bar and shows \"Last monster: {}\" using game.last_monster.describe()."
+      },
+      {
+        "requirement": "A runnable game loop / integration of renderer, UI and input",
+        "fulfilled": false,
+        "evidence": "No file contains a main loop that creates Game, Renderer, UI instances and repeatedly calls read_key() → handle_move(). Only read_key() is defined in main.py."
+      }
+    ],
+    "critical_issues": [
+      "Missing game loop: there is no entry‑point that instantiates Game, Renderer, UI and processes input.",
+      "No translation from the characters returned by read_key() ('w','a','s','d') to the (dx,dy) vectors required by Game.handle_move().",
+      "Renderer and UI are never invoked; the program cannot display the map or status to the player.",
+      "Without a loop, the program cannot quit gracefully or restart, making execution impossible as‑is."
+    ],
+    "summary": "The codebase implements the core mechanics—fixed 80x80 map, wall‑blocked movement, door progression, combat, chest healing, guaranteed path, and a minimal UI. However, it lacks the essential glue code (main game loop, input-to-movement mapping, and rendering calls) required to run the game. Consequently, the submission does not meet the full specification and is judged a fail, with moderate functional completeness but low likelihood of being directly executable.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": false
+}

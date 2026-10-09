@@ -1,0 +1,5 @@
+RESET = "\033[0m"
+BOLD = "\033[1m"
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+GREY = "\033[90m"

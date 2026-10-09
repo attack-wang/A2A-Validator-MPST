@@ -1,0 +1,309 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Application"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\nimport pygame\n\nfrom snake import Game\n\n\ndef main():\n    pygame.init()\n    game = Game()\n    try:\n        game.run()\n    finally:\n        pygame.quit()\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nsnake.py\n```python\nimport random\n\nimport pygame\n\nCELL = 20\nCOLS = 30\nROWS = 20\nBAR_HEIGHT = 40\n\nBLACK = (18, 18, 18)\nGRID = (32, 32, 32)\nWHITE = (240, 240, 240)\nGRAY = (130, 130, 130)\nGREEN = (0, 200, 80)\nDARK_GREEN = (0, 130, 50)\nRED = (220, 60, 60)\n\nDIFFICULTIES = {\"Easy\": 6, \"Medium\": 10, \"Hard\": 15, \"Insane\": 22}\n\n\nclass Snake:\n    def __init__(self):\n        self.body = [(COLS // 2, ROWS // 2)]\n        self.direction = (1, 0)\n        self.pending_growth = 0\n\n    def turn(self, direction):\n        if (direction[0] * -1, direction[1] * -1) != self.direction:\n            self.direction = direction\n\n    def step(self):\n        head = self.body[0]\n        new_head = (head[0] + self.direction[0], head[1] + self.direction[1])\n        if not (0 <= new_head[0] < COLS and 0 <= new_head[1] < ROWS):\n            return False\n        blocked = self.body if self.pending_growth else self.body[:-1]\n        if new_head in blocked:\n            return False\n        self.body.insert(0, new_head)\n        if self.pending_growth:\n            self.pending_growth -= 1\n        else:\n            self.body.pop()\n        return True\n\n    def grow(self):\n        self.pending_growth += 1\n\n\nclass Game:\n    def __init__(self):\n        self.width = COLS * CELL\n        self.height = ROWS * CELL\n        self.screen = pygame.display.set_mode((self.width, self.height + BAR_HEIGHT))\n        pygame.display.set_caption(\"Snake\")\n        self.clock = pygame.time.Clock()\n        self.font = pygame.font.SysFont(\"consolas\", 20)\n        self.big_font = pygame.font.SysFont(\"consolas\", 36, bold=True)\n        self.speed = DIFFICULTIES[\"Medium\"]\n        self.difficulty_name = \"Medium\"\n        self.reset()\n\n    def reset(self):\n        self.snake = Snake()\n        self.score = 0\n        self.alive = True\n        self.won = False\n        self.food = self.spawn_food()\n\n    def spawn_food(self):\n        free = [(x, y) for x in range(COLS) for y in range(ROWS)\n                if (x, y) not in self.snake.body]\n        return random.choice(free) if free else None\n\n    def choose_difficulty(self):\n        options = list(DIFFICULTIES)\n        selected = options.index(self.difficulty_name)\n        while True:\n            for event in pygame.event.get():\n                if event.type == pygame.QUIT:\n                    return None\n                if event.type == pygame.KEYDOWN:\n                    if event.key in (pygame.K_UP, pygame.K_w):\n                        selected = (selected - 1) % len(options)\n                    elif event.key in (pygame.K_DOWN, pygame.K_s):\n                        selected = (selected + 1) % len(options)\n                    elif event.key in (pygame.K_RETURN, pygame.K_SPACE):\n                        return options[selected]\n                    elif event.key == pygame.K_ESCAPE:\n                        return None\n            self.draw_menu(options, selected)\n            self.clock.tick(30)\n\n    def draw_menu(self, options, selected):\n        self.screen.fill(BLACK)\n        title = self.big_font.render(\"SNAKE\", True, GREEN)\n        self.screen.blit(title, (self.width // 2 - title.get_width() // 2, 50))\n        for i, name in enumerate(options):\n            color = GREEN if i == selected else GRAY\n            text = self.font.render(name, True, color)\n            self.screen.blit(text, (self.width // 2 - text.get_width() // 2, 130 + i * 34))\n        hint = self.font.render(\"Up/Down: choose   Enter: start   Esc: quit\", True, GRAY)\n        self.screen.blit(hint, (self.width // 2 - hint.get_width() // 2, self.height - 40))\n        pygame.display.flip()\n\n    def handle_input(self):\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                return False\n            if event.type == pygame.KEYDOWN:\n                if event.key in (pygame.K_UP, pygame.K_w):\n                    self.snake.turn((0, -1))\n                elif event.key in (pygame.K_DOWN, pygame.K_s):\n                    self.snake.turn((0, 1))\n                elif event.key in (pygame.K_LEFT, pygame.K_a):\n                    self.snake.turn((-1, 0))\n                elif event.key in (pygame.K_RIGHT, pygame.K_d):\n                    self.snake.turn((1, 0))\n                elif event.key == pygame.K_ESCAPE:\n                    return False\n        return True\n\n    def update(self):\n        if not self.snake.step():\n            self.alive = False\n            return\n        if self.snake.body[0] == self.food:\n            self.score += 1\n            self.snake.grow()\n            self.food = self.spawn_food()\n            if self.food is None:\n                self.won = True\n                self.alive = False\n\n    def draw(self):\n        self.screen.fill(BLACK)\n        for x in range(0, self.width, CELL):\n            pygame.draw.line(self.screen, GRID, (x, 0), (x, self.height))\n        for y in range(0, self.height, CELL):\n            pygame.draw.line(self.screen, GRID, (0, y), (self.width, y))\n        if self.food is not None:\n            pygame.draw.rect(self.screen, RED,\n                             (self.food[0] * CELL, self.food[1] * CELL, CELL, CELL))\n        for i, (x, y) in enumerate(self.snake.body):\n            color = DARK_GREEN if i == 0 else GREEN\n            pygame.draw.rect(self.screen, color, (x * CELL, y * CELL, CELL, CELL))\n        pygame.draw.rect(self.screen, (40, 40, 40),\n                         (0, self.height, self.width, BAR_HEIGHT))\n        info = f\"Score: {self.score}    Difficulty: {self.difficulty_name}\"\n        text = self.font.render(info, True, WHITE)\n        self.screen.blit(text, (10, self.height + 10))\n        pygame.display.flip()\n\n    def draw_game_over(self):\n        overlay = pygame.Surface((self.width, self.height))\n        overlay.set_alpha(180)\n        overlay.fill(BLACK)\n        self.screen.blit(overlay, (0, 0))\n        title = \"YOU WIN!\" if self.won else \"GAME OVER\"\n        lines = [\n            self.big_font.render(title, True, GREEN if self.won else RED),\n            self.font.render(f\"Final Score: {self.score}\", True, WHITE),\n            self.font.render(\"Enter: play again    Esc: quit\", True, GRAY),\n        ]\n        for i, text in enumerate(lines):\n            self.screen.blit(text, (self.width // 2 - text.get_width() // 2, 60 + i * 44))\n        pygame.display.flip()\n\n    def game_over_screen(self):\n        while True:\n            for event in pygame.event.get():\n                if event.type == pygame.QUIT:\n                    return False\n                if event.type == pygame.KEYDOWN:\n                    if event.key in (pygame.K_RETURN, pygame.K_SPACE):\n                        return True\n                    if event.key == pygame.K_ESCAPE:\n                        return False\n            self.draw_game_over()\n            self.clock.tick(30)\n\n    def run(self):\n        difficulty = self.choose_difficulty()\n        if difficulty is None:\n            return\n        self.difficulty_name = difficulty\n        self.speed = DIFFICULTIES[difficulty]\n        self.reset()\n        running = True\n        move_timer = 0.0\n        while running:\n            move_timer += self.clock.tick(60) / 1000.0\n            running = self.handle_input()\n            if running and self.alive and move_timer >= 1.0 / self.speed:\n                move_timer = 0.0\n                self.update()\n            self.draw()\n            if not self.alive:\n                running = self.game_over_screen()\n                if running:\n                    self.reset()\n                    move_timer = 0.0\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "2cbd22bb0107a561b51cc646f0f8026684d3e60739ad2484092b61c9e33c1276",
+      "result": "{\"verdict\": \"changes_requested\", \"issues\": [{\"file\": \"snake.py\", \"line\": 28, \"message\": \"Anti-reverse check is defeated by input timing: turn() validates against the already-mutated self.direction, so two key presses between move ticks (very likely on Easy, ~10 inputs per move) can chain e.g. Up then Left while moving Right, flipping the snake 180° into its own body for an unfair instant game over. Buffer at most one pending direction per step and validate/apply it in step() against the direction used by the last completed move.\"}]}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "2cbd22bb0107a561b51cc646f0f8026684d3e60739ad2484092b61c9e33c1276",
+      "result": "snake.py\n```python\nimport random\n\nimport pygame\n\nCELL = 20\nCOLS = 30\nROWS = 20\nBAR_HEIGHT = 40\n\nBLACK = (18, 18, 18)\nGRID = (32, 32, 32)\nWHITE = (240, 240, 240)\nGRAY = (130, 130, 130)\nGREEN = (0, 200, 80)\nDARK_GREEN = (0, 130, 50)\nRED = (220, 60, 60)\n\nDIFFICULTIES = {\"Easy\": 6, \"Medium\": 10, \"Hard\": 15, \"Insane\": 22}\n\n\nclass Snake:\n    def __init__(self):\n        self.body = [(COLS // 2, ROWS // 2)]\n        self.direction = (1, 0)\n        self.next_direction = None\n        self.pending_growth = 0\n\n    def turn(self, direction):\n        if self.next_direction is None:\n            if (direction[0] * -1, direction[1] * -1) != self.direction:\n                self.next_direction = direction\n\n    def step(self):\n        if self.next_direction is not None:\n            if (self.next_direction[0] * -1,\n                    self.next_direction[1] * -1) != self.direction:\n                self.direction = self.next_direction\n            self.next_direction = None\n        head = self.body[0]\n        new_head = (head[0] + self.direction[0], head[1] + self.direction[1])\n        if not (0 <= new_head[0] < COLS and 0 <= new_head[1] < ROWS):\n            return False\n        blocked = self.body if self.pending_growth else self.body[:-1]\n        if new_head in blocked:\n            return False\n        self.body.insert(0, new_head)\n        if self.pending_growth:\n            self.pending_growth -= 1\n        else:\n            self.body.pop()\n        return True\n\n    def grow(self):\n        self.pending_growth += 1\n\n\nclass Game:\n    def __init__(self):\n        self.width = COLS * CELL\n        self.height = ROWS * CELL\n        self.screen = pygame.display.set_mode((self.width, self.height + BAR_HEIGHT))\n        pygame.display.set_caption(\"Snake\")\n        self.clock = pygame.time.Clock()\n        self.font = pygame.font.SysFont(\"consolas\", 20)\n        self.big_font = pygame.font.SysFont(\"consolas\", 36, bold=True)\n        self.speed = DIFFICULTIES[\"Medium\"]\n        self.difficulty_name = \"Medium\"\n        self.reset()\n\n    def reset(self):\n        self.snake = Snake()\n        self.score = 0\n        self.alive = True\n        self.won = False\n        self.food = self.spawn_food()\n\n    def spawn_food(self):\n        free = [(x, y) for x in range(COLS) for y in range(ROWS)\n                if (x, y) not in self.snake.body]\n        return random.choice(free) if free else None\n\n    def choose_difficulty(self):\n        options = list(DIFFICULTIES)\n        selected = options.index(self.difficulty_name)\n        while True:\n            for event in pygame.event.get():\n                if event.type == pygame.QUIT:\n                    return None\n                if event.type == pygame.KEYDOWN:\n                    if event.key in (pygame.K_UP, pygame.K_w):\n                        selected = (selected - 1) % len(options)\n                    elif event.key in (pygame.K_DOWN, pygame.K_s):\n                        selected = (selected + 1) % len(options)\n                    elif event.key in (pygame.K_RETURN, pygame.K_SPACE):\n                        return options[selected]\n                    elif event.key == pygame.K_ESCAPE:\n                        return None\n            self.draw_menu(options, selected)\n            self.clock.tick(30)\n\n    def draw_menu(self, options, selected):\n        self.screen.fill(BLACK)\n        title = self.big_font.render(\"SNAKE\", True, GREEN)\n        self.screen.blit(title, (self.width // 2 - title.get_width() // 2, 50))\n        for i, name in enumerate(options):\n            color = GREEN if i == selected else GRAY\n            text = self.font.render(name, True, color)\n            self.screen.blit(text, (self.width // 2 - text.get_width() // 2, 130 + i * 34))\n        hint = self.font.render(\"Up/Down: choose   Enter: start   Esc: quit\", True, GRAY)\n        self.screen.blit(hint, (self.width // 2 - hint.get_width() // 2, self.height - 40))\n        pygame.display.flip()\n\n    def handle_input(self):\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                return False\n            if event.type == pygame.KEYDOWN:\n                if event.key in (pygame.K_UP, pygame.K_w):\n                    self.snake.turn((0, -1))\n                elif event.key in (pygame.K_DOWN, pygame.K_s):\n                    self.snake.turn((0, 1))\n                elif event.key in (pygame.K_LEFT, pygame.K_a):\n                    self.snake.turn((-1, 0))\n                elif event.key in (pygame.K_RIGHT, pygame.K_d):\n                    self.snake.turn((1, 0))\n                elif event.key == pygame.K_ESCAPE:\n                    return False\n        return True\n\n    def update(self):\n        if not self.snake.step():\n            self.alive = False\n            return\n        if self.snake.body[0] == self.food:\n            self.score += 1\n            self.snake.grow()\n            self.food = self.spawn_food()\n            if self.food is None:\n                self.won = True\n                self.alive = False\n\n    def draw(self):\n        self.screen.fill(BLACK)\n        for x in range(0, self.width, CELL):\n            pygame.draw.line(self.screen, GRID, (x, 0), (x, self.height))\n        for y in range(0, self.height, CELL):\n            pygame.draw.line(self.screen, GRID, (0, y), (self.width, y))\n        if self.food is not None:\n            pygame.draw.rect(self.screen, RED,\n                             (self.food[0] * CELL, self.food[1] * CELL, CELL, CELL))\n        for i, (x, y) in enumerate(self.snake.body):\n            color = DARK_GREEN if i == 0 else GREEN\n            pygame.draw.rect(self.screen, color, (x * CELL, y * CELL, CELL, CELL))\n        pygame.draw.rect(self.screen, (40, 40, 40),\n                         (0, self.height, self.width, BAR_HEIGHT))\n        info = f\"Score: {self.score}    Difficulty: {self.difficulty_name}\"\n        text = self.font.render(info, True, WHITE)\n        self.screen.blit(text, (10, self.height + 10))\n        pygame.display.flip()\n\n    def draw_game_over(self):\n        overlay = pygame.Surface((self.width, self.height))\n        overlay.set_alpha(180)\n        overlay.fill(BLACK)\n        self.screen.blit(overlay, (0, 0))\n        title = \"YOU WIN!\" if self.won else \"GAME OVER\"\n        lines = [\n            self.big_font.render(title, True, GREEN if self.won else RED),\n            self.font.render(f\"Final Score: {self.score}\", True, WHITE),\n            self.font.render(\"Enter: play again    Esc: quit\", True, GRAY),\n        ]\n        for i, text in enumerate(lines):\n            self.screen.blit(text, (self.width // 2 - text.get_width() // 2, 60 + i * 44))\n        pygame.display.flip()\n\n    def game_over_screen(self):\n        while True:\n            for event in pygame.event.get():\n                if event.type == pygame.QUIT:\n                    return False\n                if event.type == pygame.KEYDOWN:\n                    if event.key in (pygame.K_RETURN, pygame.K_SPACE):\n                        return True\n                    if event.key == pygame.K_ESCAPE:\n                        return False\n            self.draw_game_over()\n            self.clock.tick(30)\n\n    def run(self):\n        difficulty = self.choose_difficulty()\n        if difficulty is None:\n            return\n        self.difficulty_name = difficulty\n        self.speed = DIFFICULTIES[difficulty]\n        self.reset()\n        running = True\n        move_timer = 0.0\n        while running:\n            move_timer += self.clock.tick(60) / 1000.0\n            running = self.handle_input()\n            if running and self.alive and move_timer >= 1.0 / self.speed:\n                move_timer = 0.0\n                self.update()\n            self.draw()\n            if not self.alive:\n                running = self.game_over_screen()\n                if running:\n                    self.reset()\n                    move_timer = 0.0\n```"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "4bc0078f7760899e07510cb58f4baac07c8f86032972b57e9192b21028178cad",
+      "result": "{\"status\": \"failed\", \"test_run_id\": \"ed4ea493122d2d357f90c1fa2c79d2d3e9d7be8c1990ed0dd5d30589dfff6eb9\", \"summary\": \"Startup smoke failed with exit code 1 due to ModuleNotFoundError: No module named 'pygame' raised at main.py line 1. This is a missing dependency in the host environment, not a source code error; the Snake game source (main.py, snake.py) imports pygame correctly and requires it to be installed (e.g., pip install pygame) before re-running.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "4bc0078f7760899e07510cb58f4baac07c8f86032972b57e9192b21028178cad",
+      "result": "main.py\n```python\nimport tkinter as tk\n\nfrom snake import Game\n\n\ndef main():\n    root = tk.Tk()\n    Game(root)\n    root.mainloop()\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nsnake.py\n```python\nimport random\nimport tkinter as tk\n\nCELL = 20\nCOLS = 30\nROWS = 20\nBAR_HEIGHT = 40\n\nBLACK = \"#121212\"\nGRID = \"#202020\"\nWHITE = \"#f0f0f0\"\nGRAY = \"#828282\"\nGREEN = \"#00c850\"\nDARK_GREEN = \"#008232\"\nRED = \"#dc3c3c\"\nBAR = \"#282828\"\n\n# (name, milliseconds per move)\nDIFFICULTIES = [(\"Easy\", 166), (\"Medium\", 100), (\"Hard\", 66), (\"Insane\", 45)]\n\n\nclass Snake:\n    def __init__(self):\n        self.body = [(COLS // 2, ROWS // 2)]\n        self.direction = (1, 0)\n        self.next_direction = None\n        self.pending_growth = 0\n\n    def turn(self, direction):\n        if self.next_direction is None:\n            if (direction[0] * -1, direction[1] * -1) != self.direction:\n                self.next_direction = direction\n\n    def step(self):\n        if self.next_direction is not None:\n            if (self.next_direction[0] * -1,\n                    self.next_direction[1] * -1) != self.direction:\n                self.direction = self.next_direction\n            self.next_direction = None\n        head = self.body[0]\n        new_head = (head[0] + self.direction[0], head[1] + self.direction[1])\n        if not (0 <= new_head[0] < COLS and 0 <= new_head[1] < ROWS):\n            return False\n        blocked = self.body if self.pending_growth else self.body[:-1]\n        if new_head in blocked:\n            return False\n        self.body.insert(0, new_head)\n        if self.pending_growth:\n            self.pending_growth -= 1\n        else:\n            self.body.pop()\n        return True\n\n    def grow(self):\n        self.pending_growth += 1\n\n\nclass Game:\n    def __init__(self, root):\n        self.root = root\n        self.width = COLS * CELL\n        self.height = ROWS * CELL\n        self.canvas = tk.Canvas(root, width=self.width,\n                                height=self.height + BAR_HEIGHT,\n                                bg=BLACK, highlightthickness=0)\n        self.canvas.pack()\n        root.title(\"Snake\")\n        root.resizable(False, False)\n        root.protocol(\"WM_DELETE_WINDOW\", self.quit)\n        self.delay = DIFFICULTIES[1][1]\n        self.difficulty_name = DIFFICULTIES[1][0]\n        self.state = \"menu\"\n        self.menu_index = 1\n        self.move_job = None\n        self.reset()\n        root.bind(\"<Key>\", self.on_key)\n        self.draw_menu()\n\n    def reset(self):\n        self.snake = Snake()\n        self.score = 0\n        self.alive = True\n        self.won = False\n        self.food = self.spawn_food()\n\n    def spawn_food(self):\n        free = [(x, y) for x in range(COLS) for y in range(ROWS)\n                if (x, y) not in self.snake.body]\n        return random.choice(free) if free else None\n\n    def quit(self):\n        self.cancel_move()\n        self.root.destroy()\n\n    def cancel_move(self):\n        if self.move_job is not None:\n            self.root.after_cancel(self.move_job)\n            self.move_job = None\n\n    def on_key(self, event):\n        key = event.keysym.lower()\n        if self.state == \"menu\":\n            if key in (\"up\", \"w\"):\n                self.menu_index = (self.menu_index - 1) % len(DIFFICULTIES)\n                self.draw_menu()\n            elif key in (\"down\", \"s\"):\n                self.menu_index = (self.menu_index + 1) % len(DIFFICULTIES)\n                self.draw_menu()\n            elif key in (\"return\", \"space\"):\n                self.start_game()\n            elif key == \"escape\":\n                self.quit()\n        elif self.state == \"playing\":\n            if key in (\"up\", \"w\"):\n                self.snake.turn((0, -1))\n            elif key in (\"down\", \"s\"):\n                self.snake.turn((0, 1))\n            elif key in (\"left\", \"a\"):\n                self.snake.turn((-1, 0))\n            elif key in (\"right\", \"d\"):\n                self.snake.turn((1, 0))\n            elif key == \"escape\":\n                self.quit()\n        elif self.state == \"over\":\n            if key in (\"return\", \"space\"):\n                self.start_game()\n            elif key == \"escape\":\n                self.quit()\n\n    def start_game(self):\n        name, delay = DIFFICULTIES[self.menu_index]\n        self.difficulty_name = name\n        self.delay = delay\n        self.reset()\n        self.state = \"playing\"\n        self.draw()\n        self.schedule_move()\n\n    def schedule_move(self):\n        self.move_job = self.root.after(self.delay, self.tick)\n\n    def tick(self):\n        self.move_job = None\n        if self.state != \"playing\":\n            return\n        if not self.snake.step():\n            self.game_over()\n            return\n        if self.snake.body[0] == self.food:\n            self.score += 1\n            self.snake.grow()\n            self.food = self.spawn_food()\n            if self.food is None:\n                self.won = True\n                self.game_over()\n                return\n        self.draw()\n        self.schedule_move()\n\n    def game_over(self):\n        self.state = \"over\"\n        self.draw()\n        self.draw_game_over()\n\n    def draw_cell(self, x, y, color):\n        self.canvas.create_rectangle(x * CELL, y * CELL,\n                                     (x + 1) * CELL, (y + 1) * CELL,\n                                     fill=color, outline=\"\", width=0)\n\n    def draw(self):\n        canvas = self.canvas\n        canvas.delete(\"all\")\n        for x in range(0, self.width, CELL):\n            canvas.create_line(x, 0, x, self.height, fill=GRID)\n        for y in range(0, self.height, CELL):\n            canvas.create_line(0, y, self.width, y, fill=GRID)\n        if self.food is not None:\n            self.draw_cell(self.food[0], self.food[1], RED)\n        for i, (x, y) in enumerate(self.snake.body):\n            self.draw_cell(x, y, DARK_GREEN if i == 0 else GREEN)\n        canvas.create_rectangle(0, self.height, self.width,\n                                self.height + BAR_HEIGHT,\n                                fill=BAR, outline=\"\", width=0)\n        info = f\"Score: {self.score}    Difficulty: {self.difficulty_name}\"\n        canvas.create_text(10, self.height + BAR_HEIGHT // 2, text=info,\n                           fill=WHITE, anchor=\"w\", font=(\"Consolas\", 14))\n\n    def draw_menu(self):\n        canvas = self.canvas\n        canvas.delete(\"all\")\n        canvas.create_text(self.width // 2, 70, text=\"SNAKE\",\n                           fill=GREEN, font=(\"Consolas\", 32, \"bold\"))\n        for i, (name, _) in enumerate(DIFFICULTIES):\n            color = GREEN if i == self.menu_index else GRAY\n            canvas.create_text(self.width // 2, 140 + i * 34, text=name,\n                               fill=color, font=(\"Consolas\", 16))\n        canvas.create_text(self.width // 2, self.height - 20,\n                           text=\"Up/Down: choose   Enter: start   Esc: quit\",\n                           fill=GRAY, font=(\"Consolas\", 12))\n\n    def draw_game_over(self):\n        canvas = self.canvas\n        canvas.create_rectangle(0, 0, self.width, self.height,\n                                fill=BLACK, stipple=\"gray50\", outline=\"\")\n        title = \"YOU WIN!\" if self.won else \"GAME OVER\"\n        color = GREEN if self.won else RED\n        canvas.create_text(self.width // 2, 80, text=title, fill=color,\n                           font=(\"Consolas\", 30, \"bold\"))\n        canvas.create_text(self.width // 2, 130,\n                           text=f\"Final Score: {self.score}\",\n                           fill=WHITE, font=(\"Consolas\", 16))\n        canvas.create_text(self.width // 2, 170,\n                           text=\"Enter: play again    Esc: quit\",\n                           fill=GRAY, font=(\"Consolas\", 12))\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "18e3d7122a1611b960e684c5dd310363740a731a4bd525d82ec69dae2c841ab8",
+    "source_digests": {
+      "main.py": "8204545f0e082abaa6066441e7315653a0677ef5e8f50ceac45e29c79edeac88",
+      "snake.py": "05b3952af3a7adac52f8e6f3c4227f32038a4bc0f62422360cd27afcaa0c449d"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "source/pure-contract\\content_lab\\startup_probe.py",
+      "data/runs/mpst_contract/r04/15_SnakeGame/artifact\\main.py",
+      "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-ke4ujet7\\probe.json"
+    ],
+    "timeout_seconds": 3,
+    "status": "passed",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "profile": "tkinter_event_loop",
+    "observation": {
+      "event_loop_observed": true,
+      "mapped_window": true,
+      "widget_count": 1,
+      "callback_errors": []
+    },
+    "id": "1f12df882eebe6bfbd0a9ca6138bcecad8c120ac6ceddef5170b708c2b475e42"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "143b69c25d323066234bb7346f43d474daafda4df7f96348b78f5664c1d6f608",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "57d005c3b71920cefd5b63883aac3200365d1f8a4aa4b23a48238444adb055e7",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "d9bf92703be83c59023695624d0c697a14c9f44eb66b112dedea609bda381a23",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "03e2035f87730224051b653f2d961f54ecca949e2a166e5640001e0487150218",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "03e2035f87730224051b653f2d961f54ecca949e2a166e5640001e0487150218",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "2cbd22bb0107a561b51cc646f0f8026684d3e60739ad2484092b61c9e33c1276",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "9eb5462c2609de8455478afdb84d679126e499b4183e132bbc6923f9c3709e0f",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "2cbd22bb0107a561b51cc646f0f8026684d3e60739ad2484092b61c9e33c1276",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "bb76e1250820bfba4a4450d6905b440c7aaf6f73d2fdc176527f8b7debfeeea9",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "2cbd22bb0107a561b51cc646f0f8026684d3e60739ad2484092b61c9e33c1276",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "1ae751c4a5efe19109d3dd06957c62a42749372ce16487617fbbfedfeda07512",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "2cbd22bb0107a561b51cc646f0f8026684d3e60739ad2484092b61c9e33c1276",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "1ae751c4a5efe19109d3dd06957c62a42749372ce16487617fbbfedfeda07512",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "4bc0078f7760899e07510cb58f4baac07c8f86032972b57e9192b21028178cad",
+        "source_digests": {
+          "main.py": "4cefe7b9cb1dd4125c99c028405f419666191d8c3e997381d2570430f7a37c06",
+          "snake.py": "ea7b2a12748c9bd1ad3f87f75e21328ef435ecb5985f28fdb27f8110b77e2746"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r04/15_SnakeGame/artifact\\main.py\", line 1, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+        "profile": "process_exit",
+        "id": "ed4ea493122d2d357f90c1fa2c79d2d3e9d7be8c1990ed0dd5d30589dfff6eb9"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "4bc0078f7760899e07510cb58f4baac07c8f86032972b57e9192b21028178cad",
+        "source_digests": {
+          "main.py": "4cefe7b9cb1dd4125c99c028405f419666191d8c3e997381d2570430f7a37c06",
+          "snake.py": "ea7b2a12748c9bd1ad3f87f75e21328ef435ecb5985f28fdb27f8110b77e2746"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r04/15_SnakeGame/artifact\\main.py\", line 1, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+        "profile": "process_exit",
+        "id": "ed4ea493122d2d357f90c1fa2c79d2d3e9d7be8c1990ed0dd5d30589dfff6eb9"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "4bc0078f7760899e07510cb58f4baac07c8f86032972b57e9192b21028178cad",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3343d4ade1549bf0ed31f26c0f8b6ca22fbad2009ed65c508148703ae5e9b031",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "4bc0078f7760899e07510cb58f4baac07c8f86032972b57e9192b21028178cad",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "26ff5006892e6c3f1dc83bc797fa1f9d1340461b8dbc567f606ca7ddd3105c69",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "4bc0078f7760899e07510cb58f4baac07c8f86032972b57e9192b21028178cad",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "6d9ba86a9519366ca3c400b7a98dee0315e4cdc941d6285cf202fe2fe49a8810",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "4bc0078f7760899e07510cb58f4baac07c8f86032972b57e9192b21028178cad",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "6d9ba86a9519366ca3c400b7a98dee0315e4cdc941d6285cf202fe2fe49a8810",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "18e3d7122a1611b960e684c5dd310363740a731a4bd525d82ec69dae2c841ab8",
+        "source_digests": {
+          "main.py": "8204545f0e082abaa6066441e7315653a0677ef5e8f50ceac45e29c79edeac88",
+          "snake.py": "05b3952af3a7adac52f8e6f3c4227f32038a4bc0f62422360cd27afcaa0c449d"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "source/pure-contract\\content_lab\\startup_probe.py",
+          "data/runs/mpst_contract/r04/15_SnakeGame/artifact\\main.py",
+          "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-ke4ujet7\\probe.json"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "profile": "tkinter_event_loop",
+        "observation": {
+          "event_loop_observed": true,
+          "mapped_window": true,
+          "widget_count": 1,
+          "callback_errors": []
+        },
+        "id": "1f12df882eebe6bfbd0a9ca6138bcecad8c120ac6ceddef5170b708c2b475e42"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": true,
+      "evidence_id": "1f12df882eebe6bfbd0a9ca6138bcecad8c120ac6ceddef5170b708c2b475e42"
+    }
+  ]
+}

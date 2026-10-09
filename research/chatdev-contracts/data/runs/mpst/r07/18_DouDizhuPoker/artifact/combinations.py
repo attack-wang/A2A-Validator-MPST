@@ -1,0 +1,16 @@
+from enum import Enum
+class ComboType(Enum):
+    SINGLE = 'Single'
+    PAIR = 'Pair'
+    TRIPLE = 'Triple'
+    TRIPLE_ONE = 'Triple+Single'
+    TRIPLE_PAIR = 'Triple+Pair'
+    STRAIGHT = 'Straight'
+    PAIR_STRAIGHT = 'Pair Straight'
+    AIRPLANE = 'Airplane'
+    AIRPLANE_SINGLES = 'Airplane+Singles'
+    AIRPLANE_PAIRS = 'Airplane+Pairs'
+    FOUR_TWO_SINGLES = 'Four+Two Singles'
+    FOUR_TWO_PAIRS = 'Four+Two Pairs'
+    BOMB = 'Bomb'
+    ROCKET = 'Rocket'

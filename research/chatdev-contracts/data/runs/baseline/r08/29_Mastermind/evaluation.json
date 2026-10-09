@@ -1,0 +1,82 @@
+{
+  "task_index": 29,
+  "project_name": "Mastermind",
+  "framework": "ChatDev",
+  "workflow_status": "completed",
+  "workspace": "data/runs/baseline/r08/29_Mastermind/artifact",
+  "source_file_count": 7,
+  "python_compile": {
+    "checked": 7,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-04T16:38:28+0800",
+  "judge": {
+    "verdict": "fail",
+    "functional_completeness": 0.35,
+    "executable_likelihood": 0.2,
+    "implemented_requirements": [
+      {
+        "requirement": "Secret code generation (random hidden sequence)",
+        "fulfilled": true,
+        "evidence": "function generate_secret_code in code_generator.py creates a list of color keys based on length, palette size and duplicate policy."
+      },
+      {
+        "requirement": "Input parsing and validation (flexible formats, length check)",
+        "fulfilled": true,
+        "evidence": "normalize_guess in validator.py strips ignored characters, maps letters to keys, checks length and returns errors."
+      },
+      {
+        "requirement": "Feedback calculation (exact and partial matches)",
+        "fulfilled": true,
+        "evidence": "evaluate_guess in feedback.py returns a Feedback dataclass with exact and partial counts using Counter logic."
+      },
+      {
+        "requirement": "Attempt limit enforcement",
+        "fulfilled": true,
+        "evidence": "Game.__init__ stores max_attempts; Game._process_guess increments attempts_used and sets finished when attempts_used >= max_attempts."
+      },
+      {
+        "requirement": "Win/lose outcome reporting",
+        "fulfilled": true,
+        "evidence": "Game._process_guess sets self.won and self.finished; Game._print_outcome renders outcome via board.render_outcome (though board method missing)."
+      },
+      {
+        "requirement": "Display of feedback after each guess",
+        "fulfilled": true,
+        "evidence": "Game._process_guess outputs \"Feedback: {exact} exact, {partial} partial\" when the game continues."
+      },
+      {
+        "requirement": "Board rendering (history of guesses and feedback)",
+        "fulfilled": false,
+        "evidence": "board.py only defines __init__; methods render, add_entry, render_outcome referenced in game.py are absent."
+      },
+      {
+        "requirement": "Main entry point to start a round and allow replay",
+        "fulfilled": false,
+        "evidence": "main.py defines banner and imports but contains no executable code to launch the game or loop for replay."
+      },
+      {
+        "requirement": "Proper imports and module wiring",
+        "fulfilled": false,
+        "evidence": "game.py uses generate_secret_code and COLORS without importing them, leading to NameError at runtime."
+      }
+    ],
+    "critical_issues": [
+      "Missing Board class methods (render, add_entry, render_outcome) referenced throughout Game, causing AttributeError.",
+      "game.py does not import generate_secret_code or COLORS, so secret code generation and palette display will fail.",
+      "main.py lacks a runnable entry point (no if __name__ == '__main__': block or function call).",
+      "No handling for replaying rounds; the benchmark expects a complete playable loop.",
+      "Potential missing handling of ANSI color output, but not fatal; however, without Board implementation the user never sees guess history."
+    ],
+    "summary": "The repository contains solid implementations for secret code generation, input validation, and feedback calculation, satisfying the core algorithmic parts of Mastermind. However, the user‑facing components are incomplete: the Board class lacks any rendering or state‑tracking methods, game.py has missing imports, and main.py does not launch the game. Consequently the program cannot be executed as a playable Mastermind game, and the essential win/lose display and board history are absent. The overall implementation falls short of the benchmark's requirements, resulting in a FAIL verdict.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": false
+}

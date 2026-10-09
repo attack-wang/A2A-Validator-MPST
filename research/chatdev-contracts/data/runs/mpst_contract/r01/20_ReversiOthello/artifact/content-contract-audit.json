@@ -1,0 +1,286 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Application"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\n\"\"\"Reversi (Othello) command-line game.\"\"\"\nfrom game import Board, SIZE, EMPTY, BLACK, WHITE\n\n\ndef render(board, moves):\n    lines = [\"  \" + \" \".join(chr(ord('A') + c) for c in range(SIZE))]\n    move_set = set(moves)\n    for r in range(SIZE):\n        row = []\n        for c in range(SIZE):\n            cell = board.grid[r][c]\n            row.append('*' if cell == EMPTY and (r, c) in move_set else cell)\n        lines.append(f\"{r + 1} \" + \" \".join(row))\n    return \"\\n\".join(lines)\n\n\ndef parse_move(text):\n    text = text.strip().upper()\n    if len(text) == 2 and text[0].isalpha() and text[1].isdigit():\n        c = ord(text[0]) - ord('A')\n        r = int(text[1]) - 1\n        if 0 <= r < SIZE and 0 <= c < SIZE:\n            return r, c\n    return None\n\n\ndef main():\n    board = Board()\n    player = BLACK\n    print(\"Reversi (Othello) - B goes first. '*' marks valid moves.\")\n    print(\"Enter moves as column letter + row number (e.g. 'D3'), or 'Q' to quit.\")\n    while True:\n        moves = board.valid_moves(player)\n        black, white = board.score()\n        print()\n        print(render(board, moves))\n        print(f\"Score - B: {black}  W: {white}\")\n        opponent = WHITE if player == BLACK else BLACK\n        if not moves:\n            if not board.is_full() and board.has_any_move(opponent):\n                print(f\"Player {player} has no valid move. Turn passes.\")\n                player = opponent\n                continue\n            break\n        try:\n            text = input(f\"Player {player}, your move: \")\n        except (EOFError, KeyboardInterrupt):\n            print()\n            return\n        if text.strip().upper() == 'Q':\n            print(\"Game aborted.\")\n            return\n        pos = parse_move(text)\n        if pos is None or pos not in moves:\n            print(\"Invalid move. Try again.\")\n            continue\n        board.apply_move(player, *pos)\n        player = opponent\n\n    black, white = board.score()\n    print()\n    print(render(board, {}))\n    print(f\"Final score - B: {black}  W: {white}\")\n    if black > white:\n        print(\"Black wins!\")\n    elif white > black:\n        print(\"White wins!\")\n    else:\n        print(\"It's a tie!\")\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\ngame.py\n```python\n\"\"\"Reversi (Othello) core game logic.\"\"\"\nSIZE = 8\nEMPTY, BLACK, WHITE = '.', 'B', 'W'\nDIRECTIONS = [(-1, -1), (-1, 0), (-1, 1), (0, -1),\n              (0, 1), (1, -1), (1, 0), (1, 1)]\n\n\nclass Board:\n    def __init__(self):\n        self.grid = [[EMPTY] * SIZE for _ in range(SIZE)]\n        mid = SIZE // 2\n        self.grid[mid - 1][mid - 1] = WHITE\n        self.grid[mid][mid] = WHITE\n        self.grid[mid - 1][mid] = BLACK\n        self.grid[mid][mid - 1] = BLACK\n\n    @staticmethod\n    def in_bounds(r, c):\n        return 0 <= r < SIZE and 0 <= c < SIZE\n\n    def flips_for(self, player, r, c):\n        \"\"\"Return discs that would be flipped if `player` plays at (r, c).\"\"\"\n        if not self.in_bounds(r, c) or self.grid[r][c] != EMPTY:\n            return []\n        opponent = WHITE if player == BLACK else BLACK\n        flips = []\n        for dr, dc in DIRECTIONS:\n            line = []\n            rr, cc = r + dr, c + dc\n            while self.in_bounds(rr, cc) and self.grid[rr][cc] == opponent:\n                line.append((rr, cc))\n                rr += dr\n                cc += dc\n            if line and self.in_bounds(rr, cc) and self.grid[rr][cc] == player:\n                flips.extend(line)\n        return flips\n\n    def valid_moves(self, player):\n        moves = {}\n        for r in range(SIZE):\n            for c in range(SIZE):\n                if self.grid[r][c] == EMPTY:\n                    flips = self.flips_for(player, r, c)\n                    if flips:\n                        moves[(r, c)] = flips\n        return moves\n\n    def apply_move(self, player, r, c):\n        flips = self.flips_for(player, r, c)\n        if not flips:\n            return False\n        self.grid[r][c] = player\n        for rr, cc in flips:\n            self.grid[rr][cc] = player\n        return True\n\n    def score(self):\n        black = sum(row.count(BLACK) for row in self.grid)\n        white = sum(row.count(WHITE) for row in self.grid)\n        return black, white\n\n    def is_full(self):\n        return all(cell != EMPTY for row in self.grid for cell in row)\n\n    def has_any_move(self, player):\n        return bool(self.valid_moves(player))\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "04ba925e051a04e284ad4508116b899dc6cfc31b74b2b5570615bbcf259ff787",
+      "result": "{\"verdict\": \"finished\", \"issues\": []}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "04ba925e051a04e284ad4508116b899dc6cfc31b74b2b5570615bbcf259ff787",
+      "result": " Finished"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "04ba925e051a04e284ad4508116b899dc6cfc31b74b2b5570615bbcf259ff787",
+      "result": "{\"status\": \"passed\", \"test_run_id\": \"31f90569dedef85765f59befcf0d70131bae896f61a45772553961a8e33d230b\", \"summary\": \"Startup smoke test passed (exit code 0, no stderr). main.py and game.py launched successfully: the Reversi board rendered with the standard initial 2-2 setup, valid moves marked with '*', score displayed (B: 2, W: 2), and the program awaited player B's input as expected. No source errors or missing dependencies detected.\"}"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "04ba925e051a04e284ad4508116b899dc6cfc31b74b2b5570615bbcf259ff787",
+    "source_digests": {
+      "game.py": "e619fd7a8c2f236027673964c2f9428fa4f0374997bd3ee0940e2a70fafb743e",
+      "main.py": "ef64a9f90092b247727d861850c0db8eee410bc14e2669fca1be5d21df674ce6"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "main.py"
+    ],
+    "timeout_seconds": 3,
+    "status": "passed",
+    "exit_code": 0,
+    "stdout": "Reversi (Othello) - B goes first. '*' marks valid moves.\nEnter moves as column letter + row number (e.g. 'D3'), or 'Q' to quit.\n\n  A B C D E F G H\n1 . . . . . . . .\n2 . . . . . . . .\n3 . . . * . . . .\n4 . . * W B . . .\n5 . . . B W * . .\n6 . . . . * . . .\n7 . . . . . . . .\n8 . . . . . . . .\nScore - B: 2  W: 2\nPlayer B, your move: \n",
+    "stderr": "",
+    "profile": "process_exit",
+    "id": "31f90569dedef85765f59befcf0d70131bae896f61a45772553961a8e33d230b"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "c005e7ce526175698587aa63471d850b5be707c418a6a4bbfaf3dbf8bdc10e31",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "57d005c3b71920cefd5b63883aac3200365d1f8a4aa4b23a48238444adb055e7",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "694727febe0da2b3189164abc1aaf73bed6bf9a49fefed87cf2dee67010438be",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "duplicate_source_file",
+          "path": "$",
+          "message": "Return each final file once: game.py",
+          "repair": "Return only final complete files, each as a standalone filename followed by a closed Python code fence. No drafts or analysis."
+        }
+      ],
+      "candidate_sha256": "b50009b6b6c07ee1e7d94bdad48f6fc515d67a7c5b044fc36ce88638a62aaefa",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": "The user wants a complete Reversi (Othello) game in Python. I need to output final source files only, starting with main.py, each file as a filename line followed by a closed ```python code block. Compact but complete implementation. No placeholders.\n\nLet me design a compact Reversi game:\n- 8x8 board\n- Two players (Black and White)\n- Valid move detection (must flip at least one opponent disc)\n- Flip discs in all 8 directions\n- Score display\n- Game ends when board full or no valid moves for both players\n- Pass handling when a player has no valid moves\n\nI'll make it a terminal-based game with a nice board display. Maybe split into two files: main.py and game.py (or reversi.py). Keep it compact.\n\nLet me write:\n\nmain.py - entry point, runs the game loop\nreversi.py - Board class with game logic\n\nActually, to keep it compact, maybe main.py + game.py. Let me write the code.\n\ngame.py:\n\n```python\n\"\"\"Reversi (Othello) core game logic.\"\"\"\n\nEMPTY, BLACK, WHITE = '.', 'X', 'O'\nSIZE = 8\nDIRECTIONS = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]\n\n\nclass Reversi:\n    def __init__(self):\n        self.reset()\n\n    def reset(self):\n        self.board = [[EMPTY] * SIZE for _ in range(SIZE)]\n        self.board[3][3] = WHITE\n        self.board[3][4] = BLACK\n        self.board[4][3] = BLACK\n        self.board[4][4] = WHITE\n        self.current = BLACK\n\n    def opponent(self, player):\n        return WHITE if player == BLACK else BLACK\n\n    def flips_for(self, row, col, player):\n        \"\"\"Return list of discs flipped if player plays (row, col), else [].\"\"\"\n        if not (0 <= row < SIZE and 0 <= col < SIZE) or self.board[row][col] != EMPTY:\n            return []\n        opp = self.opponent(player)\n        flips = []\n        for dr, dc in DIRECTIONS:\n            line = []\n            r, c = row + dr, col + dc\n            while 0 <= r < SIZE and 0 <= c < SIZE and self.board[r][c] == opp:\n                line.append((r, c))\n                r += dr\n                c += dc\n            if line and 0 <= r < SIZE and 0 <= c < SIZE and self.board[r][c] == player:\n                flips.extend(line)\n        return flips\n\n    def valid_moves(self, player):\n        return [(r, c) for r in range(SIZE) for c in range(SIZE) if self.flips_for(r, c, player)]\n\n    def apply_move(self, row, col, player):\n        flips = self.flips_for(row, col, player)\n        if not flips:\n            return False\n        self.board[row][col] = player\n        for r, c in flips:\n            self.board[r][c] = player\n        return True\n\n    def score(self):\n        b = sum(row.count(BLACK) for row in self.board)\n        w = sum(row.count(WHITE) for row in self.board)\n        return b, w\n\n    def game_over(self):\n        return not self.valid_moves(BLACK) and not self.valid_moves(WHITE)\n```\n\nmain.py:\n\n```python\n\"\"\"Reversi (Othello) - two-player console game. Run: python main.py\"\"\"\n\nfrom game import Reversi, EMPTY, BLACK, WHITE, SIZE\n\n\ndef render(game, moves):\n    print(\"\\n   \" + \" \".join(str(c + 1) for c in range(SIZE)))\n    for r in range(SIZE):\n        row = \" \".join(game.board[r])\n        marker = \" *\" if (r, 0) in ... \n```\n\nHmm, marking valid moves on the board would be nice. Let me render valid moves as '*' or lowercase. Let me show valid moves as '*' on the board.\n\n```python\ndef render(game, moves):\n    move_set = set(moves)\n    print(\"\\n    \" + \"  \".join(chr(ord('a') + c) for c in range(SIZE)))\n    for r in range(SIZE):\n        cells = []\n        for c in range(SIZE):\n            v = game.board[r][c]\n            if v == EMPTY and (r, c) in move_set:\n                cells.append('*')\n            else:\n                cells.append(v)\n        print(f\" {r + 1}  \" + \"  \".join(cells))\n    b, w = game.score()\n    turn = \"Black (X)\" if game.current == BLACK else \"White (O)\"\n    print(f\"\\nScore -> Black (X): {b}  White (O): {w} | {turn} to move\")\n```\n\nInput parsing: accept like \"d3\" or \"3 d\"? Standard Othello notation is column letter + row number, e.g., \"d3\". Let me parse both \"d3\" and \"3d\" for friendliness. Simpler: parse letter+digit or digit+letter.\n\n```python\ndef parse_move(text, moves):\n    text = text.strip().lower()\n    if len(text) != 2:\n        return None\n    a, b = text[0], text[1]\n    if a.isalpha() and b.isdigit():\n        col, row = ord(a) - ord('a'), int(b) - 1\n    elif a.isdigit() and b.isalpha():\n        row, col = int(a) - 1, ord(b) - ord('a')\n    else:\n        return None\n    if (row, col) in moves:\n        return row, col\n    return None\n```\n\nMain loop:\n\n```python\ndef main():\n    game = Reversi()\n    print(\"=== Reversi (Othello) ===\")\n    print(\"Enter moves as column letter + row number, e.g. 'd3'. '*' marks valid moves. 'q' quits.\")\n    while True:\n        moves = game.valid_moves(game.current)\n        if not moves:\n            other = game.opponent(game.current)\n            if game.valid_moves(other):\n                print(f\"\\n{...} has no valid move - passing.\")\n                game.current = other\n                continue\n            break\n        render(game, moves)\n        text = input(f\"\\n{...} move: \").strip().lower()\n        if text in ('q', 'quit', 'exit'):\n            print(\"Game aborted.\")\n            return\n        move = parse_move(text, moves)\n        if move is None:\n            print(\"Invalid move. Try a '*' square (e.g. d3).\")\n            continue\n        game.apply_move(*move, game.current)\n        game.current = game.opponent(game.current)\n    render(game, set())\n    b, w = game.score()\n    print(\"\\n=== Game over ===\")\n    if b > w:\n        print(f\"Black (X) wins {b}-{w}!\")\n    elif w > b:\n        print(f\"White (O) wins {w}-{b}!\")\n    else:\n        print(f\"It's a tie: {b}-{w}.\")\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nWait — game_over check: the loop naturally ends when neither player has moves. Also board full case: valid_moves returns empty for both when board is full, so loop ends. Good.\n\nOne subtlety: after a pass, need to avoid infinite loop — if current has no moves and opponent also has none, break. The code handles that: if moves empty, check opponent; if opponent has moves, pass; else break. Good.\n\nAlso need to handle the case where after passing, the same player might again have no moves? No — after passing, current becomes the opponent who has moves (we checked). Then after opponent moves, back to first player. Fine.\n\nLet me also add a simple test file? The instructions say \"Start with main.py, followed by every other required Python file.\" A test file could be good evidence but not required. Keep it compact: main.py and game.py. Maybe add test_reversi.py for verification evidence? The prompt says \"Finished is allowed only if the supplied review/test evidence requires no repair.\" Adding a small test file could be nice but adds length. I'll include a compact test file to demonstrate correctness — it's good practice. Actually, to stay within budget and keep it clean, I'll include main.py, game.py, and a small test_reversi.py.\n\nLet me double check flips_for logic: place at (row,col), scan direction; collect opponent discs; if line non-empty and next is player's disc, flips extend. Correct.\n\nInitial board: standard Othello: d4=White? Standard: (3,3)=White, (3,4)=Black, (4,3)=Black, (4,4)=White with 0-indexed rows/cols where row 3 col 3 is d4... In standard notation, d4 and e5 are White; d5 and e4 are Black. With columns a-h (0-7) and rows 1-8 (0-7): d4 = col 3, row 3 → (3,3) = White. e5 = col 4, row 4 → (4,4) = White. d5 = col 3, row 4 → (4,3) = Black. e4 = col 4, row 3 → (3,4) = Black. That matches my reset. Good.\n\nBlack moves first. Good.\n\nRender: use letters a-h for columns, numbers 1-8 for rows. Input \"d3\" → col=3, row=2. Good.\n\nLet me finalize the code, making sure it's complete and runs.\n\ngame.py:\n\n```python\n\"\"\"Core Reversi (Othello) game logic.\"\"\"\n\nEMPTY, BLACK, WHITE = \".\", \"X\", \"O\"\nSIZE = 8\nDIRECTIONS = ((-1, -1), (-1, 0), (-1, 1),\n              (0, -1), (0, 1),\n              (1, -1), (1, 0), (1, 1))\n\n\nclass Reversi:\n    \"\"\"8x8 Reversi board with move validation, disc flipping and scoring.\"\"\"\n\n    def __init__(self):\n        self.reset()\n\n    def reset(self):\n        self.board = [[EMPTY] * SIZE for _ in range(SIZE)]\n        self.board[3][3] = WHITE\n        self.board[3][4] = BLACK\n        self.board[4][3] = BLACK\n        self.board[4][4] = WHITE\n        self.current = BLACK\n\n    @staticmethod\n    def opponent(player):\n        return WHITE if player == BLACK else BLACK\n\n    def flips_for(self, row, col, player):\n        \"\"\"Discs that would flip if `player` plays at (row, col); [] if illegal.\"\"\"\n        if not (0 <= row < SIZE and 0 <= col < SIZE) or self.board[row][col] != EMPTY:\n            return []\n        opp = self.opponent(player)\n        flips = []\n        for dr, dc in DIRECTIONS:\n            line = []\n            r, c = row + dr, col + dc\n            while 0 <= r < SIZE and 0 <= c < SIZE and self.board[r][c] == opp:\n                line.append((r, c))\n                r, c = r + dr, c + dc\n            if line and 0 <= r < SIZE and 0 <= c < SIZE and self.board[r][c] == player:\n                flips.extend(line)\n        return flips\n\n    def valid_moves(self, player):\n        return [(r, c) for r in range(SIZE) for c in range(SIZE)\n                if self.flips_for(r, c, player)]\n\n    def apply_move(self, row, col, player):\n        flips = self.flips_for(row, col, player)\n        if not flips:\n            return False\n        self.board[row][col] = player\n        for r, c in flips:\n            self.board[r][c] = player\n        self.current = self.opponent(player)\n        return True\n\n    def score(self):\n        blacks = sum(row.count(BLACK) for row in self.board)\n        whites = sum(row.count(WHITE) for row in self.board)\n        return blacks, whites\n\n    def is_over(self):\n        return not self.valid_moves(BLACK) and not self.valid_moves(WHITE)\n```\n\nHmm, apply_move setting current — but in main loop I also switch. Let me keep apply_move pure (just apply) and manage turn in main, or let apply_move switch and main just calls it. Simpler: apply_move switches current. Then main: after apply_move, no need to switch. But pass handling still in main. Let me have apply_move switch current, and main loop:\n\n```python\nwhile not game.is_over():\n    moves = game.valid_moves(game.current)\n    if not moves:\n        print pass message; game.current = opponent; continue\n    render...\n    input...\n    apply_move (switches current)\n```\n\nBut is_over() calls valid_moves twice each loop — fine for 8x8.\n\nActually careful: is_over checks both players have no moves. If current has no moves but opponent does, we pass. If neither, is_over true, loop exits. Good.\n\nmain.py:\n\n```python\n\"\"\"Reversi (Othello) console game. Run with: python main.py\"\"\"\n\nfrom game import Reversi, EMPTY, BLACK, WHITE, SIZE\n\n\ndef render(game, moves):\n    move_set = set(moves)\n    header = \"   \" + \"  \".join(chr(ord(\"a\") + c) for c in range(SIZE))\n    print(\"\\n\" + header)\n    for r in range(SIZE):\n        cells = []\n        for c in range(SIZE):\n            v = game.board[r][c]\n            cells.append(\"*\" if v == EMPTY and (r, c) in move_set else v)\n        print(f\"{r + 1:>2}  \" + \"  \".join(cells))\n    blacks, whites = game.score()\n    turn = \"Black (X)\" if game.current == BLACK else \"White (O)\"\n    print(f\"\\nScore - Black (X): {blacks}  White (O): {whites}   {turn} to move\")\n\n\ndef parse_move(text, moves):\n    \"\"\"Accept 'd3' or '3d' style input; return (row, col) if it is a valid move.\"\"\"\n    text = text.strip().lower()\n    if len(text) == 2 and text[0].isalpha() and text[1].isdigit():\n        col, row = ord(text[0]) - ord(\"a\"), int(text[1]) - 1\n    elif len(text) == 2 and text[0].isdigit() and text[1].isalpha():\n        row, col = int(text[0]) - 1, ord(text[1]) - ord(\"a\")\n    else:\n        return None\n    return (row, col) if (row, col) in moves else None\n\n\ndef main():\n    game = Reversi()\n    print(\"=== Reversi (Othello) ===\")\n    print(\"Two players alternate: Black (X) first, then White (O).\")\n    print(\"Type a square like 'd3' (or '3d'); '*' marks valid moves. 'q' quits.\")\n    while not game.is_over():\n        moves = game.valid_moves(game.current)\n        if not moves:\n            name = \"Black (X)\" if game.current == BLACK else \"White (O)\"\n            print(f\"\\n{name} has no valid move - turn passes.\")\n            game.current = game.opponent(game.current)\n            continue\n        render(game, moves)\n        name = \"Black (X)\" if game.current == BLACK else \"White (O)\"\n        text = input(f\"\\n{name}, choose a square: \")\n        if text.strip().lower() in (\"q\", \"quit\", \"exit\"):\n            print(\"Game aborted.\")\n            return\n        move = parse_move(text, moves)\n        if move is None:\n            print(\"Invalid move - pick a square marked '*' (e.g. d3).\")\n            continue\n        game.apply_move(*move, game.current)\n    render(game, set())\n    blacks, whites = game.score()\n    print(\"\\n=== Game over ===\")\n    if blacks > whites:\n        print(f\"Black (X) wins {blacks}-{whites}!\")\n    elif whites > blacks:\n        print(f\"White (O) wins {whites}-{blacks}!\")\n    else:\n        print(f\"It is a tie: {blacks}-{whites}.\")\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nWait: apply_move switches current inside. In main loop after apply_move, current is opponent. Good. But in pass branch, we switch manually. Good.\n\nEdge: after pass, loop continues; is_over() re-evaluated. If opponent also has no moves... but we only pass when opponent has moves? No — we pass whenever current has no moves, without checking opponent. If opponent also has none, is_over() would have been True at loop top, so we'd never enter. Actually is_over() is checked at loop condition: `while not game.is_over()`. If neither has moves, loop exits before the pass branch. So pass branch only runs when opponent has moves. Good, no infinite loop.\n\ntest_reversi.py — compact tests:\n\n```python\n\"\"\"Self-checks for the Reversi core logic. Run with: python test_reversi.py\"\"\"\n\nfrom game import Reversi, BLACK, WHITE, EMPTY, SIZE\n\n\ndef run_tests():\n    g = Reversi()\n    assert g.board[3][3] == WHITE and g.board[4][4] == WHITE\n    assert g.board[3][4] == BLACK and g.board[4][3] == BLACK\n    assert g.current == BLACK\n    assert g.score() == (2, 2)\n\n    moves = g.valid_moves(BLACK)\n    assert set(moves) == {(2, 3), (3, 2), (4, 5), (5, 4)}, moves\n\n    assert g.apply_move(2, 3, BLACK)          # d3 flips (3,3)\n    assert g.board[3][3] == BLACK\n    assert g.score() == (4, 1)\n    assert g.current == WHITE\n\n    assert not g.apply_move(2, 3, WHITE)      # occupied square is illegal\n    assert not g.apply_move(0, 0, WHITE)      # no flip, illegal\n\n    # Play until neither side can move (random-ish legal picks).\n    import random\n    random.seed(1)\n    while not g.is_over():\n        player = g.current\n        options = g.valid_moves(player)\n        if not options:\n            g.current = g.opponent(player)\n            continue\n        row, col = random.choice(options)\n        before = sum(r.count(player) for r in g.board)\n        assert g.apply_move(row, col, player)\n        after = sum(r.count(player) for r in g.board)\n        assert after > before                 # every legal move flips >= 1 disc\n        assert all(0 <= r < SIZE and 0 <= c < SIZE\n                   for r in range(SIZE) for c in range(SIZE))\n    blacks, whites = g.score()\n    assert blacks + whites <= SIZE * SIZE\n    print(\"All tests passed.\")\n\n\nif __name__ == \"__main__\":\n    run_tests()\n```\n\nHmm, the assert inside loop `after > before` — before counts player discs before move; after placing + flipping, count increases by 1 + flips ≥ 2. Good.\n\nWait, in the loop I use g.opponent — it's a staticmethod, callable on instance. Fine.\n\nOne issue: `g.current = g.opponent(player)` in test — fine.\n\nAlso the full-board check: `blacks + whites <= SIZE*SIZE` trivially true. Maybe assert board has no EMPTY when full... not necessarily full when game over (could be blocked). Fine.\n\nLet me verify valid initial moves for Black: board with center 2x2. Black at (3,4) and (4,3). Moves: (2,3): column c? Let's check (2,3): down direction (1,0): (3,3) is WHITE, (4,3) is BLACK → line=[(3,3)], end at (4,3) BLACK → flip. Yes valid. (3,2): direction (0,1): (3,3) WHITE, (3,4) BLACK → valid. (4,5): direction (0,-1): (4,4) WHITE, (4,3) BLACK → valid. (5,4): direction (-1,0): (4,4) WHITE, (3,4) BLACK → valid. Also (2,4)? direction (1,0): (3,4) is BLACK — first disc is own, line empty → no. (2,2)? diagonals: (3,3) WHITE then (4,4) WHITE — not own at end → no. So exactly {(2,3),(3,2),(4,5),(5,4)}. In notation: d3, c4, f5, e6. Correct standard.\n\napply_move(2,3,BLACK) flips (3,3): score becomes Black 4 (2 existing + placed + flipped = 4), White 1. Yes.\n\nNow check render formatting: header \"   a  b  c ...\" and rows \" 1  .  .  ...\". Fine.\n\nOne more consideration: the instruction says \"Return each final file once. Preserve explicit filenames. No directory paths.\" So filenames: main.py, game.py, test_reversi.py.\n\nAlso \"Start with main.py, followed by every other required Python file.\" So order: main.py, game.py, test_reversi.py.\n\nDouble-check imports in main.py: from game import Reversi, EMPTY, BLACK, WHITE, SIZE — EMPTY used in render. Yes.\n\nIn game.py, `self.current` initialized to BLACK; apply_move switches. In main, after apply_move we don't switch again. Good.\n\nPotential issue: in main loop, after a pass we `continue`, and loop condition re-checks is_over(). Fine.\n\nInput reading: input() may raise EOFError in non-interactive; not a concern.\n\nLet me also make sure `parse_move` handles out-of-range like 'z9': col = 25, row = 8 → not in moves → None. Good.\n\nCheck the game-over render: render(game, set()) — move_set empty, all EMPTY cells show '.'. Good.\n\nEverything looks complete. Write final answer with three files, each with filename line and closed python code block. No extra commentary.\n\nLet me finalize code carefully, checking syntax mentally.\n\ngame.py — fine.\n\nmain.py — check f-strings and logic. `print(f\"{r + 1:>2}  \" + \"  \".join(cells))` fine.\n\ntest_reversi.py — the inner assert with generator: `assert all(0 <= r < SIZE and 0 <= c < SIZE for r in range(SIZE) for c in range(SIZE))` — trivially true, kind of useless. Better: check no cell is EMPTY incorrectly? Let me instead assert that after each move, the placed cell is player's color and flips happened. Simplify: assert g.board[row][col] == player. And count consistency: blacks+whites+empties == 64. Let me rewrite test loop:\n\n```python\n    import random\n    random.seed(1)\n    while not g.is_over():\n        player = g.current\n        options = g.valid_moves(player)\n        if not options:\n            g.current = g.opponent(player)\n            continue\n        row, col = random.choice(options)\n        assert g.apply_move(row, col, player)\n        assert g.board[row][col] == player\n        blacks, whites = g.score()\n        assert blacks + whites <= SIZE * SIZE\n    blacks, whites = g.score()\n    print(f\"Final score after self-play: Black {blacks} - White {whites}. All tests passed.\")\n```\n\nAlso test that a move flips: use the d3 example. Good enough.\n\nAlso test pass logic? Hard to construct quickly; skip.\n\nAlso verify is_over on full board: construct full board manually:\n\n```python\n    full = Reversi()\n    full.board = [[BLACK] * SIZE for _ in range(SIZE)]\n    assert full.is_over() and full.score() == (64, 0)\n```\n\nGood compact test.\n\nFinal check on budget: three files, reasonably compact. Good.\n\nOne more detail: the prompt says \"Return FINAL SOURCE FILES ONLY. Do not output analysis...\" So my response should be just the files. I'll comply.main.py\n\n```python\n\"\"\"Reversi (Othello) console game. Run with: python main.py\"\"\"\n\nfrom game import Reversi, EMPTY, BLACK, WHITE, SIZE\n\n\ndef render(game, moves):\n    move_set = set(moves)\n    print(\"\\n   \" + \"  \".join(chr(ord(\"a\") + c) for c in range(SIZE)))\n    for r in range(SIZE):\n        cells = []\n        for c in range(SIZE):\n            v = game.board[r][c]\n            cells.append(\"*\" if v == EMPTY and (r, c) in move_set else v)\n        print(f\"{r + 1:>2}  \" + \"  \".join(cells))\n    blacks, whites = game.score()\n    turn = \"Black (X)\" if game.current == BLACK else \"White (O)\"\n    print(f\"\\nScore - Black (X): {blacks}  White (O): {whites}   {turn} to move\")\n\n\ndef parse_move(text, moves):\n    \"\"\"Accept 'd3' or '3d' style input; return (row, col) if it is a valid move.\"\"\"\n    text = text.strip().lower()\n    if len(text) == 2 and text[0].isalpha() and text[1].isdigit():\n        col, row = ord(text[0]) - ord(\"a\"), int(text[1]) - 1\n    elif len(text) == 2 and text[0].isdigit() and text[1].isalpha():\n        row, col = int(text[0]) - 1, ord(text[1]) - ord(\"a\")\n    else:\n        return None\n    return (row, col) if (row, col) in moves else None\n\n\ndef main():\n    game = Reversi()\n    print(\"=== Reversi (Othello) ===\")\n    print(\"Two players alternate: Black (X) first, then White (O).\")\n    print(\"Type a square like 'd3' (or '3d'); '*' marks valid moves. 'q' quits.\")\n    while not game.is_over():\n        moves = game.valid_moves(game.current)\n        if not moves:\n            name = \"Black (X)\" if game.current == BLACK else \"White (O)\"\n            print(f\"\\n{name} has no valid move - turn passes.\")\n            game.current = game.opponent(game.current)\n            continue\n        render(game, moves)\n        name = \"Black (X)\" if game.current == BLACK else \"White (O)\"\n        text = input(f\"\\n{name}, choose a square: \")\n        if text.strip().lower() in (\"q\", \"quit\", \"exit\"):\n            print(\"Game aborted.\")\n            return\n        move = parse_move(text, moves)\n        if move is None:\n            print(\"Invalid move - pick a square marked '*' (e.g. d3).\")\n            continue\n        game.apply_move(*move, game.current)\n    render(game, set())\n    blacks, whites = game.score()\n    print(\"\\n=== Game over ===\")\n    if blacks > whites:\n        print(f\"Black (X) wins {blacks}-{whites}!\")\n    elif whites > blacks:\n        print(f\"White (O) wins {whites}-{blacks}!\")\n    else:\n        print(f\"It is a tie: {blacks}-{whites}.\")\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\ngame.py\n\n```python\n\"\"\"Core Reversi (Othello) game logic.\"\"\"\n\nEMPTY, BLACK, WHITE = \".\", \"X\", \"O\"\nSIZE = 8\nDIRECTIONS = ((-1, -1), (-1, 0), (-1, 1),\n              (0, -1), (0, 1),\n              (1, -1), (1, 0), (1, 1))\n\n\nclass Reversi:\n    \"\"\"8x8 Reversi board with move validation, disc flipping and scoring.\"\"\"\n\n    def __init__(self):\n        self.reset()\n\n    def reset(self):\n        self.board = [[EMPTY] * SIZE for _ in range(SIZE)]\n        self.board[3][3] = WHITE\n        self.board[3][4] = BLACK\n        self.board[4][3] = BLACK\n        self.board[4][4] = WHITE\n        self.current = BLACK\n\n    @staticmethod\n    def opponent(player):\n        return WHITE if player == BLACK else BLACK\n\n    def flips_for(self, row, col, player):\n        \"\"\"Discs that would flip if `player` plays at (row, col); [] if illegal.\"\"\"\n        if not (0 <= row < SIZE and 0 <= col < SIZE) or self.board[row][col] != EMPTY:\n            return []\n        opp = self.opponent(player)\n        flips = []\n        for dr, dc in DIRECTIONS:\n            line = []\n            r, c = row + dr, col + dc\n            while 0 <= r < SIZE and 0 <= c < SIZE and self.board[r][c] == opp:\n                line.append((r, c))\n                r, c = r + dr, c + dc\n            if line and 0 <= r < SIZE and 0 <= c < SIZE and self.board[r][c] == player:\n                flips.extend(line)\n        return flips\n\n    def valid_moves(self, player):\n        return [(r, c) for r in range(SIZE) for c in range(SIZE)\n                if self.flips_for(r, c, player)]\n\n    def apply_move(self, row, col, player):\n        \"\"\"Place a disc, flip captured discs, and pass the turn. True if legal.\"\"\"\n        flips = self.flips_for(row, col, player)\n        if not flips:\n            return False\n        self.board[row][col] = player\n        for r, c in flips:\n            self.board[r][c] = player\n        self.current = self.opponent(player)\n        return True\n\n    def score(self):\n        blacks = sum(row.count(BLACK) for row in self.board)\n        whites = sum(row.count(WHITE) for row in self.board)\n        return blacks, whites\n\n    def is_over(self):\n        \"\"\"Game ends when the board is full or neither side can move.\"\"\"\n        return not self.valid_moves(BLACK) and not self.valid_moves(WHITE)\n```\n\ntest_reversi.py\n\n```python\n\"\"\"Self-checks for the Reversi core logic. Run with: python test_reversi.py\"\"\"\n\nimport random\n\nfrom game import Reversi, BLACK, WHITE, SIZE\n\n\ndef run_tests():\n    g = Reversi()\n    assert g.board[3][3] == WHITE and g.board[4][4] == WHITE\n    assert g.board[3][4] == BLACK and g.board[4][3] == BLACK\n    assert g.current == BLACK and g.score() == (2, 2)\n\n    moves = g.valid_moves(BLACK)\n    assert set(moves) == {(2, 3), (3, 2), (4, 5), (5, 4)}, moves\n\n    assert g.apply_move(2, 3, BLACK)        # d3 flips (3, 3)\n    assert g.board[3][3] == BLACK\n    assert g.score() == (4, 1)\n    assert g.current == WHITE\n\n    assert not g.apply_move(2, 3, WHITE)    # occupied square is illegal\n    assert not g.apply_move(0, 0, WHITE)    # no flip, illegal\n\n    full = Reversi()\n    full.board = [[BLACK] * SIZE for _ in range(SIZE)]\n    assert full.is_over() and full.score() == (64, 0)\n\n    # Full self-play game: every legal move must flip at least one disc.\n    random.seed(1)\n    while not g.is_over():\n        player = g.current\n        options = g.valid_moves(player)\n        if not options:\n            g.current = g.opponent(player)\n            continue\n        row, col = random.choice(options)\n        assert g.apply_move(row, col, player)\n        assert g.board[row][col] == player\n        blacks, whites = g.score()\n        assert blacks + whites <= SIZE * SIZE\n    blacks, whites = g.score()\n    print(f\"Self-play final score: Black {blacks} - White {whites}. All tests passed.\")\n\n\nif __name__ == \"__main__\":\n    run_tests()\n```"
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "187e67a70584507351452179999b8b8e92b019e582af22d9adb4837cd9520faa",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "187e67a70584507351452179999b8b8e92b019e582af22d9adb4837cd9520faa",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "04ba925e051a04e284ad4508116b899dc6cfc31b74b2b5570615bbcf259ff787",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "41a4b7cba60fe48a82dea68df25c150b1c1a538a99dbfb89714d4f298e56bd57",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "04ba925e051a04e284ad4508116b899dc6cfc31b74b2b5570615bbcf259ff787",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2e268ff0cef63580c64233b07e8fd026c494a543f47a7717f2245832819f24fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "04ba925e051a04e284ad4508116b899dc6cfc31b74b2b5570615bbcf259ff787",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3e1445169e1d68db5cf7460a262c19f2ea545f776a060f0a7c4e6d32da4b523e",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "04ba925e051a04e284ad4508116b899dc6cfc31b74b2b5570615bbcf259ff787",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3713dc9d1785c47081ef36c7e993dd51ecf9c4913bd8e04500b2a4717fc9a3a0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "04ba925e051a04e284ad4508116b899dc6cfc31b74b2b5570615bbcf259ff787",
+        "source_digests": {
+          "game.py": "e619fd7a8c2f236027673964c2f9428fa4f0374997bd3ee0940e2a70fafb743e",
+          "main.py": "ef64a9f90092b247727d861850c0db8eee410bc14e2669fca1be5d21df674ce6"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "Reversi (Othello) - B goes first. '*' marks valid moves.\nEnter moves as column letter + row number (e.g. 'D3'), or 'Q' to quit.\n\n  A B C D E F G H\n1 . . . . . . . .\n2 . . . . . . . .\n3 . . . * . . . .\n4 . . * W B . . .\n5 . . . B W * . .\n6 . . . . * . . .\n7 . . . . . . . .\n8 . . . . . . . .\nScore - B: 2  W: 2\nPlayer B, your move: \n",
+        "stderr": "",
+        "profile": "process_exit",
+        "id": "31f90569dedef85765f59befcf0d70131bae896f61a45772553961a8e33d230b"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "04ba925e051a04e284ad4508116b899dc6cfc31b74b2b5570615bbcf259ff787",
+        "source_digests": {
+          "game.py": "e619fd7a8c2f236027673964c2f9428fa4f0374997bd3ee0940e2a70fafb743e",
+          "main.py": "ef64a9f90092b247727d861850c0db8eee410bc14e2669fca1be5d21df674ce6"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "Reversi (Othello) - B goes first. '*' marks valid moves.\nEnter moves as column letter + row number (e.g. 'D3'), or 'Q' to quit.\n\n  A B C D E F G H\n1 . . . . . . . .\n2 . . . . . . . .\n3 . . . * . . . .\n4 . . * W B . . .\n5 . . . B W * . .\n6 . . . . * . . .\n7 . . . . . . . .\n8 . . . . . . . .\nScore - B: 2  W: 2\nPlayer B, your move: \n",
+        "stderr": "",
+        "profile": "process_exit",
+        "id": "31f90569dedef85765f59befcf0d70131bae896f61a45772553961a8e33d230b"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "04ba925e051a04e284ad4508116b899dc6cfc31b74b2b5570615bbcf259ff787",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "58b1b12c5fbfaa3549e653e86c87bbfadd04afe9c337090ad89f7de1a2365121",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "04ba925e051a04e284ad4508116b899dc6cfc31b74b2b5570615bbcf259ff787",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "a82b6e8ff5cb9bf9cd3b1f6d460d8645878138bc799f91d9d5de22c1903cbee2",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "04ba925e051a04e284ad4508116b899dc6cfc31b74b2b5570615bbcf259ff787",
+        "source_digests": {
+          "game.py": "e619fd7a8c2f236027673964c2f9428fa4f0374997bd3ee0940e2a70fafb743e",
+          "main.py": "ef64a9f90092b247727d861850c0db8eee410bc14e2669fca1be5d21df674ce6"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "Reversi (Othello) - B goes first. '*' marks valid moves.\nEnter moves as column letter + row number (e.g. 'D3'), or 'Q' to quit.\n\n  A B C D E F G H\n1 . . . . . . . .\n2 . . . . . . . .\n3 . . . * . . . .\n4 . . * W B . . .\n5 . . . B W * . .\n6 . . . . * . . .\n7 . . . . . . . .\n8 . . . . . . . .\nScore - B: 2  W: 2\nPlayer B, your move: \n",
+        "stderr": "",
+        "profile": "process_exit",
+        "id": "31f90569dedef85765f59befcf0d70131bae896f61a45772553961a8e33d230b"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": true,
+      "evidence_id": "31f90569dedef85765f59befcf0d70131bae896f61a45772553961a8e33d230b"
+    }
+  ]
+}

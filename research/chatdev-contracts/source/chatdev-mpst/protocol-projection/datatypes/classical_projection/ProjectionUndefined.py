@@ -1,0 +1,2 @@
+class ProjectionUndefined(Exception):
+    pass

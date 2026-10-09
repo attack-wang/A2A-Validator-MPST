@@ -1,0 +1,293 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Application"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\n\"\"\"Console Gomoku: two players alternate placing stones on a 15x15 board.\"\"\"\n\nfrom game import Board, BLACK, WHITE, EMPTY\n\n\ndef stone_symbol(player):\n    return {BLACK: \"X\", WHITE: \"O\", EMPTY: \".\"}[player]\n\n\ndef render(board):\n    header = \"   \" + \" \".join(f\"{c:2d}\" for c in range(board.size))\n    lines = [header]\n    for r, row in enumerate(board.grid):\n        cells = \" \".join(f\"{stone_symbol(cell):>2}\" for cell in row)\n        lines.append(f\"{r:2d} {cells}\")\n    return \"\\n\".join(lines)\n\n\ndef read_move(player_name):\n    raw = input(f\"{player_name}, enter row and column (e.g. '7 7'): \").strip()\n    parts = raw.replace(\",\", \" \").split()\n    if len(parts) != 2:\n        raise ValueError(\"Enter exactly two numbers separated by a space.\")\n    return int(parts[0]), int(parts[1])\n\n\ndef main():\n    board = Board()\n    players = {BLACK: \"Black (X)\", WHITE: \"White (O)\"}\n    current = BLACK\n    print(\"Gomoku - first to five in a row wins. Coordinates are 0-14.\")\n    while True:\n        print(\"\\n\" + render(board))\n        try:\n            row, col = read_move(players[current])\n        except ValueError as exc:\n            print(f\"Invalid input: {exc}\")\n            continue\n        if not board.place(row, col, current):\n            print(\"That cell is unavailable. Try again.\")\n            continue\n        winner = board.check_win(row, col)\n        if winner:\n            print(\"\\n\" + render(board))\n            print(f\"{players[winner]} wins with five in a row!\")\n            break\n        if board.is_full():\n            print(\"\\n\" + render(board))\n            print(\"The board is full - it's a draw.\")\n            break\n        current = WHITE if current == BLACK else BLACK\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\ngame.py\n```python\n\"\"\"Core Gomoku game logic: board state, move validation, and win detection.\"\"\"\n\nBOARD_SIZE = 15\nEMPTY = 0\nBLACK = 1\nWHITE = 2\nWIN_LENGTH = 5\n\n\nclass Board:\n    \"\"\"15x15 Gomoku board with move placement and win detection.\"\"\"\n\n    def __init__(self, size=BOARD_SIZE):\n        self.size = size\n        self.grid = [[EMPTY for _ in range(size)] for _ in range(size)]\n\n    def in_bounds(self, row, col):\n        return 0 <= row < self.size and 0 <= col < self.size\n\n    def is_empty(self, row, col):\n        return self.grid[row][col] == EMPTY\n\n    def place(self, row, col, player):\n        \"\"\"Place a stone; return True on success, False if the move is invalid.\"\"\"\n        if not self.in_bounds(row, col) or not self.is_empty(row, col):\n            return False\n        self.grid[row][col] = player\n        return True\n\n    def check_win(self, row, col):\n        \"\"\"Return the winning player if the stone at (row, col) completes five in a row.\"\"\"\n        player = self.grid[row][col]\n        if player == EMPTY:\n            return None\n        directions = ((0, 1), (1, 0), (1, 1), (1, -1))\n        for dr, dc in directions:\n            count = 1\n            for sign in (1, -1):\n                r, c = row + dr * sign, col + dc * sign\n                while self.in_bounds(r, c) and self.grid[r][c] == player:\n                    count += 1\n                    r += dr * sign\n                    c += dc * sign\n            if count >= WIN_LENGTH:\n                return player\n        return None\n\n    def is_full(self):\n        return all(cell != EMPTY for row in self.grid for cell in row)\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "14fbe997c446b9f704cba350b799dcddcd92e92477e4fdde34530d2709dbe7be",
+      "result": "{\"verdict\": \"finished\", \"issues\": []}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "14fbe997c446b9f704cba350b799dcddcd92e92477e4fdde34530d2709dbe7be",
+      "result": " Finished"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "14fbe997c446b9f704cba350b799dcddcd92e92477e4fdde34530d2709dbe7be",
+      "result": "{\"status\": \"failed\", \"test_run_id\": \"c0a1a57121d370b6ade5ea1015d5f556a3edb6ab77ea3cd41eb87228228a5e0a\", \"summary\": \"Startup smoke test failed (exit code 1). The program imported cleanly, initialized the 15x15 board, and rendered the initial board and prompt correctly, then raised EOFError at input() in read_move (main.py line 20) because the smoke harness ran 'python -E main.py' with no stdin attached. This is an invocation/environment artifact of testing an interactive console game without piped input, not a missing dependency or a source-code defect; no import errors or logic failures were observed. To validate interactively, rerun with stdin attached (e.g. echo moves into the process) or add a non-interactive smoke mode.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "14fbe997c446b9f704cba350b799dcddcd92e92477e4fdde34530d2709dbe7be",
+      "result": "main.py\n```python\n\"\"\"Console Gomoku: two players alternate placing stones on a 15x15 board.\"\"\"\n\nfrom game import Board, BLACK, WHITE, EMPTY\n\n\ndef stone_symbol(player):\n    return {BLACK: \"X\", WHITE: \"O\", EMPTY: \".\"}[player]\n\n\ndef render(board):\n    header = \"   \" + \" \".join(f\"{c:2d}\" for c in range(board.size))\n    lines = [header]\n    for r, row in enumerate(board.grid):\n        cells = \" \".join(f\"{stone_symbol(cell):>2}\" for cell in row)\n        lines.append(f\"{r:2d} {cells}\")\n    return \"\\n\".join(lines)\n\n\ndef read_move(player_name):\n    raw = input(f\"{player_name}, enter row and column (e.g. '7 7'): \").strip()\n    parts = raw.replace(\",\", \" \").split()\n    if len(parts) != 2:\n        raise ValueError(\"Enter exactly two numbers separated by a space.\")\n    return int(parts[0]), int(parts[1])\n\n\ndef main():\n    board = Board()\n    players = {BLACK: \"Black (X)\", WHITE: \"White (O)\"}\n    current = BLACK\n    print(\"Gomoku - first to five in a row wins. Coordinates are 0-14.\")\n    while True:\n        print(\"\\n\" + render(board))\n        try:\n            row, col = read_move(players[current])\n        except EOFError:\n            print(\"\\nInput stream closed - ending the game.\")\n            return\n        except KeyboardInterrupt:\n            print(\"\\nGame interrupted - ending the game.\")\n            return\n        except ValueError as exc:\n            print(f\"Invalid input: {exc}\")\n            continue\n        if not board.place(row, col, current):\n            print(\"That cell is unavailable. Try again.\")\n            continue\n        winner = board.check_win(row, col)\n        if winner:\n            print(\"\\n\" + render(board))\n            print(f\"{players[winner]} wins with five in a row!\")\n            break\n        if board.is_full():\n            print(\"\\n\" + render(board))\n            print(\"The board is full - it's a draw.\")\n            break\n        current = WHITE if current == BLACK else BLACK\n\n\nif __name__ == \"__main__\":\n    main()\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "eec9b3c93038270888eb08c1f0c72ee172a4f83568bf84ba34e2957903e9dd67",
+    "source_digests": {
+      "game.py": "fc6a71e7862cb536bfa33b256c8c82ff59df83f90f2cb84ca696c319aedb43d8",
+      "main.py": "f0dd351ce92d4623604a665adbcadebb5a694ad12d5b86c9b2cf2e3ded1c6610"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "main.py"
+    ],
+    "timeout_seconds": 3,
+    "status": "passed",
+    "exit_code": 0,
+    "stdout": "Gomoku - first to five in a row wins. Coordinates are 0-14.\n\n    0  1  2  3  4  5  6  7  8  9 10 11 12 13 14\n 0  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 1  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 2  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 3  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 4  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 5  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 6  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 7  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 8  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 9  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n10  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n11  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n12  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n13  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n14  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\nBlack (X), enter row and column (e.g. '7 7'): \nInput stream closed - ending the game.\n",
+    "stderr": "",
+    "profile": "process_exit",
+    "id": "041864e7fe23a66995a40107ceebe4fd1ac06b829cd8888e90d4023526315e0b"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "302b01323d4538412c7c5290bf7e8f905a2879a36d3f91fb26fd1dd6e8d0bb0c",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "57d005c3b71920cefd5b63883aac3200365d1f8a4aa4b23a48238444adb055e7",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "694727febe0da2b3189164abc1aaf73bed6bf9a49fefed87cf2dee67010438be",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "23a65b9c5ef6dd6e5c807f85224d5f8178d19a157877fe03748571c912cd18af",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "23a65b9c5ef6dd6e5c807f85224d5f8178d19a157877fe03748571c912cd18af",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "14fbe997c446b9f704cba350b799dcddcd92e92477e4fdde34530d2709dbe7be",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "41a4b7cba60fe48a82dea68df25c150b1c1a538a99dbfb89714d4f298e56bd57",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "14fbe997c446b9f704cba350b799dcddcd92e92477e4fdde34530d2709dbe7be",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2e268ff0cef63580c64233b07e8fd026c494a543f47a7717f2245832819f24fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "14fbe997c446b9f704cba350b799dcddcd92e92477e4fdde34530d2709dbe7be",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3e1445169e1d68db5cf7460a262c19f2ea545f776a060f0a7c4e6d32da4b523e",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "14fbe997c446b9f704cba350b799dcddcd92e92477e4fdde34530d2709dbe7be",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3713dc9d1785c47081ef36c7e993dd51ecf9c4913bd8e04500b2a4717fc9a3a0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "14fbe997c446b9f704cba350b799dcddcd92e92477e4fdde34530d2709dbe7be",
+        "source_digests": {
+          "game.py": "fc6a71e7862cb536bfa33b256c8c82ff59df83f90f2cb84ca696c319aedb43d8",
+          "main.py": "4d6529b8ddee15a9b3b451ab6fb41a041f7fcaeb4da674578973e9477ffd97a5"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "Gomoku - first to five in a row wins. Coordinates are 0-14.\n\n    0  1  2  3  4  5  6  7  8  9 10 11 12 13 14\n 0  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 1  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 2  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 3  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 4  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 5  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 6  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 7  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 8  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 9  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n10  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n11  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n12  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n13  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n14  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\nBlack (X), enter row and column (e.g. '7 7'): ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r12/07_Gomoku/artifact\\main.py\", line 55, in <module>\n    main()\n  File \"data/runs/mpst_contract/r12/07_Gomoku/artifact\\main.py\", line 35, in main\n    row, col = read_move(players[current])\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"data/runs/mpst_contract/r12/07_Gomoku/artifact\\main.py\", line 20, in read_move\n    raw = input(f\"{player_name}, enter row and column (e.g. '7 7'): \").strip()\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "c0a1a57121d370b6ade5ea1015d5f556a3edb6ab77ea3cd41eb87228228a5e0a"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "14fbe997c446b9f704cba350b799dcddcd92e92477e4fdde34530d2709dbe7be",
+        "source_digests": {
+          "game.py": "fc6a71e7862cb536bfa33b256c8c82ff59df83f90f2cb84ca696c319aedb43d8",
+          "main.py": "4d6529b8ddee15a9b3b451ab6fb41a041f7fcaeb4da674578973e9477ffd97a5"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "Gomoku - first to five in a row wins. Coordinates are 0-14.\n\n    0  1  2  3  4  5  6  7  8  9 10 11 12 13 14\n 0  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 1  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 2  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 3  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 4  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 5  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 6  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 7  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 8  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 9  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n10  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n11  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n12  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n13  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n14  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\nBlack (X), enter row and column (e.g. '7 7'): ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r12/07_Gomoku/artifact\\main.py\", line 55, in <module>\n    main()\n  File \"data/runs/mpst_contract/r12/07_Gomoku/artifact\\main.py\", line 35, in main\n    row, col = read_move(players[current])\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"data/runs/mpst_contract/r12/07_Gomoku/artifact\\main.py\", line 20, in read_move\n    raw = input(f\"{player_name}, enter row and column (e.g. '7 7'): \").strip()\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "c0a1a57121d370b6ade5ea1015d5f556a3edb6ab77ea3cd41eb87228228a5e0a"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "14fbe997c446b9f704cba350b799dcddcd92e92477e4fdde34530d2709dbe7be",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "9902bdaeee7a869118b782ceba0c19e41d7836515e7b9a1c8508d181e43f15b0",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "14fbe997c446b9f704cba350b799dcddcd92e92477e4fdde34530d2709dbe7be",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "25766f4000b372ac60cd93307e789b82c53fb7e4d6a21b9aac432177f85f1d1b",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "14fbe997c446b9f704cba350b799dcddcd92e92477e4fdde34530d2709dbe7be",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "e539a861a3ea0eb955ee956a51d1abdcb29a241eede60229874650f43e504496",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "14fbe997c446b9f704cba350b799dcddcd92e92477e4fdde34530d2709dbe7be",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "e539a861a3ea0eb955ee956a51d1abdcb29a241eede60229874650f43e504496",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "eec9b3c93038270888eb08c1f0c72ee172a4f83568bf84ba34e2957903e9dd67",
+        "source_digests": {
+          "game.py": "fc6a71e7862cb536bfa33b256c8c82ff59df83f90f2cb84ca696c319aedb43d8",
+          "main.py": "f0dd351ce92d4623604a665adbcadebb5a694ad12d5b86c9b2cf2e3ded1c6610"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "Gomoku - first to five in a row wins. Coordinates are 0-14.\n\n    0  1  2  3  4  5  6  7  8  9 10 11 12 13 14\n 0  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 1  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 2  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 3  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 4  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 5  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 6  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 7  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 8  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n 9  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n10  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n11  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n12  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n13  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\n14  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .\nBlack (X), enter row and column (e.g. '7 7'): \nInput stream closed - ending the game.\n",
+        "stderr": "",
+        "profile": "process_exit",
+        "id": "041864e7fe23a66995a40107ceebe4fd1ac06b829cd8888e90d4023526315e0b"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": true,
+      "evidence_id": "041864e7fe23a66995a40107ceebe4fd1ac06b829cd8888e90d4023526315e0b"
+    }
+  ]
+}

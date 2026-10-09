@@ -1,0 +1,64 @@
+{
+  "task_index": 11,
+  "project_name": "Wordle",
+  "framework": "ChatDev1.0",
+  "workflow_status": "completed",
+  "workspace": "data/runs/mpst_contract/r03/11_Wordle/artifact",
+  "source_file_count": 1,
+  "python_compile": {
+    "checked": 1,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-06T02:26:53+0800",
+  "judge": {
+    "verdict": "fail",
+    "functional_completeness": 0.83,
+    "executable_likelihood": 0.95,
+    "implemented_requirements": [
+      {
+        "requirement": "Provide a daily 5‑letter English word",
+        "fulfilled": false,
+        "evidence": "The function `daily_word()` selects a random entry from `WORDS`, which contains words of many lengths (e.g., \"about\" (5) but also \"album\" (5) and \"abrupt\" (6) etc.). No filtering ensures the chosen word is exactly 5 letters."
+      },
+      {
+        "requirement": "Allow a player up to 6 guesses",
+        "fulfilled": true,
+        "evidence": "Constant `MAX_TRIES = 6` and the loop `for turn in range(1, MAX_TRIES + 1):` enforce six attempts."
+      },
+      {
+        "requirement": "Give per‑letter feedback with green (correct place), yellow (wrong place), grey (absent)",
+        "fulfilled": true,
+        "evidence": "Function `feedback` returns a list of colour codes; `render` prints each letter with the appropriate ANSI colour (GREEN, YELLOW, GREY)."
+      },
+      {
+        "requirement": "Run entirely in a Linux terminal with printed output",
+        "fulfilled": true,
+        "evidence": "The script uses `print` statements, `input` for guesses, and ANSI escape codes; it has a shebang `#!/usr/bin/env python3` and no GUI dependencies."
+      },
+      {
+        "requirement": "Declare win when the word is guessed, otherwise reveal the solution after 6 tries",
+        "fulfilled": true,
+        "evidence": "If `guess == answer` the program prints a win message and returns; after the loop it prints the answer."
+      },
+      {
+        "requirement": "Validate each guess (length, alphabetic, present in dictionary)",
+        "fulfilled": true,
+        "evidence": "The inner `while True` loop checks `len(guess) == 5`, `guess.isalpha()`, and `guess in WORDS` before accepting a guess."
+      }
+    ],
+    "critical_issues": [
+      "The daily word is not guaranteed to be 5 letters, making the game potentially unwinnable because the input validation only accepts 5‑letter guesses.",
+      "Selecting a non‑5‑letter answer can cause the feedback logic to compare only the first five letters of a longer answer, leading to incorrect colour hints."
+    ],
+    "summary": "The script implements most of the interactive Wordle mechanics and runs in a terminal, but it fails to ensure the daily word is exactly five letters long, which violates a core requirement and can break gameplay. Consequently the overall verdict is **fail** despite a high likelihood of execution.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": false
+}

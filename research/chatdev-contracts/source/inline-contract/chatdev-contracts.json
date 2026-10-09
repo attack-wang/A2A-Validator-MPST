@@ -1,0 +1,239 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "max_attempts": 3,
+  "phases": {
+    "DemandAnalysis": {
+      "sender": "ChiefProductOfficer",
+      "receiver": "Coordinator",
+      "label": "demandResult",
+      "contract": "chatdev.demand.v1",
+      "checks": [
+        "nonempty"
+      ]
+    },
+    "LanguageChoose": {
+      "sender": "ChiefTechnologyOfficer",
+      "receiver": "Coordinator",
+      "label": "languageResult",
+      "contract": "chatdev.language.v1",
+      "checks": [
+        "nonempty",
+        "python_language"
+      ]
+    },
+    "Coding": {
+      "sender": "Programmer",
+      "receiver": "Coordinator",
+      "label": "codingResult",
+      "contract": "chatdev.coding.v1",
+      "checks": [
+        "nonempty",
+        "source_output"
+      ]
+    },
+    "CodeComplete": {
+      "sender": "Programmer",
+      "receiver": "Coordinator",
+      "label": "codeCompleteResult",
+      "contract": "chatdev.completion.v1",
+      "checks": [
+        "nonempty",
+        "source_output"
+      ]
+    },
+    "CodeReviewComment": {
+      "sender": "CodeReviewer",
+      "receiver": "Coordinator",
+      "label": "reviewResult",
+      "contract": "chatdev.review.v1",
+      "checks": [
+        "nonempty",
+        "review"
+      ]
+    },
+    "CodeReviewModification": {
+      "sender": "Programmer",
+      "receiver": "Coordinator",
+      "label": "reviewFixResult",
+      "contract": "chatdev.review_fix.v1",
+      "checks": [
+        "nonempty",
+        "modification"
+      ]
+    },
+    "TestErrorSummary": {
+      "sender": "Programmer",
+      "receiver": "Coordinator",
+      "label": "testSummaryResult",
+      "contract": "chatdev.test_summary.v1",
+      "checks": [
+        "nonempty",
+        "test_summary"
+      ]
+    },
+    "TestModification": {
+      "sender": "Programmer",
+      "receiver": "Coordinator",
+      "label": "testFixResult",
+      "contract": "chatdev.test_fix.v1",
+      "checks": [
+        "nonempty",
+        "modification"
+      ]
+    }
+  },
+  "host_messages": {
+    "testReport": {
+      "sender": "SoftwareTestEngineer",
+      "receiver": "Coordinator",
+      "contract": "chatdev.startup_evidence.v1",
+      "kind": "startup_smoke"
+    },
+    "done": {
+      "sender": "Coordinator",
+      "receiver": "WorkflowEnd",
+      "contract": "chatdev.stage_exit.v1",
+      "requires": [
+        "current_source_compiles",
+        "current_startup_passed"
+      ]
+    }
+  },
+  "contracts": {
+    "chatdev.demand.v1": {
+      "schema": "Text",
+      "checks": [
+        "nonempty"
+      ],
+      "evidence": [],
+      "retry": {
+        "max_attempts": 3
+      },
+      "stage": "DemandAnalysis"
+    },
+    "chatdev.language.v1": {
+      "schema": "PythonLanguage",
+      "checks": [
+        "nonempty",
+        "python_language"
+      ],
+      "evidence": [],
+      "retry": {
+        "max_attempts": 3
+      },
+      "stage": "LanguageChoose"
+    },
+    "chatdev.coding.v1": {
+      "schema": "SourceFiles",
+      "checks": [
+        "nonempty",
+        "source_output"
+      ],
+      "evidence": [],
+      "retry": {
+        "max_attempts": 3
+      },
+      "stage": "Coding"
+    },
+    "chatdev.completion.v1": {
+      "schema": "SourceFiles",
+      "checks": [
+        "nonempty",
+        "source_output"
+      ],
+      "evidence": [
+        "code_snapshot"
+      ],
+      "retry": {
+        "max_attempts": 3
+      },
+      "stage": "CodeComplete"
+    },
+    "chatdev.review.v1": {
+      "schema": "ReviewReport",
+      "checks": [
+        "nonempty",
+        "review"
+      ],
+      "evidence": [
+        "code_snapshot"
+      ],
+      "retry": {
+        "max_attempts": 3
+      },
+      "stage": "CodeReviewComment"
+    },
+    "chatdev.review_fix.v1": {
+      "schema": "SourceModification",
+      "checks": [
+        "nonempty",
+        "modification"
+      ],
+      "evidence": [
+        "code_snapshot"
+      ],
+      "retry": {
+        "max_attempts": 3
+      },
+      "stage": "CodeReviewModification"
+    },
+    "chatdev.test_summary.v1": {
+      "schema": "TestSummary",
+      "checks": [
+        "nonempty",
+        "test_summary"
+      ],
+      "evidence": [
+        "code_snapshot",
+        "startup_record"
+      ],
+      "retry": {
+        "max_attempts": 3
+      },
+      "stage": "TestErrorSummary"
+    },
+    "chatdev.test_fix.v1": {
+      "schema": "SourceModification",
+      "checks": [
+        "nonempty",
+        "modification"
+      ],
+      "evidence": [
+        "code_snapshot",
+        "startup_record"
+      ],
+      "retry": {
+        "max_attempts": 3
+      },
+      "stage": "TestModification"
+    },
+    "chatdev.startup_evidence.v1": {
+      "schema": "StartupRecord",
+      "checks": [
+        "startup_record"
+      ],
+      "evidence": [
+        "code_snapshot",
+        "host_execution"
+      ],
+      "retry": {
+        "max_attempts": 1
+      },
+      "stage": "host"
+    },
+    "chatdev.stage_exit.v1": {
+      "schema": "WorkflowCompletion",
+      "checks": [
+        "stage_exit"
+      ],
+      "evidence": [
+        "code_snapshot",
+        "startup_record"
+      ],
+      "retry": {
+        "max_attempts": 1
+      },
+      "stage": "exit"
+    }
+  }
+}

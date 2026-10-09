@@ -1,0 +1,3 @@
+def main():
+    # parse args, create game, run
+    ...

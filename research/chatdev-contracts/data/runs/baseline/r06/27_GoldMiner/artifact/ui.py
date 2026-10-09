@@ -1,0 +1,3 @@
+draw_text(surface, f"Goal: ${goal}", 26, WIDTH // 2, 8, YELLOW, "midtop")
+...
+draw_text(surface, f"Total: ${total}", 22, WIDTH // 2, 8, GRAY_TEXT, "midbottom")

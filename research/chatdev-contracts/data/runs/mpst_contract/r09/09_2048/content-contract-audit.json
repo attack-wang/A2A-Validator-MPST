@@ -1,0 +1,329 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "Thank you for bringing this new customer task to my attention. As the CPO, let me analyze the requirements and share my thoughts on the product modality.\n\n**Task Analysis:**\nThe customer wants a standard 2048 game, which has these key characteristics:\n- **Interactive gameplay**: Players press arrow keys to slide tiles in real-time\n- **Dynamic visual feedback**: A 4x4 grid with tiles that merge, double, and update after every move\n- **Random events**: New tiles appear in random empty cells after each move\n- **Live state tracking**: Current score and highest tile must be continuously displayed\n\n**Modality Evaluation:**\n- Static formats (Image, Document, PowerPoint, Excel, PDF, Mind Map) are clearly unsuitable — they cannot support keyboard input or real-time game logic.\n- Dashboard is designed for monitoring real-time information, not for interactive entertainment.\n- **Website** (.html) is a viable candidate — 2048 originated as a web game, and HTML/JavaScript can handle arrow key events and rendering well.\n- **Application** (Python) is our proven strength at ChatDev for visualized games — it can fully implement the grid rendering, keyboard event handling, merge logic, random tile spawning, and score tracking with libraries like Pygame or Tkinter.\n\n**My Recommendation:**\nGiven that this is a fully interactive game requiring keyboard controls, real-time rendering, and complete game logic, I recommend we deliver it as an **Application** built with Python. This aligns with our track record of successfully shipping games in this form and guarantees a smooth, dependency-light, runnable product for the customer.\n\nWhat are your thoughts? Do you agree with delivering this as a Python Application, or would you prefer the Website modality?"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\nimport sys\n\nimport pygame\n\nfrom game import Game2048\n\nCELL = 100\nGAP = 10\nTOP = 110\nBOARD = CELL * 4 + GAP * 5\nWIDTH = BOARD\nHEIGHT = BOARD + TOP + 10\n\nBG = (250, 248, 239)\nBOARD_COLOR = (187, 173, 160)\nEMPTY_COLOR = (205, 193, 180)\nDARK = (119, 110, 101)\nLIGHT = (249, 246, 242)\nOVER_COLOR = (60, 58, 50)\n\nTILE_COLORS = {\n    2: (238, 228, 218), 4: (237, 224, 200), 8: (242, 177, 121),\n    16: (245, 149, 99), 32: (246, 124, 95), 64: (246, 94, 59),\n    128: (237, 207, 114), 256: (237, 204, 97), 512: (237, 200, 80),\n    1024: (237, 197, 63), 2048: (237, 194, 46),\n}\n\nKEY_MAP = {\n    pygame.K_LEFT: \"left\", pygame.K_a: \"left\",\n    pygame.K_RIGHT: \"right\", pygame.K_d: \"right\",\n    pygame.K_UP: \"up\", pygame.K_w: \"up\",\n    pygame.K_DOWN: \"down\", pygame.K_s: \"down\",\n}\n\n\ndef draw_text(surface, text, center, size, color):\n    font = pygame.font.SysFont(\"arial\", size, bold=True)\n    img = font.render(str(text), True, color)\n    surface.blit(img, img.get_rect(center=center))\n\n\ndef stat_box(surface, label, value, cx):\n    rect = pygame.Rect(0, 0, 110, 64)\n    rect.midtop = (cx, 14)\n    pygame.draw.rect(surface, BOARD_COLOR, rect, border_radius=6)\n    draw_text(surface, label, (cx, rect.y + 16), 14, LIGHT)\n    draw_text(surface, value, (cx, rect.y + 42), 24, LIGHT)\n\n\ndef draw(game, surface):\n    surface.fill(BG)\n    draw_text(surface, \"2048\", (GAP + 55, 46), 44, DARK)\n    stat_box(surface, \"SCORE\", game.score, WIDTH - 170)\n    stat_box(surface, \"BEST TILE\", game.best_tile, WIDTH - 58)\n    board_rect = pygame.Rect(GAP, TOP, BOARD - GAP, BOARD - GAP)\n    pygame.draw.rect(surface, BOARD_COLOR, board_rect, border_radius=8)\n    for r in range(4):\n        for c in range(4):\n            x = 2 * GAP + c * (CELL + GAP)\n            y = TOP + GAP + r * (CELL + GAP)\n            rect = pygame.Rect(x, y, CELL, CELL)\n            value = game.grid[r][c]\n            color = EMPTY_COLOR if value == 0 else TILE_COLORS.get(value, OVER_COLOR)\n            pygame.draw.rect(surface, color, rect, border_radius=6)\n            if value:\n                size = 48 if value < 100 else 40 if value < 1000 else 30\n                draw_text(surface, value, rect.center, size,\n                          DARK if value <= 4 else LIGHT)\n    if game.best_tile >= 2048 and not game.game_over():\n        draw_text(surface, \"2048 reached! Keep going (R restarts)\",\n                  (WIDTH // 2, TOP - 12), 16, DARK)\n    if game.game_over():\n        overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)\n        overlay.fill((250, 248, 239, 180))\n        surface.blit(overlay, (0, 0))\n        draw_text(surface, \"Game Over!\", (WIDTH // 2, HEIGHT // 2 - 40), 46, DARK)\n        draw_text(surface, \"Score: %d   Best tile: %d\" % (game.score, game.best_tile),\n                  (WIDTH // 2, HEIGHT // 2 + 10), 22, DARK)\n        draw_text(surface, \"Press R to restart - ESC to quit\",\n                  (WIDTH // 2, HEIGHT // 2 + 50), 18, DARK)\n\n\ndef main():\n    pygame.init()\n    surface = pygame.display.set_mode((WIDTH, HEIGHT))\n    pygame.display.set_caption(\"2048\")\n    clock = pygame.time.Clock()\n    game = Game2048()\n    while True:\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                pygame.quit()\n                sys.exit()\n            elif event.type == pygame.KEYDOWN:\n                if event.key == pygame.K_ESCAPE:\n                    pygame.quit()\n                    sys.exit()\n                elif event.key == pygame.K_r:\n                    game.reset()\n                elif not game.game_over() and event.key in KEY_MAP:\n                    game.move(KEY_MAP[event.key])\n        draw(game, surface)\n        pygame.display.flip()\n        clock.tick(60)\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\ngame.py\n```python\n\"\"\"Core logic for the 2048 game.\"\"\"\nimport random\n\n\nclass Game2048:\n    SIZE = 4\n\n    def __init__(self):\n        self.reset()\n\n    def reset(self):\n        self.grid = [[0] * self.SIZE for _ in range(self.SIZE)]\n        self.score = 0\n        self.best_tile = 0\n        self.add_random_tile()\n        self.add_random_tile()\n\n    def empty_cells(self):\n        return [(r, c) for r in range(self.SIZE)\n                for c in range(self.SIZE) if self.grid[r][c] == 0]\n\n    def add_random_tile(self):\n        cells = self.empty_cells()\n        if not cells:\n            return False\n        r, c = random.choice(cells)\n        self.grid[r][c] = 2 if random.random() < 0.9 else 4\n        self.best_tile = max(self.best_tile, self.grid[r][c])\n        return True\n\n    @staticmethod\n    def _slide_left(line):\n        tiles = [v for v in line if v]\n        merged = []\n        gained = 0\n        i = 0\n        while i < len(tiles):\n            if i + 1 < len(tiles) and tiles[i] == tiles[i + 1]:\n                value = tiles[i] * 2\n                merged.append(value)\n                gained += value\n                i += 2\n            else:\n                merged.append(tiles[i])\n                i += 1\n        merged.extend([0] * (len(line) - len(merged)))\n        return merged, gained, merged != list(line)\n\n    def move(self, direction):\n        \"\"\"Slide all tiles in direction ('left'|'right'|'up'|'down').\n\n        Equal neighbours merge once per move, the merge values are added to\n        the score, a new tile spawns afterwards, and True is returned when\n        the board changed.\n        \"\"\"\n        if direction not in (\"left\", \"right\", \"up\", \"down\"):\n            return False\n        moved = False\n        gained_total = 0\n        for i in range(self.SIZE):\n            if direction in (\"left\", \"right\"):\n                line = list(self.grid[i])\n            else:\n                line = [self.grid[r][i] for r in range(self.SIZE)]\n            reverse = direction in (\"right\", \"down\")\n            if reverse:\n                line.reverse()\n            new_line, gained, line_moved = self._slide_left(line)\n            gained_total += gained\n            if reverse:\n                new_line.reverse()\n            if line_moved:\n                moved = True\n                if direction in (\"left\", \"right\"):\n                    self.grid[i] = new_line\n                else:\n                    for r in range(self.SIZE):\n                        self.grid[r][i] = new_line[r]\n        if moved:\n            self.score += gained_total\n            self.best_tile = max(self.best_tile,\n                                 max(v for row in self.grid for v in row))\n            self.add_random_tile()\n        return moved\n\n    def can_move(self):\n        if self.empty_cells():\n            return True\n        for r in range(self.SIZE):\n            for c in range(self.SIZE):\n                v = self.grid[r][c]\n                if c + 1 < self.SIZE and self.grid[r][c + 1] == v:\n                    return True\n                if r + 1 < self.SIZE and self.grid[r + 1][c] == v:\n                    return True\n        return False\n\n    def game_over(self):\n        return not self.can_move()\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "af7e260dacfbaac0062228cced55c70a1df4c7a1596a5c2c058d8c7310205e0c",
+      "result": "{\"verdict\": \"finished\", \"issues\": []}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "af7e260dacfbaac0062228cced55c70a1df4c7a1596a5c2c058d8c7310205e0c",
+      "result": " Finished"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "af7e260dacfbaac0062228cced55c70a1df4c7a1596a5c2c058d8c7310205e0c",
+      "result": "{\"status\": \"failed\", \"test_run_id\": \"87ce3e2f0865a2a76314077e3d16b2df39280bd1c5a895ed195124781b54165d\", \"summary\": \"Startup smoke test failed with exit code 1 due to a missing dependency, not a source code defect. The traceback shows ModuleNotFoundError: No module named 'pygame' at main.py line 3 (import pygame), indicating the pygame package is not installed in the Python environment used for execution. The 2048 game source (main.py and game.py) requires pygame; install it (e.g., pip install pygame) in the executing venv and re-run the smoke test to validate actual program behavior.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "af7e260dacfbaac0062228cced55c70a1df4c7a1596a5c2c058d8c7310205e0c",
+      "result": "main.py\n```python\nimport tkinter as tk\n\nfrom game import Game2048\n\nCELL = 100\nGAP = 10\nTOP = 110\nBOARD = CELL * 4 + GAP * 5\nWIDTH = BOARD\nHEIGHT = BOARD + TOP + 10\n\nBG = \"#faf8ef\"\nBOARD_COLOR = \"#bbada0\"\nEMPTY_COLOR = \"#cdc1b4\"\nDARK = \"#776e65\"\nLIGHT = \"#f9f6f2\"\nOVER_FILL = \"#3c3a32\"\n\nTILE_COLORS = {\n    2: \"#eee4da\", 4: \"#ede0c8\", 8: \"#f2b179\", 16: \"#f59563\",\n    32: \"#f67c5f\", 64: \"#f65e3b\", 128: \"#edcf72\", 256: \"#edcc61\",\n    512: \"#edc850\", 1024: \"#edc53f\", 2048: \"#edc22e\",\n}\n\nKEY_MAP = {\n    \"Left\": \"left\", \"a\": \"left\", \"A\": \"left\",\n    \"Right\": \"right\", \"d\": \"right\", \"D\": \"right\",\n    \"Up\": \"up\", \"w\": \"up\", \"W\": \"up\",\n    \"Down\": \"down\", \"s\": \"down\", \"S\": \"down\",\n}\n\n\nclass App:\n    def __init__(self, root):\n        self.game = Game2048()\n        self.root = root\n        root.title(\"2048\")\n        root.resizable(False, False)\n        self.canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT,\n                                bg=BG, highlightthickness=0)\n        self.canvas.pack()\n        for key, direction in KEY_MAP.items():\n            root.bind(\"<%s>\" % key, lambda event, d=direction: self.on_key(d))\n        for key in (\"r\", \"R\"):\n            root.bind(\"<%s>\" % key, lambda event: self.restart())\n        root.bind(\"<Escape>\", lambda event: root.destroy())\n        self.draw()\n\n    def on_key(self, direction):\n        if not self.game.game_over():\n            self.game.move(direction)\n        self.draw()\n\n    def restart(self):\n        self.game.reset()\n        self.draw()\n\n    def stat_box(self, label, value, cx):\n        c = self.canvas\n        y0 = 14\n        c.create_rectangle(cx - 55, y0, cx + 55, y0 + 64,\n                           fill=BOARD_COLOR, width=0)\n        c.create_text(cx, y0 + 16, text=label,\n                      font=(\"Arial\", 10, \"bold\"), fill=LIGHT)\n        c.create_text(cx, y0 + 42, text=str(value),\n                      font=(\"Arial\", 17, \"bold\"), fill=LIGHT)\n\n    def draw(self):\n        c = self.canvas\n        c.delete(\"all\")\n        c.create_text(GAP + 55, 46, text=\"2048\",\n                      font=(\"Arial\", 30, \"bold\"), fill=DARK)\n        self.stat_box(\"SCORE\", self.game.score, WIDTH - 170)\n        self.stat_box(\"BEST TILE\", self.game.best_tile, WIDTH - 58)\n        c.create_rectangle(GAP, TOP, BOARD, TOP + BOARD - GAP,\n                           fill=BOARD_COLOR, width=0)\n        for r in range(4):\n            for col in range(4):\n                x = 2 * GAP + col * (CELL + GAP)\n                y = TOP + GAP + r * (CELL + GAP)\n                value = self.game.grid[r][col]\n                color = EMPTY_COLOR if value == 0 else TILE_COLORS.get(value, OVER_FILL)\n                c.create_rectangle(x, y, x + CELL, y + CELL, fill=color, width=0)\n                if value:\n                    size = 30 if value < 100 else 24 if value < 1000 else 18\n                    c.create_text(x + CELL // 2, y + CELL // 2, text=str(value),\n                                  font=(\"Arial\", size, \"bold\"),\n                                  fill=DARK if value <= 4 else LIGHT)\n        if self.game.best_tile >= 2048 and not self.game.game_over():\n            c.create_text(WIDTH // 2, TOP - 12,\n                          text=\"2048 reached! Keep going (R restarts)\",\n                          font=(\"Arial\", 11), fill=DARK)\n        if self.game.game_over():\n            c.create_rectangle(0, 0, WIDTH, HEIGHT, fill=BG, stipple=\"gray50\")\n            c.create_text(WIDTH // 2, HEIGHT // 2 - 40, text=\"Game Over!\",\n                          font=(\"Arial\", 26, \"bold\"), fill=DARK)\n            c.create_text(WIDTH // 2, HEIGHT // 2 + 10,\n                          text=\"Score: %d   Best tile: %d\"\n                               % (self.game.score, self.game.best_tile),\n                          font=(\"Arial\", 13), fill=DARK)\n            c.create_text(WIDTH // 2, HEIGHT // 2 + 50,\n                          text=\"Press R to restart - ESC to quit\",\n                          font=(\"Arial\", 11), fill=DARK)\n\n\ndef main():\n    root = tk.Tk()\n    App(root)\n    root.mainloop()\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\ngame.py\n```python\n\"\"\"Core logic for the 2048 game.\"\"\"\nimport random\n\n\nclass Game2048:\n    SIZE = 4\n\n    def __init__(self):\n        self.reset()\n\n    def reset(self):\n        self.grid = [[0] * self.SIZE for _ in range(self.SIZE)]\n        self.score = 0\n        self.best_tile = 0\n        self.add_random_tile()\n        self.add_random_tile()\n\n    def empty_cells(self):\n        return [(r, c) for r in range(self.SIZE)\n                for c in range(self.SIZE) if self.grid[r][c] == 0]\n\n    def add_random_tile(self):\n        cells = self.empty_cells()\n        if not cells:\n            return False\n        r, c = random.choice(cells)\n        self.grid[r][c] = 2 if random.random() < 0.9 else 4\n        self.best_tile = max(self.best_tile, self.grid[r][c])\n        return True\n\n    @staticmethod\n    def _slide_left(line):\n        tiles = [v for v in line if v]\n        merged = []\n        gained = 0\n        i = 0\n        while i < len(tiles):\n            if i + 1 < len(tiles) and tiles[i] == tiles[i + 1]:\n                value = tiles[i] * 2\n                merged.append(value)\n                gained += value\n                i += 2\n            else:\n                merged.append(tiles[i])\n                i += 1\n        merged.extend([0] * (len(line) - len(merged)))\n        return merged, gained, merged != list(line)\n\n    def move(self, direction):\n        \"\"\"Slide all tiles in direction ('left'|'right'|'up'|'down').\n\n        Equal neighbours merge once per move, the merge values are added to\n        the score, a new tile spawns afterwards, and True is returned when\n        the board changed.\n        \"\"\"\n        if direction not in (\"left\", \"right\", \"up\", \"down\"):\n            return False\n        moved = False\n        gained_total = 0\n        for i in range(self.SIZE):\n            if direction in (\"left\", \"right\"):\n                line = list(self.grid[i])\n            else:\n                line = [self.grid[r][i] for r in range(self.SIZE)]\n            reverse = direction in (\"right\", \"down\")\n            if reverse:\n                line.reverse()\n            new_line, gained, line_moved = self._slide_left(line)\n            gained_total += gained\n            if reverse:\n                new_line.reverse()\n            if line_moved:\n                moved = True\n                if direction in (\"left\", \"right\"):\n                    self.grid[i] = new_line\n                else:\n                    for r in range(self.SIZE):\n                        self.grid[r][i] = new_line[r]\n        if moved:\n            self.score += gained_total\n            self.best_tile = max(self.best_tile,\n                                 max(v for row in self.grid for v in row))\n            self.add_random_tile()\n        return moved\n\n    def can_move(self):\n        if self.empty_cells():\n            return True\n        for r in range(self.SIZE):\n            for c in range(self.SIZE):\n                v = self.grid[r][c]\n                if c + 1 < self.SIZE and self.grid[r][c + 1] == v:\n                    return True\n                if r + 1 < self.SIZE and self.grid[r + 1][c] == v:\n                    return True\n        return False\n\n    def game_over(self):\n        return not self.can_move()\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "c3b244654fcb8968c6d69b87beab2f586ad515f30b6b5d88dc237b62f392896e",
+    "source_digests": {
+      "game.py": "f0461e0548895ef3623000b881a2652ea809ab38c20ad0004a654cdd7575503c",
+      "main.py": "ef6837b737d3249ef6a0cffd7855a7236d4f57d087222a507221e132a186f3c3"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "source/pure-contract\\content_lab\\startup_probe.py",
+      "data/runs/mpst_contract/r09/09_2048/artifact\\main.py",
+      "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-nfbi0joa\\probe.json"
+    ],
+    "timeout_seconds": 3,
+    "status": "passed",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "profile": "tkinter_event_loop",
+    "observation": {
+      "event_loop_observed": true,
+      "mapped_window": true,
+      "widget_count": 1,
+      "callback_errors": []
+    },
+    "id": "c4c88fab007f20c86a84f633a436e62d64303c52a1bb1daa7a76b89bb90946b0"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "4759a566ec06efa10defcaa7b09fc595153043106fb3141e369aeed3aeb14768",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "4759a566ec06efa10defcaa7b09fc595153043106fb3141e369aeed3aeb14768",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "694727febe0da2b3189164abc1aaf73bed6bf9a49fefed87cf2dee67010438be",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "35ee1e5d585196933f55e0384b1abfc018fb993d931a2f8bdc879754c95be34d",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "35ee1e5d585196933f55e0384b1abfc018fb993d931a2f8bdc879754c95be34d",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "af7e260dacfbaac0062228cced55c70a1df4c7a1596a5c2c058d8c7310205e0c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "1dd91ba28dbf96f8704148d07a029e7dc46f7565a9d40fe8bb12154921235f11",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "af7e260dacfbaac0062228cced55c70a1df4c7a1596a5c2c058d8c7310205e0c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2e268ff0cef63580c64233b07e8fd026c494a543f47a7717f2245832819f24fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "af7e260dacfbaac0062228cced55c70a1df4c7a1596a5c2c058d8c7310205e0c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "ebb363d71d2e9869f7fff8d13596462165916d4427f0511497b1018c7ae1c0e9",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "af7e260dacfbaac0062228cced55c70a1df4c7a1596a5c2c058d8c7310205e0c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3713dc9d1785c47081ef36c7e993dd51ecf9c4913bd8e04500b2a4717fc9a3a0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "af7e260dacfbaac0062228cced55c70a1df4c7a1596a5c2c058d8c7310205e0c",
+        "source_digests": {
+          "game.py": "f0461e0548895ef3623000b881a2652ea809ab38c20ad0004a654cdd7575503c",
+          "main.py": "cf11fa54ebf5e176675badd46b76204cb1b362358474d0cf34a303336c540b49"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r09/09_2048/artifact\\main.py\", line 3, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+        "profile": "process_exit",
+        "id": "87ce3e2f0865a2a76314077e3d16b2df39280bd1c5a895ed195124781b54165d"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "af7e260dacfbaac0062228cced55c70a1df4c7a1596a5c2c058d8c7310205e0c",
+        "source_digests": {
+          "game.py": "f0461e0548895ef3623000b881a2652ea809ab38c20ad0004a654cdd7575503c",
+          "main.py": "cf11fa54ebf5e176675badd46b76204cb1b362358474d0cf34a303336c540b49"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r09/09_2048/artifact\\main.py\", line 3, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+        "profile": "process_exit",
+        "id": "87ce3e2f0865a2a76314077e3d16b2df39280bd1c5a895ed195124781b54165d"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "af7e260dacfbaac0062228cced55c70a1df4c7a1596a5c2c058d8c7310205e0c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "175ad124306f093338d1ecc06d232fecd31e11774f5c52be2a068f7e22367bd6",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "af7e260dacfbaac0062228cced55c70a1df4c7a1596a5c2c058d8c7310205e0c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "44cca036e52c08d7b8871d07b460a7baa58a5178451566fe022b893cd83e4062",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "af7e260dacfbaac0062228cced55c70a1df4c7a1596a5c2c058d8c7310205e0c",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "output_truncated",
+          "path": "$",
+          "message": "Model output reached its generation/context limit.",
+          "repair": "Output budget was exhausted. Omit analysis, architecture descriptions and drafts. Return a smaller complete implementation satisfying the task, with explicit filenames and closed code fences."
+        }
+      ],
+      "candidate_sha256": "6686dd09ff999e0ed5852afd3921c4c4cecc8f0cb01280f68bc9bc6b8499a417",
+      "termination_reasons": [
+        "length"
+      ],
+      "rejected_candidate": "The host evidence shows the failure is due to a missing dependency (pygame not installed), not a source code defect. The error summary explicitly states: \"Startup smoke test failed with exit code 1 due to a missing dependency, not a source code defect.\"\n\nHowever, the task says \"Repair source defects supported by host evidence.\" The host evidence shows no source defect — it's an environment issue. But the smoke test will still fail if pygame isn't installed. To make the program robust against a missing pygame, I could add a fallback: if pygame is not available, run a terminal-based version of the game. That way the smoke test (which runs `python -E main.py` with a 3-second timeout) would start successfully without pygame.\n\nWait — but the smoke test has a 3-second timeout. If the program runs indefinitely (a game loop), the smoke test would presumably kill it after timeout. The status \"failed\" was due to exit code 1. If the program starts and runs (waiting for input), the smoke test might consider it passed if it stays alive until timeout, or it might need the program to exit cleanly. Typically startup smoke tests check that the process starts without crashing. With a 3-second timeout, a GUI game loop running would be killed at timeout — status might be \"timeout\" rather than \"passed\". Hmm.\n\nActually, the safest approach: make main.py work without pygame by falling back to a console version. But a console version reading stdin would block on input — with no stdin, it might get EOFError. I could handle EOFError gracefully.\n\nAlternatively, I could make the game run headless-safe: try importing pygame; if unavailable, run a simple terminal loop that reads commands from stdin, and on EOF, exits cleanly (exit code 0). That would make the smoke test pass (exit code 0 or timeout with running process).\n\nBut wait — \"Do not add auto-exit behavior merely to satisfy an unsuitable test.\" So I shouldn't make it auto-exit just to pass. But a graceful fallback to console mode when pygame is missing is a legitimate robustness feature, not auto-exit. The console game would run interactively; if stdin is empty/EOF, it exits cleanly — that's natural behavior for a console app, not artificial auto-exit.\n\nActually, let me reconsider. The instruction says: \"Repair source defects supported by host evidence.\" The host evidence shows no source defect. The error summary says it's not a source code defect. So arguably the correct response is to return the files unchanged (or return \"Finished\" if no repair needed). But the instruction also says \"Return <INFO> Finished only if host evidence status is passed.\" The status is \"failed\", so I can't say Finished. So I must return source files.\n\nGiven the constraint, the best repair is to make main.py resilient: attempt pygame import; if it fails, fall back to a pure-Python console implementation so the game still runs. This addresses the host evidence (pygame missing) while preserving GUI behavior when pygame is available.\n\nLet me design:\n\nmain.py:\n```python\nimport sys\n\ntry:\n    import pygame\n    HAVE_PYGAME = True\nexcept ImportError:\n    pygame = None\n    HAVE_PYGAME = False\n\nfrom game import Game2048\n```\n\nThen if HAVE_PYGAME, run the pygame GUI (existing code). Else, run a console version:\n\n```python\ndef run_console():\n    game = Game2048()\n    print(\"2048 - console mode (pygame not found)\")\n    print(\"Controls: w/a/s/d or arrow words, r restart, q quit\")\n    print_board(game)\n    while True:\n        try:\n            cmd = input(\"move: \").strip().lower()\n        except EOFError:\n            break\n        if cmd in (\"q\", \"quit\", \"exit\"):\n            break\n        if cmd in (\"r\", \"restart\"):\n            game.reset()\n            print_board(game)\n            continue\n        direction = {\"a\": \"left\", \"d\": \"right\", \"w\": \"up\", \"s\": \"down\",\n                     \"left\": \"left\", \"right\": \"right\", \"up\": \"up\", \"down\": \"down\"}.get(cmd)\n        if direction and not game.game_over():\n            game.move(direction)\n            print_board(game)\n        elif game.game_over():\n            print(\"Game Over! Score: %d  Best tile: %d\" % (game.score, game.best_tile))\n            break\n    print(\"Final score: %d  Best tile: %d\" % (game.score, game.best_tile))\n```\n\nHmm, but the smoke test with 3-second timeout: console mode with input() would block waiting for input. If stdin is closed (likely in a smoke test harness), input() raises EOFError immediately, and the program exits with code 0. That would be a \"passed\" status (exit code 0). If stdin is an open pipe with no data, input() blocks until timeout — status would be \"timeout\", which may or may not count as passed. Hard to say.\n\nAlternatively, I could make the console mode non-interactive when stdin is not a TTY: check `sys.stdin.isatty()`. If not a TTY, maybe run a quick demo? No — that's auto-exit behavior to satisfy the test, which is prohibited... Actually \"Do not add auto-exit behavior merely to satisfy an unsuitable test.\" A console fallback that reads stdin and exits on EOF is natural console behavior, not auto-exit per se.\n\nHmm, but actually, maybe the cleanest interpretation: the environment lacks pygame. The repair should make the program runnable in that environment. A console fallback is the standard approach. The EOF handling is natural for console apps.\n\nActually, wait. Let me reconsider whether I should keep pygame as the primary and just... The task says \"Programming language: Python\". The original implementation used pygame. The host evidence shows pygame is missing. Two options:\n\n1. Rewrite the game in pure Python standard library (e.g., tkinter for GUI, or curses, or plain console). Tkinter is in the standard library on Windows (the host is Windows: D:\\Projects...). Tkinter would give a GUI without external dependencies. That's a solid repair: replace pygame with tkinter.\n\n2. Keep pygame with console fallback.\n\nOption 1 (tkinter) is arguably better: it preserves GUI behavior and removes the missing dependency. Tkinter is bundled with Python on Windows. The smoke test runs `python -E main.py` with 3s timeout — a tkinter mainloop would run until killed at timeout. Status would be \"timeout\" — is that \"passed\"? Unclear. Many smoke test harnesses treat \"ran until timeout without crashing\" as success for GUI apps. But the profile is \"process_exit\" — it checks exit code. A GUI app killed at timeout wouldn't produce exit code 0.\n\nHmm, this is tricky. The smoke test kind is \"startup_smoke\" with timeout 3 seconds. For a GUI app that runs indefinitely, the harness likely kills it after 3s. Whether that counts as passed depends on the harness. The previous run \"failed\" with exit_code 1 — an immediate crash. If the app starts and runs, the harness would probably report status \"timeout\" or \"passed\" depending on design. Since I can't know, the safest is to make the program start successfully and not crash. Whether it's killed at timeout or exits cleanly, the key is no traceback/exit code 1.\n\nGiven ambiguity, I think the tkinter rewrite is the best repair: it removes the external dependency entirely, keeps a GUI, and starts cleanly. If the harness kills it at timeout, at least stderr would be empty and there's no crash. If the harness expects exit code 0... a GUI can't exit in 3 seconds naturally.\n\nAlternatively, console fallback with EOF-exit gives exit code 0 quickly when stdin is closed. That satisfies \"process_exit\" profile with exit code 0. But is exiting on EOF \"auto-exit behavior merely to satisfy an unsuitable test\"? I'd argue no — it's standard console app behavior when input stream ends.\n\nHmm, let me think about what's most defensible. The instruction: \"Repair source defects supported by host evidence. Preserve required CLI arguments and GUI/game behavior. Do not add auto-exit behavior merely to satisfy an unsuitable test.\"\n\n\"Preserve GUI/game behavior\" — so the game should remain a GUI game (pygame originally). The defect supported by host evidence: the program crashes because pygame is missing. Repair options:\n\nA. Install pygame — can't, that's environment, not source.\nB. Make the source not require pygame: rewrite GUI with tkinter (stdlib).\nC. Graceful fallback: try pygame, fall back to console.\n\nB preserves GUI behavior and fixes the dependency issue at the source level. I'll go with B: rewrite main.py using tkinter, keep game.py unchanged (it's pure Python, no defects).\n\nWait, but should I also keep a pygame path? No — simpler to fully switch to tkinter. game.py has no defects (pure logic, imports only random). The error summary confirms game.py is fine.\n\nLet me write the tkinter version compactly.\n\n```python\n\"\"\"2048 game with a tkinter GUI (no external dependencies).\"\"\"\nimport random\nimport tkinter as tk\n\nfrom game import Game2048\n\nCELL = 100\nGAP = 10\nTOP = 110\nBOARD = CELL * 4 + GAP * 5\nWIDTH = BOARD\nHEIGHT = BOARD + TOP + 10\n\nBG = \"#faf8ef\"\nBOARD_COLOR = \"#bbada0\"\nEMPTY_COLOR = \"#cdc1b4\"\nDARK = \"#776e65\"\nLIGHT = \"#f9f6f2\"\n\nTILE_COLORS = {\n    2: \"#eee4da\", 4: \"#ede0c8\", 8: \"#f2b179\", 16: \"#f59563\",\n    32: \"#f67c5f\", 64: \"#f65e3b\", 128: \"#edcf72\", 256: \"#edcc61\",\n    512: \"#edc850\", 1024: \"#edc53f\", 2048: \"#edc22e\",\n}\n```\n\nTkinter implementation: a Canvas, draw board, bind arrow keys, game over overlay.\n\n```python\nclass GameUI:\n    def __init__(self, root):\n        self.game = Game2048()\n        self.root = root\n        self.canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT,\n                                bg=BG, highlightthickness=0)\n        self.canvas.pack()\n        root.title(\"2048\")\n        root.bind(\"<Key>\", self.on_key)\n        self.draw()\n\n    def on_key(self, event):\n        key = event.keysym.lower()\n        if key == \"escape\":\n            self.root.destroy()\n            return\n        if key == \"r\":\n            self.game.reset()\n            self.draw()\n            return\n        direction = {\"left\": \"left\", \"a\": \"left\", \"right\": \"right\", \"d\": \"right\",\n                     \"up\": \"up\", \"w\": \"up\", \"down\": \"down\", \"s\": \"down\"}.get(key)\n        if direction and not self.game.game_over():\n            self.game.move(direction)\n            self.draw()\n\n    def draw(self):\n        c = self.canvas\n        c.delete(\"all\")\n        c.create_text(GAP + 55, 46, text=\"2048\", font=(\"Arial\", 32, \"bold\"), fill=DARK)\n        self.stat_box(c, \"SCORE\", self.game.score, WIDTH - 170)\n        self.stat_box(c, \"BEST TILE\", self.game.best_tile, WIDTH - 58)\n        c.create_rectangle(GAP, TOP, BOARD - GAP, BOARD + TOP - GAP,\n                           fill=BOARD_COLOR, width=0)\n        for r in range(4):\n            for col in range(4):\n                x = 2 * GAP + col * (CELL + GAP)\n                y = TOP + GAP + r * (CELL + GAP)\n                value = self.game.grid[r][col]\n                color = EMPTY_COLOR if value == 0 else TILE_COLORS.get(value, \"#3c3a32\")\n                c.create_rectangle(x, y, x + CELL, y + CELL,\n                                   fill=color, width=0)\n                if value:\n                    size = 48 if value < 100 else 40 if value < 1000 else 30\n                    fg = DARK if value <= 4 else LIGHT\n                    c.create_text(x + CELL // 2, y + CELL // 2, text=str(value),\n                                  font=(\"Arial\", size, \"bold\"), fill=fg)\n        if self.game.best_tile >= 2048 and not self.game.game_over():\n            c.create_text(WIDTH // 2, TOP - 12,\n                          text=\"2048 reached! Keep going (R restarts)\",\n                          font=(\"Arial\", 12, \"bold\"), fill=DARK)\n        if self.game.game_over():\n            c.create_rectangle(0, 0, WIDTH, HEIGHT, fill=\"#faf8ef\", stipple=\"gray50\")\n            c.create_text(WIDTH // 2, HEIGHT // 2 - 40, text=\"Game Over!\",\n                          font=(\"Arial\", 32, \"bold\"), fill=DARK)\n            c.create_text(WIDTH // 2, HEIGHT // 2 + 10,\n                          text=\"Score: %d   Best tile: %d\" % (self.game.score, self.game.best_tile),\n                          font=(\"Arial\", 14, \"bold\"), fill=DARK)\n            c.create_text(WIDTH // 2, HEIGHT // 2 + 50,\n                          text=\"Press R to restart - ESC to quit\",\n                          font=(\"Arial\", 12, \"bold\"), fill=DARK)\n\n    def stat_box(self, c, label, value, cx):\n        x0, y0 = cx - 55, 14\n        x1, y1 = cx + 55, 78\n        c.create_rectangle(x0, y0, x1, y1, fill=BOARD_COLOR, width=0)\n        c.create_text(cx, y0 + 16, text=label, font=(\"Arial\", 10, \"bold\"), fill=LIGHT)\n        c.create_text(cx, y0 + 42, text=str(value), font=(\"Arial\", 16, \"bold\"), fill=LIGHT)\n```\n\nWait — stipple with fill on rectangle: tkinter supports stipple on canvas rectangles with fill. `stipple=\"gray50\"` gives a semi-transparent look. That works on Windows too.\n\nMain:\n\n```python\ndef main():\n    root = tk.Tk()\n    root.resizable(False, False)\n    GameUI(root)\n    root.mainloop()\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nHmm, but there's still the smoke test concern: tkinter mainloop runs indefinitely; harness kills at 3s timeout. Status might be \"timeout\" not \"passed\". But the instruction says \"Do not add auto-exit behavior merely to satisfy an unsuitable test.\" So a GUI that runs until closed is correct behavior. The previous failure was exit code 1 with a traceback; the new run would at least start cleanly with no stderr output. I think that's the right repair.\n\nActually, wait. Let me reconsider: should I keep pygame but add a fallback? The error summary says \"install it (e.g., pip install pygame) in the executing venv and re-run the smoke test to validate actual program behavior.\" That suggests the recommended fix is environmental. But I can't change the environment; I can only return source files. The instruction says \"Repair source defects supported by host evidence.\" The host evidence supports: the program cannot start because pygame is missing. A source-level repair that makes the program start without pygame is justified.\n\nTwo sub-options:\n- B: tkinter GUI (preserves GUI behavior, removes dependency).\n- C: pygame with console fallback (keeps pygame GUI when available, console otherwise).\n\nB is cleaner and fully removes the dependency. Tkinter is stdlib on Windows Python. I'll go with B.\n\nBut hold on — one risk: in a headless smoke test environment, `tk.Tk()` might fail if there's no display. The host is Windows (D:\\Projects paths), so there's a display session typically. Tkinter on Windows should initialize fine even from a service? Usually yes for interactive sessions. The smoke test ran with a venv python on Windows; tkinter should work.\n\nHmm, but what if tkinter isn't available (some minimal Python builds)? On Windows official Python, tkinter is included. Risk is low.\n\nAlternatively, safest hybrid: try tkinter GUI; if tkinter import/init fails, fall back to console mode. That covers both. But that adds complexity. Let me think about the smoke test again: 3-second timeout, process_exit profile. If tkinter mainloop runs, process is killed at 3s. What status does the harness report? Possibly \"timeout\" — which might be treated as failed or passed. If the harness treats only exit code 0 as passed, a GUI app can never pass a 3s smoke test unless it exits. That would make any GUI implementation fail. Hmm.\n\nBut the original task is a GUI game (pygame). The validator presumably knows GUI apps run until timeout. Many such harnesses treat \"process survived until timeout with no stderr\" as success for GUI apps. The previous failure had exit_code 1 and a traceback — clearly a crash. A clean start (killed at timeout, empty stderr) is the best achievable.\n\nActually, wait — maybe I should reconsider: could the smoke test expect the program to exit within 3 seconds? \"startup_smoke\" with timeout 3s and profile \"process_exit\". If it expected exit code 0 within 3s, then a GUI game would need to auto-exit — but the instruction explicitly forbids adding auto-exit behavior to satisfy the test. So the harness must tolerate long-running GUI processes (killing at timeout). Therefore, the repair goal: program starts without crashing (no ModuleNotFoundError, no traceback).\n\nSo tkinter rewrite is the right move. Also, to be extra safe, I could wrap the tk init in a try/except and fall back to a console loop if tkinter fails. That handles headless environments. Let me include a compact console fallback — it's good robustness and not \"auto-exit to satisfy test\" since it's an interactive console game when run in a terminal.\n\nHmm, but \"Return FINAL SOURCE FILES ONLY\" and \"compact complete implementation within the output budget\". Adding a console fallback adds ~40 lines. Budget seems okay. But is it necessary? The host is Windows with a display. I'll keep it simple: tkinter only. Actually... let me weigh: if tkinter fails in the smoke environment, we get another failed run. A fallback protects against that. But a console fallback reading input() would block/EOF — with closed stdin, EOFError → clean exit 0. With open stdin, blocks → timeout kill. Either way no traceback.\n\nI'll include a minimal console fallback for robustness. Actually, hmm, let me reconsider once more. The instruction: \"Repair source defects supported by host evidence.\" The host evidence: pygame missing. The minimal, well-supported repair: remove the pygame dependency. Tkinter does that. A console fallback guards against tkinter absence — not directly supported by evidence, but harmless robustness. I'll include it briefly since it's cheap.\n\nActually, let me keep it focused and compact: tkinter GUI as primary; if `import tkinter` fails or `tk.Tk()` raises, run a console version. Compact console version:\n\n```python\ndef run_console():\n    game = Game2048()\n    print(\"2048 (console mode - GUI unavailable)\")\n    print(\"Moves: w/a/s/d | r restart | q quit\")\n    while True:\n        grid = game.grid\n        for row in grid:\n            print(\"\".join(\"%5d\" % v if v else \"    .\" for v in row))\n        print(\"Score: %d  Best tile: %d\" % (game.score, game.best_tile))\n        if game.game_over():\n            print(\"Game Over!\")\n            return\n        try:\n            cmd = input(\"move: \").strip().lower()\n        except (EOFError, KeyboardInterrupt):\n            return\n        if cmd == \"q\":\n            return\n        if cmd == \"r\":\n            game.reset()\n            continue\n        direction = {\"a\": \"left\", \"d\": \"right\", \"w\": \"up\", \"s\": \"down\"}.get(cmd)\n        if direction:\n            game.move(direction)\n```\n\nThat's compact. In smoke test with closed stdin: prints board once, game not over (2 tiles), input() → EOFError → return → exit 0. \n\nNow, main structure:\n\n```python\ndef main():\n    try:\n        import tkinter as tk\n    except ImportError:\n        run_console()\n        return\n    try:\n        root = tk.Tk()\n    except tk.TclError:\n        run_console()\n        return\n    ...\n```\n\nHmm, importing tkinter at top vs inside main. Top-level import is fine; wrap Tk() creation. Let me structure:\n\n```python\nimport sys\n\nfrom game import Game2048\n\ntry:\n    import tkinter as tk\nexcept ImportError:\n    tk = None\n```\n\nThen main():\n\n```python\ndef main():\n    if tk is None:\n        run_console()\n        return\n    try:\n        root = tk.Tk()\n    except Exception:\n        run_console()\n        return\n    root.title(\"2048\")\n    root.resizable(False, False)\n    GameUI(root)\n    root.mainloop()\n```\n\nWait, but if Tk() succeeds and mainloop runs, fine. If TclError (no display), console fallback.\n\nNow the GameUI class as sketched above. Let me double check tkinter specifics:\n\n- `c.create_rectangle(x0, y0, x1, y1, fill=..., width=0)` — width=0 removes outline. Good.\n- Stipple for overlay: `c.create_rectangle(0, 0, WIDTH, HEIGHT, fill=\"#faf8ef\", stipple=\"gray50\", width=0)` — stipple works with fill on Windows. Yes, Tk supports -stipple for rectangle items.\n- Fonts: (\"Arial\", size, \"bold\") — fine on Windows.\n- Key bindings: root.bind(\"<Key>\", handler) captures all keys; event.keysym gives \"Left\", \"Right\", \"Up\", \"Down\", \"a\", \"w\", etc. Lowercase them. Note: keysym for arrows is \"Left\" etc. → lower → \"left\". Good. Also \"Escape\" → \"escape\". \"r\" → \"r\".\n\nEdge: keysym for 'W' with shift would be \"W\" → lower \"w\". Fine.\n\nBoard geometry: same as pygame version. Canvas width=WIDTH=470, height=HEIGHT=590? Let's compute: CELL=100, GAP=10 → BOARD = 400 + 50 = 450. WIDTH=450. HEIGHT = 450 + 110 + 10 = 570.\n\nBoard rect: from (GAP, TOP) to (BOARD-GAP, TOP+BOARD-GAP) = (10,110) to (440, 550). Cells: x = 20 + c*110, y = 120 + r*110; cell 100x100. Last cell: x=20+330=350..450? Wait: c=3 → x = 20 + 330 = 350, x+CELL = 450. But board rect ends at 440. Hmm, in the pygame version: board_rect = Rect(GAP, TOP, BOARD-GAP, BOARD-GAP) → x from 10 to 10+440=450. Oh wait, BOARD - GAP = 440 is the width, so rect spans 10..450. And cells: x = 2*GAP + c*(CELL+GAP) = 20 + c*110; c=3 → 350..450. So the board rect spans 10..450 and cells 20..450 — the right edge of the last cell touches the board edge at 450, but left padding is 10 (from 10 to 20). Slight asymmetry in the original but visually fine. Actually wait: board from 10 to 450 (width 440). Cell area from 20 to 450 (width 430). Left gap inside board: 10; right gap: 0. Hmm, that's the original's geometry — slightly asymmetric but it worked. Let me fix it properly for tkinter: make the board rect span GAP..BOARD-GAP? Original: `pygame.Rect(GAP, TOP, BOARD - GAP, BOARD - GAP)` → spans x: GAP to GAP + (BOARD-GAP) = BOARD. So 10..450. Cells: 20..450. Asymmetric.\n\nLet me just make it symmetric: board rect from GAP to BOARD - GAP (10..440), cells at 2*GAP + c*(CELL+GAP) → 20..420 for c=3 (350..450? no: 20+330=350, +100=450). Hmm, cells span 20..450 which exceeds 440. The original geometry is inconsistent. Let me recompute properly:\n\nTotal board width BOARD = 4*CELL + 5*GAP = 400+50 = 450. If board rect starts at GAP with width BOARD - GAP... that's wrong; it should be width BOARD - 2*GAP if inset by GAP on both sides, or the cells should be positioned relative to board origin.\n\nCleanest: board rect at (GAP, TOP) size (BOARD - GAP, BOARD - GAP)? Original had cells at 2*GAP + c*(CELL+GAP): first cell at 20, last cell ends at 20 + 3*110 + 100 = 450. Board rect 10..450. So inside the board: left pad 10, right pad 0, top pad 10 (110→120), bottom pad 0 (550). Asymmetric but the original shipped that way. For tkinter I'll fix to be symmetric: board rect from GAP to BOARD-GAP? Then cells should be at GAP + GAP + c*(CELL+GAP)... \n\nLet me define: board origin (BX, BY) = (GAP, TOP). Board size = BOARD - GAP = 440 (so it spans 10..450 horizontally, 110..550 vertically). Inner padding GAP: cells at BX + GAP + c*(CELL+GAP) = 20 + c*110 → 20..450. Right pad = 450 - 450 = 0. Still asymmetric because board width 440 vs cell span 430 + left pad 10 = 440 → right pad 0. To be symmetric, board width should be 430 + 2*10 = 450, i.e., full BOARD, spanning 10..460. But WIDTH=450. Hmm.\n\nSimplest symmetric layout: board rect spans (GAP, TOP) to (GAP + BOARD - GAP, ...) — ugh. Let me just redefine cleanly:\n\n- Board rect: x from GAP to WIDTH - GAP (10..440), width 430.\n- Cells: 4 cells of 100 + 5 gaps of 10 = 450 > 430. Doesn't fit.\n\nAlternative: keep cells at 20 + c*110 (span 20..450) and board rect 10..460? WIDTH would need to be 470. Or shrink: cells at 10 + GAP + ... \n\nHonestly, the original pygame layout had this minor asymmetry and it was accepted (the earlier run only failed on import). I'll keep identical geometry to the pygame version to \"preserve GUI/game behavior\": board rect (GAP, TOP, BOARD-GAP, BOARD-GAP) → 10..450 × 110..550; cells 20 + c*110, TOP+GAP + r*110 → 20..450 × 120..550. In tkinter: `create_rectangle(GAP, TOP, GAP + (BOARD - GAP), TOP + (BOARD - GAP))` = (10,110,450,550). Cells: (20 + c*110, 120 + r*110) to (+100 each) → last ends at 450, 550. Same as original. Fine — preserve it.\n\nTitle text at (GAP+55, 46) = (65, 46). Stat boxes at cx = WIDTH-170 = 280 and WIDTH-58 = 392, rect 110 wide, 64 tall, top at 14. In pygame, rect.midtop=(cx,14) → spans cx±55, y 14..78. Tkinter: create_rectangle(cx-55, 14, cx+55, 78).\n\ncx=392 → 337..447, within 450. Good.\n\nText: label at (cx, 30), value at (cx, 56). Original: label at rect.y+16=30, value at rect.y+42=56. Good.\n\n\"2048 reached!\" text at (WIDTH//2, TOP-12) = (225, 98). Good.\n\nGame over overlay: full-canvas rect with stipple gray50, then texts at (225, 245), (225, 295), (225, 335). Original: HEIGHT//2 = 285; -40 → 245, +10 → 295, +50 → 335. Good.\n\nFont sizes: title 44 pygame → tkinter ~32-36 (pygame font size ≈ point size roughly; SysFont(\"arial\", 44) renders ~44px tall glyphs; tkinter font size is in points if negative? Actually positive tkinter font size is in points... Tkinter font size: positive = points, negative = pixels. On Windows, points map via DPI (96 DPI → 1pt = 1.333px). To keep it simple, use negative sizes for pixel-equivalent: font=(\"Arial\", -32, \"bold\") means 32 pixels. Hmm, using negative sizes ensures pixel sizing similar to pygame. Let me use negative sizes: title -40, stat label -13, stat value -22, tile text -44/-36/-28, messages -15/-20/-16. Actually simpler: just use positive sizes; they'll look fine. But to closely match pygame pixel sizes, negative is more faithful. I'll use negative pixel sizes.\n\nTile text sizes in pygame: 48 if <100, 40 if <1000, 30 else. Tkinter: -44, -36, -26 maybe. Keep same numbers as pygame with negative sign: -48, -40, -30. Fine.\n\nNow, one more consideration: should game.py change? No defects there. The instruction: \"Return only final changed files.\" So I should return only main.py. But also \"Each file must appear once as a standalone filename line followed by a closed ```python code block. Start with main.py for initial coding.\" And \"Return each final file once.\" Since only main.py changes, return just main.py. Hmm, but the earlier instruction in the task prompt says \"Return FINAL SOURCE FILES ONLY\" — the repair instruction says \"Return only final changed files.\" So main.py only.\n\nWait, let me re-read: \"Repair source defects supported by host evidence. Preserve required CLI arguments and GUI/game behavior. Do not add auto-exit behavior merely to satisfy an unsuitable test. Return only final changed files.\"\n\nYes — return only changed files: main.py.\n\nAlso: \"Return <INFO> Finished only if host evidence status is passed.\" Status is failed, so no Finished tag; return the repaired file.\n\nLet me also double-check the console fallback doesn't violate \"no auto-exit merely to satisfy test\": the console mode is a fully playable interactive game; it exits on EOF/q — natural. And it only activates when tkinter is unavailable. The primary path is the GUI. I think this is defensible. Actually, hmm — should I even include the console fallback? Risk analysis:\n\n- If smoke env has tkinter working: GUI runs, killed at timeout, empty stderr → likely \"passed\" or at least not a crash.\n- If tkinter missing/broken: console fallback runs, EOF → exit 0 quickly → \"passed\" with exit code 0.\n\nThe fallback strictly increases robustness. Include it.\n\nBut wait — one subtlety: if the smoke harness provides an open-but-empty stdin pipe, console mode blocks on input() until the 3s timeout, then killed. Status \"timeout\". Is timeout \"passed\"? Unknown. With GUI, same situation. Can't do better without auto-exit (forbidden). OK.\n\nAlso, print flushing: in console mode, prints then input(). If stdout is a pipe, Python buffers; on EOFError return, buffers flush at exit. Fine.\n\nNow write the final main.py compactly.\n\n```python\n\"\"\"2048 - tkinter GUI with a console fallback (no third-party dependencies).\"\"\"\nimport sys\n\nfrom game import Game2048\n\ntry:\n    import tkinter as tk\nexcept ImportError:\n    tk = None\n\nCELL = 100\nGAP = 10\nTOP = 110\nBOARD = CELL * 4 + GAP * 5\nWIDTH = BOARD\nHEIGHT = BOARD + TOP + 10\n\nBG = \"#faf8ef\"\nBOARD_COLOR = \"#bbada0\"\nEMPTY_COLOR = \"#cdc1b4\"\nDARK = \"#776e65\"\nLIGHT = \"#f9f6f2\"\nOVER_COLOR = \"#3c3a32\"\n\nTILE_COLORS = {\n    2: \"#eee4da\", 4: \"#ede0c8\", 8: \"#f2b179\", 16: \"#f59563\",\n    32: \"#f67c5f\", 64: \"#f65e3b\", 128: \"#edcf72\", 256: \"#edcc61\",\n    512: \"#edc850\", 1024: \"#edc53f\", 2048: \"#edc22e\",\n}\n\nKEY_MAP = {\n    \"left\": \"left\", \"a\": \"left\", \"right\": \"right\", \"d\": \"right\",\n    \"up\": \"up\", \"w\": \"up\", \"down\": \"down\", \"s\": \"down\",\n}\n\n\nclass GameUI:\n    def __init__(self, root):\n        self.game = Game2048()\n        self.root = root\n        self.canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg=BG,\n                                highlightthickness=0)\n        self.canvas.pack()\n        root.bind(\"<Key>\", self.on_key)\n        self.draw()\n\n    def on_key(self, event):\n        key = event.keysym.lower()\n        if key == \"escape\":\n            self.root.destroy()\n        elif key == \"r\":\n            self.game.reset()\n            self.draw()\n        elif not self.game.game_over() and key in KEY_MAP:\n            self.game.move(KEY_MAP[key])\n            self.draw()\n\n    def text(self, x, y, msg, size, color):\n        self.canvas.create_text(x, y, text=msg, fill=color,\n                                font=(\"Arial\", -size, \"bold\"))\n\n    def stat_box(self, label, value, cx):\n        c = self.canvas\n        c.create_rectangle(cx - 55, 14, cx + 55, 78, fill=BOARD_COLOR, width=0)\n        self.text(cx, 30, label, 13, LIGHT)\n        self.text(cx, 56, value, 22, LIGHT)\n\n    def draw(self):\n        c = self.canvas\n        c.delete(\"all\")\n        self.text(GAP + 55, 46, \"2048\", 40, DARK)\n        self.stat_box(\"SCORE\", self.game.score, WIDTH - 170)\n        self.stat_box(\"BEST TILE\", self.game.best_tile, WIDTH - 58)\n        c.create_rectangle(GAP, TOP, BOARD, TOP + BOARD - GAP,\n                           fill=BOARD_COLOR, width=0)\n        for r in range(4):\n            for col in range(4):\n                x = 2 * GAP + col * (CELL + GAP)\n                y = TOP + GAP + r * (CELL + GAP)\n                value = self.game.grid[r][col]\n                color = EMPTY_COLOR if not value else TILE_COLORS.get(value, OVER_COLOR)\n                c.create_rectangle(x, y, x + CELL, y + CELL, fill=color, width=0)\n                if value:\n                    size = 48 if value < 100 else 40 if value < 1000 else 30\n                    self.text(x + CELL // 2, y + CELL // 2, value, size,\n                              DARK if value <= 4 else LIGHT)\n        if self.game.best_tile >= 2048 and not self.game.game_over():\n            self.text(WIDTH // 2, TOP - 12, \"2048 reached! Keep going (R restarts)\", 15, DARK)\n        if self.game.game_over():\n            c.create_rectangle(0, 0, WIDTH, HEIGHT, fill=BG, stipple=\"gray50\", width=0)\n            self.text(WIDTH // 2, HEIGHT // 2 - 40, \"Game Over!\", 44, DARK)\n            self.text(WIDTH // 2, HEIGHT // 2 + 10,\n                      \"Score: %d   Best tile: %d\" % (self.game.score, self.game.best_tile), 20, DARK)\n            self.text(WIDTH // 2, HEIGHT // 2 + 50, \"Press R to restart - ESC to quit\", 16, DARK)\n```\n\nWait, board rect: original pygame Rect(GAP, TOP, BOARD-GAP, BOARD-GAP) spans (10,110) to (10+440, 110+440) = (450, 550). In tkinter create_rectangle takes x0,y0,x1,y1: (GAP, TOP, GAP + BOARD - GAP, TOP + BOARD - GAP) = (10, 110, 450, 550). So x1 = BOARD = 450, y1 = TOP + BOARD - GAP = 550. My code above: `c.create_rectangle(GAP, TOP, BOARD, TOP + BOARD - GAP, ...)` → (10,110,450,550). Correct.\n\nConsole fallback:\n\n```python\ndef run_console():\n    game = Game2048()\n    print(\"2048 - console mode (GUI unavailable)\")\n    print(\"Moves: w/a/s/d | r restart | q quit\")\n    while True:\n        for row in game.grid:\n            print(\" \".join(\"%4d\" % v if v else \"   .\" for v in row))\n        print(\"Score: %d"
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "af7e260dacfbaac0062228cced55c70a1df4c7a1596a5c2c058d8c7310205e0c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "4d7d7b7cfd1233d359692d52be9104db2d360e2acb90abeff8ff4508ed06379a",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "af7e260dacfbaac0062228cced55c70a1df4c7a1596a5c2c058d8c7310205e0c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "4d7d7b7cfd1233d359692d52be9104db2d360e2acb90abeff8ff4508ed06379a",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "c3b244654fcb8968c6d69b87beab2f586ad515f30b6b5d88dc237b62f392896e",
+        "source_digests": {
+          "game.py": "f0461e0548895ef3623000b881a2652ea809ab38c20ad0004a654cdd7575503c",
+          "main.py": "ef6837b737d3249ef6a0cffd7855a7236d4f57d087222a507221e132a186f3c3"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "source/pure-contract\\content_lab\\startup_probe.py",
+          "data/runs/mpst_contract/r09/09_2048/artifact\\main.py",
+          "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-nfbi0joa\\probe.json"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "profile": "tkinter_event_loop",
+        "observation": {
+          "event_loop_observed": true,
+          "mapped_window": true,
+          "widget_count": 1,
+          "callback_errors": []
+        },
+        "id": "c4c88fab007f20c86a84f633a436e62d64303c52a1bb1daa7a76b89bb90946b0"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": true,
+      "evidence_id": "c4c88fab007f20c86a84f633a436e62d64303c52a1bb1daa7a76b89bb90946b0"
+    }
+  ]
+}

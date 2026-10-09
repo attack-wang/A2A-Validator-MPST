@@ -1,0 +1,314 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Application"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n\n```python\nimport random\nimport tkinter as tk\n\nGRID = 80\nCELL = 9\nMONSTER_TYPES = [(\"Slime\", 10), (\"Bat\", 14), (\"Skeleton\", 20),\n                 (\"Wizard\", 28), (\"Ghost\", 36)]\nCOLORS = {\"wall\": \"#3a3a3a\", \"floor\": \"#e8e0d0\", \"player\": \"#2060ff\",\n          \"monster\": \"#d02020\", \"chest\": \"#c08040\", \"door\": \"#ffee00\"}\n\n\nclass Game:\n    def __init__(self, root):\n        self.root = root\n        root.title(\"Tower of the Sorcerer\")\n        self.canvas = tk.Canvas(root, width=GRID * CELL, height=GRID * CELL,\n                                bg=\"black\", highlightthickness=0)\n        self.canvas.pack(side=\"left\")\n        self.panel = tk.Label(root, font=(\"Consolas\", 11), justify=\"left\",\n                              anchor=\"nw\", width=36)\n        self.panel.pack(side=\"right\", fill=\"both\", expand=True)\n        root.bind(\"<Key>\", self.on_key)\n        self.rects = [[self.canvas.create_rectangle(\n            x * CELL, y * CELL, (x + 1) * CELL, (y + 1) * CELL, outline=\"\")\n            for x in range(GRID)] for y in range(GRID)]\n        self.new_game()\n\n    def new_game(self):\n        self.hp = 100\n        self.level = 1\n        self.msg = \"W/A/S/D to move. Reach the door!\"\n        self.last_mon = \"None yet\"\n        self.dead = False\n        self.build_level()\n\n    def build_level(self):\n        n = GRID\n        g = [[1] * n for _ in range(n)]\n        g[1][1] = 0\n        stack = [(1, 1)]\n        while stack:\n            x, y = stack[-1]\n            for dx, dy in random.sample([(2, 0), (-2, 0), (0, 2), (0, -2)], 4):\n                nx, ny = x + dx, y + dy\n                if 1 <= nx < n - 1 and 1 <= ny < n - 1 and g[ny][nx]:\n                    g[y + dy // 2][x + dx // 2] = 0\n                    g[ny][nx] = 0\n                    stack.append((nx, ny))\n                    break\n            else:\n                stack.pop()\n        for _ in range(700):\n            x, y = random.randrange(1, n - 1), random.randrange(1, n - 1)\n            if g[y][x] and ((g[y][x - 1] == 0 and g[y][x + 1] == 0) or\n                            (g[y - 1][x] == 0 and g[y + 1][x] == 0)):\n                g[y][x] = 0\n        self.grid = g\n        self.door = (n - 2, n - 2)\n        self.px, self.py = 1, 1\n        self.entities = {}\n        floors = [(x, y) for y in range(1, n - 1) for x in range(1, n - 1)\n                  if g[y][x] == 0 and (x, y) not in ((1, 1), self.door)\n                  and abs(x - 1) + abs(y - 1) > 4]\n        random.shuffle(floors)\n        mcount = 8 + self.level * 2\n        ccount = 3 + self.level\n        for i, (x, y) in enumerate(floors):\n            if i < mcount:\n                name, base = random.choice(MONSTER_TYPES)\n                self.entities[(x, y)] = (\"monster\", name, base + self.level * 3)\n            elif i < mcount + ccount:\n                self.entities[(x, y)] = (\"chest\",)\n            else:\n                break\n        self.draw()\n\n    def on_key(self, e):\n        k = e.keysym.lower()\n        if self.dead:\n            if k == \"r\":\n                self.new_game()\n            return\n        d = {\"w\": (0, -1), \"a\": (-1, 0), \"s\": (0, 1), \"d\": (1, 0),\n             \"up\": (0, -1), \"left\": (-1, 0), \"down\": (0, 1),\n             \"right\": (1, 0)}.get(k)\n        if d:\n            self.move(*d)\n\n    def move(self, dx, dy):\n        nx, ny = self.px + dx, self.py + dy\n        if not (0 <= nx < GRID and 0 <= ny < GRID) or self.grid[ny][nx]:\n            return\n        ent = self.entities.pop((nx, ny), None)\n        if ent and ent[0] == \"monster\":\n            _, name, mhp = ent\n            self.hp -= mhp\n            self.last_mon = \"%s  HP %d\" % (name, mhp)\n            self.msg = \"Fought %s! -%d HP\" % (name, mhp)\n            if self.hp <= 0:\n                self.hp = 0\n                self.dead = True\n                self.msg = \"YOU DIED - press R to restart\"\n        elif ent and ent[0] == \"chest\":\n            heal = random.randint(20, 30)\n            self.hp += heal\n            self.msg = \"Treasure chest! +%d HP\" % heal\n        if (nx, ny) == self.door and not self.dead:\n            self.level += 1\n            self.msg = \"Descended to level %d!\" % self.level\n            self.build_level()\n            return\n        self.px, self.py = nx, ny\n        self.draw()\n\n    def draw(self):\n        px, py = self.px, self.py\n        for y in range(GRID):\n            row = self.grid[y]\n            for x in range(GRID):\n                c = COLORS[\"wall\"] if row[x] else COLORS[\"floor\"]\n                ent = self.entities.get((x, y))\n                if ent:\n                    c = COLORS[ent[0]]\n                if (x, y) == self.door:\n                    c = COLORS[\"door\"]\n                if x == px and y == py:\n                    c = COLORS[\"player\"]\n                self.canvas.itemconfig(self.rects[y][x], fill=c)\n        self.panel.config(text=(\n            \"Tower of the Sorcerer\\n\\nLevel: %d\\nHP: %d\\n\\n\"\n            \"Last monster:\\n%s\\n\\n%s\\n\\nW/A/S/D or arrows: move\\n\"\n            \"R: restart after death\" % (self.level, self.hp,\n                                        self.last_mon, self.msg)))\n\n\ndef main():\n    root = tk.Tk()\n    Game(root)\n    root.mainloop()\n\n\nif __name__ == \"__main__\":\n    main()\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "450ac8920d082cf425ae2ce1c290a58afc650b32dfe83f446b4756273696babf",
+      "result": "{\"verdict\": \"changes_requested\", \"issues\": [{\"file\": \"main.py\", \"line\": 58, \"message\": \"The door at (n-2, n-2) = (78,78) is an even-even cell that is never carved into floor: the maze generator only opens odd-odd cells and their midpoints, and the random carve loop (lines 52-56) can never open (78,78) because its opposite neighbors include permanent border walls (x=79 / y=79). So grid[78][78] stays 1 and move() rejects stepping onto the door, making the level impossible to complete. Fix: place the door at (77,77), which is guaranteed floor and connected to the start in the perfect maze, or after generation explicitly carve the door cell plus a connecting cell (e.g., set g[n-2][n-2]=0, g[n-2][n-3]=0, g[n-3][n-2]=0).\"}]}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "450ac8920d082cf425ae2ce1c290a58afc650b32dfe83f446b4756273696babf",
+      "result": "main.py\n```python\nimport random\nimport tkinter as tk\n\nGRID = 80\nCELL = 9\nMONSTER_TYPES = [(\"Slime\", 10), (\"Bat\", 14), (\"Skeleton\", 20),\n                 (\"Wizard\", 28), (\"Ghost\", 36)]\nCOLORS = {\"wall\": \"#3a3a3a\", \"floor\": \"#e8e0d0\", \"player\": \"#2060ff\",\n          \"monster\": \"#d02020\", \"chest\": \"#c08040\", \"door\": \"#ffee00\"}\n\n\nclass Game:\n    def __init__(self, root):\n        self.root = root\n        root.title(\"Tower of the Sorcerer\")\n        self.canvas = tk.Canvas(root, width=GRID * CELL, height=GRID * CELL,\n                                bg=\"black\", highlightthickness=0)\n        self.canvas.pack(side=\"left\")\n        self.panel = tk.Label(root, font=(\"Consolas\", 11), justify=\"left\",\n                              anchor=\"nw\", width=36)\n        self.panel.pack(side=\"right\", fill=\"both\", expand=True)\n        root.bind(\"<Key>\", self.on_key)\n        self.rects = [[self.canvas.create_rectangle(\n            x * CELL, y * CELL, (x + 1) * CELL, (y + 1) * CELL, outline=\"\")\n            for x in range(GRID)] for y in range(GRID)]\n        self.new_game()\n\n    def new_game(self):\n        self.hp = 100\n        self.level = 1\n        self.msg = \"W/A/S/D to move. Reach the door!\"\n        self.last_mon = \"None yet\"\n        self.dead = False\n        self.build_level()\n\n    def build_level(self):\n        n = GRID\n        g = [[1] * n for _ in range(n)]\n        g[1][1] = 0\n        stack = [(1, 1)]\n        while stack:\n            x, y = stack[-1]\n            for dx, dy in random.sample([(2, 0), (-2, 0), (0, 2), (0, -2)], 4):\n                nx, ny = x + dx, y + dy\n                if 1 <= nx < n - 1 and 1 <= ny < n - 1 and g[ny][nx]:\n                    g[y + dy // 2][x + dx // 2] = 0\n                    g[ny][nx] = 0\n                    stack.append((nx, ny))\n                    break\n            else:\n                stack.pop()\n        for _ in range(700):\n            x, y = random.randrange(1, n - 1), random.randrange(1, n - 1)\n            if g[y][x] and ((g[y][x - 1] == 0 and g[y][x + 1] == 0) or\n                            (g[y - 1][x] == 0 and g[y + 1][x] == 0)):\n                g[y][x] = 0\n        # Door sits on an odd-odd cell (guaranteed carved floor, connected\n        # to the start in the perfect maze); carve defensively anyway.\n        self.door = (n - 3, n - 3)\n        g[n - 3][n - 3] = 0\n        self.grid = g\n        self.px, self.py = 1, 1\n        self.entities = {}\n        floors = [(x, y) for y in range(1, n - 1) for x in range(1, n - 1)\n                  if g[y][x] == 0 and (x, y) not in ((1, 1), self.door)\n                  and abs(x - 1) + abs(y - 1) > 4]\n        random.shuffle(floors)\n        mcount = 8 + self.level * 2\n        ccount = 3 + self.level\n        for i, (x, y) in enumerate(floors):\n            if i < mcount:\n                name, base = random.choice(MONSTER_TYPES)\n                self.entities[(x, y)] = (\"monster\", name, base + self.level * 3)\n            elif i < mcount + ccount:\n                self.entities[(x, y)] = (\"chest\",)\n            else:\n                break\n        self.draw()\n\n    def on_key(self, e):\n        k = e.keysym.lower()\n        if self.dead:\n            if k == \"r\":\n                self.new_game()\n            return\n        d = {\"w\": (0, -1), \"a\": (-1, 0), \"s\": (0, 1), \"d\": (1, 0),\n             \"up\": (0, -1), \"left\": (-1, 0), \"down\": (0, 1),\n             \"right\": (1, 0)}.get(k)\n        if d:\n            self.move(*d)\n\n    def move(self, dx, dy):\n        nx, ny = self.px + dx, self.py + dy\n        if not (0 <= nx < GRID and 0 <= ny < GRID) or self.grid[ny][nx]:\n            return\n        ent = self.entities.pop((nx, ny), None)\n        if ent and ent[0] == \"monster\":\n            _, name, mhp = ent\n            self.hp -= mhp\n            self.last_mon = \"%s  HP %d\" % (name, mhp)\n            self.msg = \"Fought %s! -%d HP\" % (name, mhp)\n            if self.hp <= 0:\n                self.hp = 0\n                self.dead = True\n                self.msg = \"YOU DIED - press R to restart\"\n        elif ent and ent[0] == \"chest\":\n            heal = random.randint(20, 30)\n            self.hp += heal\n            self.msg = \"Treasure chest! +%d HP\" % heal\n        if (nx, ny) == self.door and not self.dead:\n            self.level += 1\n            self.msg = \"Descended to level %d!\" % self.level\n            self.build_level()\n            return\n        self.px, self.py = nx, ny\n        self.draw()\n\n    def draw(self):\n        px, py = self.px, self.py\n        for y in range(GRID):\n            row = self.grid[y]\n            for x in range(GRID):\n                c = COLORS[\"wall\"] if row[x] else COLORS[\"floor\"]\n                ent = self.entities.get((x, y))\n                if ent:\n                    c = COLORS[ent[0]]\n                if (x, y) == self.door:\n                    c = COLORS[\"door\"]\n                if x == px and y == py:\n                    c = COLORS[\"player\"]\n                self.canvas.itemconfig(self.rects[y][x], fill=c)\n        self.panel.config(text=(\n            \"Tower of the Sorcerer\\n\\nLevel: %d\\nHP: %d\\n\\n\"\n            \"Last monster:\\n%s\\n\\n%s\\n\\nW/A/S/D or arrows: move\\n\"\n            \"R: restart after death\" % (self.level, self.hp,\n                                        self.last_mon, self.msg)))\n\n\ndef main():\n    root = tk.Tk()\n    Game(root)\n    root.mainloop()\n\n\nif __name__ == \"__main__\":\n    main()\n```"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "f1e3f2e58dc34e5eafa8bdade352ecebe0c72c3dcad3f600bbcd28d201e17031",
+      "result": "{\"status\": \"passed\", \"test_run_id\": \"c511172bfa6e1c3ebcaf1988e66ada245ea409d8db39d17d29987a78b2ae557e\", \"summary\": \"Startup smoke test passed for main.py (digest e6394a87...cee119). The Tkinter application launched successfully with exit code 0 within the 3s timeout: the event loop was observed running, a window was mapped, 2 widgets (canvas and info panel) were created, and no callback errors occurred. No source errors or missing dependencies were detected.\"}"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "f1e3f2e58dc34e5eafa8bdade352ecebe0c72c3dcad3f600bbcd28d201e17031",
+    "source_digests": {
+      "main.py": "e6394a87ce63c8591ce0be0726207646ca952c83a767a51422e59c5211cee119"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "source/pure-contract\\content_lab\\startup_probe.py",
+      "data/runs/mpst_contract/r04/10_Tiny Rouge/artifact\\main.py",
+      "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-8vy64f__\\probe.json"
+    ],
+    "timeout_seconds": 3,
+    "status": "passed",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "profile": "tkinter_event_loop",
+    "observation": {
+      "event_loop_observed": true,
+      "mapped_window": true,
+      "widget_count": 2,
+      "callback_errors": []
+    },
+    "id": "bc9c24bb7b7faaae485b8bc1effec2253b9a316b2d20ac1068ac03422fa26477"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "ca2c94fdf8dbfaa4552b7b0f32a634e98b5cef2125631dbc771f64f4cbc0644b",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "57d005c3b71920cefd5b63883aac3200365d1f8a4aa4b23a48238444adb055e7",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "694727febe0da2b3189164abc1aaf73bed6bf9a49fefed87cf2dee67010438be",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "output_truncated",
+          "path": "$",
+          "message": "Model output reached its generation/context limit.",
+          "repair": "Output budget was exhausted. Omit analysis, architecture descriptions and drafts. Return a smaller complete implementation satisfying the task, with explicit filenames and closed code fences."
+        }
+      ],
+      "candidate_sha256": "1b6ae03856aca8c56a08b5cdbc25bb39749cf25a1edbfbddbc7cade34396979b",
+      "termination_reasons": [
+        "length"
+      ],
+      "rejected_candidate": "The task: Design a roguelike game inspired by Tower of the Sorcerer. Fixed 80x80 grid map. WASD movement. Floor tiles only, walls block. Goal: reach door to next level. Monsters: combat resolved by subtracting monster's HP from player's HP. Treasure chest: restore 20-30 HP. Ensure at least one valid path from start to door. Minimal UI showing player HP and encountered monster stats.\n\nLanguage: Python. Return final source files only. Start with main.py, then every other required Python file. Compact complete implementation.\n\nI'll write a single-file or multi-file implementation. Let me plan:\n\n- main.py: entry point, game loop.\n- Maybe game.py, map_gen.py, entities.py, ui.py. But compact — maybe 2-3 files. The instructions say \"Start with main.py, followed by every other required Python file.\" So I can do main.py plus maybe game.py. Let me do a compact but complete implementation across a few files: main.py, game.py, mapgen.py, ui.py? Or just main.py and game.py. To be safe and compact, I'll do main.py + game.py + mapgen.py. Actually a single main.py could suffice, but the prompt implies multiple files (\"every other required Python file\"). I'll do main.py, game.py, mapgen.py — three files. Or maybe main.py + tower.py. Let me keep it to 2-3 files.\n\nDesign:\n\n- Grid 80x80. Use pygame for rendering? Or pure terminal? Terminal with 80x80 grid is too big to display. Pygame is the natural choice for a graphical roguelike. But pygame may not be installed... Typically ChatDev tasks use pygame for games. I'll use pygame with a fallback? Better to just use pygame. Alternatively use curses — but curses on Windows is problematic. Pygame is standard for these tasks.\n\nI'll implement with pygame:\n\n- Tile size: 80x80 grid at, say, 10px per tile = 800x800 window. Plus UI panel at bottom/side showing HP and monster stats.\n\nMap generation: Use a maze-like or room-based generation ensuring path from start to door. Simplest guaranteed-path approach: generate a maze via recursive backtracker on odd cells (80x80 works: cells at odd coordinates, 40x40 cells). Then carve extra rooms/loops, place monsters and chests on floor tiles, place door at far corner. Start at (1,1). Door at (78,78). Maze guarantees connectivity between all odd cells; then we can also randomly open some walls to create loops. Monsters/chests placed on random floor tiles (excluding start/door). Since maze is fully connected, path always exists.\n\nAlternatively simpler: random walls with density then BFS check; regenerate until path exists. But maze guarantees. I'll do maze generation with recursive backtracker using iterative stack, then add random loops (remove some walls), then sprinkle monsters/chests.\n\nCombat: In Tower of the Sorcerer, you bump into a monster to fight; combat resolved by subtracting monster's HP from player's HP (per task: \"combat is resolved by subtracting the monster’s HP from the player's HP\"). So when player moves into a monster tile: player.hp -= monster.hp; monster dies (removed). If player HP <= 0, game over. Show monster stats in UI when encountered (or when adjacent). Task says \"display the player's current HP and encountered monster stats.\" I'll show stats of the monster the player last encountered/bumped, and maybe also adjacent monster info. Keep minimal: show HP bar and last-encountered monster stats (name, HP, ATK maybe). Monsters have HP and ATK? Task only mentions HP subtraction. To keep faithful: combat: player HP -= monster HP; monster removed. I can give monsters names and HP. Maybe also attack but task says subtract monster's HP from player's HP. Keep it exactly: damage = monster.hp. I'll include monster stats display: name, HP, and the damage it will deal.\n\nChest: touching restores 20-30 HP (random). Chest disappears after opening.\n\nDoor: reaching door proceeds to next level: generate new level, increase difficulty (more/stronger monsters), keep player HP, maybe small heal. Levels counter.\n\nUI: bottom panel: \"HP: 45/100\", \"Level: 2\", \"Monster: Red Slime HP:12 DMG:12\" when encountered. Also message log line.\n\nRendering: draw tiles as colored rects; player as distinct color; monsters colored; chests gold; door green. 80x80 at 10 px = 800x800 plus 60px UI bar => window 800x860. That's fine.\n\nMovement: WASD keys. Also support arrow keys? Task says WASD; I can add arrows as bonus but keep WASD primary. Keep it simple: WASD only (maybe also arrows harmlessly). I'll include arrows too — harmless. Actually keep strictly WASD plus arrows for convenience; fine.\n\nGame over: if HP <= 0, show \"GAME OVER\" and allow R to restart, ESC/Q to quit.\n\nFiles:\n\n1. main.py — entry: sets up pygame, creates Game, runs loop.\n2. game.py — Game class: state, level management, movement/combat logic, update.\n3. mapgen.py — map generation (maze + loops + entity placement with guaranteed path).\n4. ui.py — rendering: draw map, entities, HUD panel.\n\nMaybe merge ui into game? Keep 4 files but compact. Or 3 files: main.py, game.py (includes rendering), mapgen.py. The instruction: \"Start with main.py, followed by every other required Python file.\" Multiple files fine. I'll do main.py, game.py, mapgen.py, ui.py — but keep each compact. Actually to reduce risk of import issues, do main.py, game.py, mapgen.py where game.py handles both logic and rendering. Hmm, separation is nicer for review. Let me do 4 small files:\n\n- main.py: pygame init, window, main loop calling game.handle_event / game.update / ui.draw.\n- mapgen.py: generate_level(level) -> dict with grid, start, door, monsters, chests.\n- game.py: Game class with player, level data, movement, combat, chest, door transitions, messages.\n- ui.py: draw function: tiles, entities, HUD.\n\nConstants: GRID = 80, TILE = 10 (so map 800px), HUD_H = 64, window 800x864.\n\nMap generation details:\n\n```\ndef generate_level(level):\n    n = 80\n    grid = [[WALL]*n for _ in range(n)]\n    # maze on odd cells via iterative DFS\n    ...\n    # add loops: randomly remove ~ n*2 walls between two floor cells\n    # start (1,1), door (n-2, n-2) => (78,78) which is odd (78 even!). 78 is even. Hmm.\n```\n\n80x80: odd cells go 1..77. Door at (77,77)? That's odd, fine. Or (78,78) even — need to ensure floor. Use (n-2, n-2) = (78,78): even coordinates. In maze carving, cells are odd coords; (78,78) wouldn't be carved. So place door at (77,77) or carve (78,78) as floor and connect to (77,78)/(78,77)? Simpler: door at (n-2, n-2) but carve it: set grid[78][78]=FLOOR and also grid[77][78] or grid[78][77] floor to connect. Actually simplest: door position (77,77) — odd, guaranteed floor. Start (1,1). Fine.\n\nMaze DFS: cells (r,c) with r,c odd in [1, n-2] (n-2=78 even, so odd max is 77). Cells: odd r,c from 1 to 77 → 39x39 cells. Stack-based backtracker carving walls between cells.\n\nAfter maze, add loops: pick random interior wall positions where wall separates two floors horizontally or vertically, remove with some probability, count ~ 300. This creates multiple paths (still connected).\n\nThen place entities: collect all floor tiles except start and door and their immediate neighbors; shuffle; place monsters count = 20 + level*5 (cap), chests = 8 + level. Monster HP scales: base random 5-15 + level*3. Names: list of slime/bat/ghost etc.\n\nEnsure path: maze guarantees connectivity between all cells; entities placed on floor tiles which are all connected (maze covers all odd cells; even floor tiles carved are corridors between cells — all connected). Door at (77,77) is a cell → connected. Start (1,1) cell → connected. So path always exists. Good. I can also run a BFS sanity check and, in the unlikely event, re-carve; but maze guarantees. I'll include a BFS verify function used in mapgen to assert/regenerate (defensive, cheap). Actually to \"ensure there is always at least one valid path\", include BFS check that raises/regenerates. I'll implement `has_path(grid, start, door)` and regenerate loop up to N times (should never trigger).\n\nCombat: moving into monster tile: damage = monster['hp']; player.hp -= damage; message \"Fought X: -Y HP\"; monster removed; if player.hp <= 0 → game_over. Note: monster HP subtracted from player HP exactly per spec.\n\nChest: heal random.randint(20,30), cap at max_hp (100). Message.\n\nDoor: on entering door tile → level += 1, generate new level, keep hp, message \"Descended to floor N\". Maybe heal small? Not required. Keep HP as is.\n\nUI: HUD shows: Floor, HP bar (hp/max), \"HP: x/y\", last monster encountered stats: name, HP, DMG (=its HP). Also controls hint. Message log last message.\n\nAlso show monster stats when player is adjacent to a monster? \"encountered monster stats\" — I'll track `self.encountered` set when bumping; display last encountered. Also could display info for monster you're facing/adjacent. Keep last-encountered.\n\nRendering colors:\n- Wall: dark gray/brown.\n- Floor: light.\n- Player: blue.\n- Monster: red variants.\n- Chest: gold.\n- Door: green.\n- Start: not needed.\n\nDraw entities as rects with maybe letter? At 10px, letters tiny. Just colored squares; maybe draw small glyph with font size 8? Keep rects only, plus player distinct.\n\nGame over overlay: text centered; press R to restart.\n\nVictory? Endless floors; no win condition needed. Fine.\n\nEdge: player can't walk into walls; blocked message optional (skip).\n\nKey handling: KEYDOWN: w/k? Only WASD + arrows. r restart when dead. ESC quit.\n\nNow write code compactly.\n\nmapgen.py:\n\n```python\nimport random\n\nGRID = 80\nWALL, FLOOR = 1, 0\n\nMONSTER_NAMES = [\"Green Slime\", \"Red Slime\", \"Blue Bat\", \"Skeleton\", \"Ghost\", \"Sorcerer\", \"Golem\", \"Dark Knight\"]\n\ndef _maze(grid):\n    n = GRID\n    stack = [(1, 1)]\n    grid[1][1] = FLOOR\n    while stack:\n        r, c = stack[-1]\n        nbrs = []\n        for dr, dc in ((-2, 0), (2, 0), (0, -2), (0, 2)):\n            nr, nc = r + dr, c + dc\n            if 1 <= nr < n - 1 and 1 <= nc < n - 1 and grid[nr][nc] == WALL:\n                nbrs.append((nr, nc, r + dr // 2, c + dc // 2))\n        if nbrs:\n            nr, nc, wr, wc = random.choice(nbrs)\n            grid[wr][wc] = FLOOR\n            grid[nr][nc] = FLOOR\n            stack.append((nr, nc))\n        else:\n            stack.pop()\n```\n\nWait dr//2: for (-2,0) → -1; (2,0) → 1; (0,-2) → 0; (0,2) → 0. Good.\n\nLoops:\n\n```python\ndef _add_loops(grid, count):\n    n = GRID\n    for _ in range(count):\n        r = random.randint(1, n - 2)\n        c = random.randint(1, n - 2)\n        if grid[r][c] != WALL:\n            continue\n        if grid[r][c - 1] == FLOOR and grid[r][c + 1] == FLOOR and 0 < c < n - 1:\n            grid[r][c] = FLOOR\n        elif grid[r - 1][c] == FLOOR and grid[r + 1][c] == FLOOR:\n            grid[r][c] = FLOOR\n```\n\nCareful bounds: r in 1..n-2 so r±1 within 0..n-1. c same. Fine.\n\nBFS:\n\n```python\ndef has_path(grid, start, door):\n    n = GRID\n    seen = {start}\n    q = [start]\n    while q:\n        r, c = q.pop()\n        if (r, c) == door:\n            return True\n        for dr, dc in ((1,0),(-1,0),(0,1),(0,-1)):\n            nr, nc = r + dr, c + dc\n            if 0 <= nr < n and 0 <= nc < n and grid[nr][nc] == FLOOR and (nr, nc) not in seen:\n                seen.add((nr, nc))\n                q.append((nr, nc))\n    return False\n```\n\ngenerate_level:\n\n```python\ndef generate_level(level):\n    n = GRID\n    start, door = (1, 1), (n - 3, n - 3)  # (77,77)\n    for _ in range(50):\n        grid = [[WALL] * n for _ in range(n)]\n        _maze(grid)\n        _add_loops(grid, 400)\n        if has_path(grid, start, door):\n            break\n    floors = [(r, c) for r in range(n) for c in range(n)\n              if grid[r][c] == FLOOR and (r, c) not in (start, door)\n              and abs(r - start[0]) + abs(c - start[1]) > 2]\n    random.shuffle(floors)\n    monsters = []\n    for r, c in floors[: 25 + level * 5]:\n        hp = random.randint(5, 15) + level * 4\n        monsters.append({\"pos\": [r, c], \"name\": random.choice(MONSTER_NAMES), \"hp\": hp})\n    chests = [{\"pos\": [r, c]} for r, c in floors[25 + level * 5: 25 + level * 5 + 10 + level]]\n    return {\"grid\": grid, \"start\": start, \"door\": door, \"monsters\": monsters, \"chests\": chests}\n```\n\nHmm floors slicing: need enough floors; 80x80 maze has ~ (39*39 cells + corridors) ≈ 1521 + ~1500 ≈ 3000 floors. Plenty.\n\nMonster count: 25 + level*5 could get large at high levels; cap at len(floors)//3 maybe. Use min. Fine: `m_count = min(25 + level * 5, len(floors) // 3)`.\n\ngame.py:\n\n```python\nimport random\nimport mapgen\n\nGRID = mapgen.GRID\nWALL, FLOOR = mapgen.WALL, mapgen.FLOOR\nMAX_HP = 100\n\nclass Game:\n    def __init__(self):\n        self.reset()\n\n    def reset(self):\n        self.floor_num = 1\n        self.hp = MAX_HP\n        self.max_hp = MAX_HP\n        self.game_over = False\n        self.encountered = None\n        self.message = \"W/A/S/D to move. Reach the green door.\"\n        self.load_floor()\n\n    def load_floor(self):\n        self.level = mapgen.generate_level(self.floor_num)\n        self.player_pos = list(self.level[\"start\"])\n        self.encountered = None\n\n    def try_move(self, dr, dc):\n        if self.game_over:\n            return\n        r, c = self.player_pos[0] + dr, self.player_pos[1] + dc\n        n = GRID\n        if not (0 <= r < n and 0 <= c < n) or self.level[\"grid\"][r][c] == WALL:\n            return\n        self.player_pos = [r, c]\n        self._resolve_tile(r, c)\n\n    def _resolve_tile(self, r, c):\n        door = self.level[\"door\"]\n        if (r, c) == door:\n            self.floor_num += 1\n            self.message = \"You descend to floor %d.\" % self.floor_num\n            self.load_floor()\n            return\n        m = self._monster_at(r, c)\n        if m:\n            dmg = m[\"hp\"]\n            self.hp -= dmg\n            self.encountered = m\n            self.message = \"Fought %s! Took %d damage.\" % (m[\"name\"], dmg)\n            self.level[\"monsters\"].remove(m)\n            if self.hp <= 0:\n                self.hp = 0\n                self.game_over = True\n                self.message = \"You died on floor %d. Press R to restart.\" % self.floor_num\n            return\n        ch = self._chest_at(r, c)\n        if ch:\n            heal = random.randint(20, 30)\n            self.hp = min(self.max_hp, self.hp + heal)\n            self.level[\"chests\"].remove(ch)\n            self.message = \"Opened a treasure chest: +%d HP.\" % heal\n\n    def _monster_at(self, r, c):\n        for m in self.level[\"monsters\"]:\n            if m[\"pos\"] == [r, c]:\n                return m\n        return None\n\n    def _chest_at(self, r, c):\n        for ch in self.level[\"chests\"]:\n            if ch[\"pos\"] == [r, c]:\n                return ch\n        return None\n```\n\nNote: when descending to next floor, player HP persists. Also maybe heal a bit? Not required.\n\nui.py:\n\n```python\nimport pygame\nimport mapgen\n\nGRID = mapgen.GRID\nWALL, FLOOR = mapgen.WALL, mapgen.FLOOR\nTILE = 10\nHUD = 70\nWIN_W = GRID * TILE\nWIN_H = GRID * TILE + HUD\n\nCOLORS = {\n    WALL: (60, 50, 45),\n    FLOOR: (235, 225, 205),\n}\nPLAYER_COLOR = (40, 90, 220)\nMONSTER_COLOR = (200, 40, 40)\nCHEST_COLOR = (230, 180, 30)\nDOOR_COLOR = (40, 170, 70)\nBG = (25, 25, 30)\nTEXT = (240, 240, 240)\n\ndef draw(screen, font, small_font, game):\n    screen.fill(BG)\n    lvl = game.level\n    grid = lvl[\"grid\"]\n    for r in range(GRID):\n        row = grid[r]\n        for c in range(GRID):\n            pygame.draw.rect(screen, COLORS[row[c]], (c * TILE, r * TILE, TILE, TILE))\n    dr, dc = lvl[\"door\"]\n    pygame.draw.rect(screen, DOOR_COLOR, (dc * TILE, dr * TILE, TILE, TILE))\n    for ch in lvl[\"chests\"]:\n        r, c = ch[\"pos\"]\n        pygame.draw.rect(screen, CHEST_COLOR, (c * TILE + 1, r * TILE + 1, TILE - 2, TILE - 2))\n    for m in lvl[\"monsters\"]:\n        r, c = m[\"pos\"]\n        pygame.draw.rect(screen, MONSTER_COLOR, (c * TILE + 1, r * TILE + 1, TILE - 2, TILE - 2))\n    pr, pc = game.player_pos\n    pygame.draw.rect(screen, PLAYER_COLOR, (pc * TILE, pr * TILE, TILE, TILE))\n    # HUD\n    pygame.draw.rect(screen, (15, 15, 20), (0, GRID * TILE, WIN_W, HUD))\n    hp_ratio = game.hp / game.max_hp\n    bar_w = 200\n    pygame.draw.rect(screen, (80, 30, 30), (10, GRID * TILE + 10, bar_w, 18))\n    pygame.draw.rect(screen, (200, 60, 60), (10, GRID * TILE + 10, int(bar_w * hp_ratio), 18))\n    screen.blit(font.render(\"HP %d/%d\" % (game.hp, game.max_hp), True, TEXT), (220, GRID * TILE + 10))\n    screen.blit(font.render(\"Floor %d\" % game.floor_num, True, TEXT), (400, GRID * TILE + 10))\n    if game.encountered:\n        m = game.encountered\n        stats = \"Monster: %s  HP %d  ATK %d\" % (m[\"name\"], m[\"hp\"], m[\"hp\"])\n        screen.blit(small_font.render(stats, True, (255, 150, 150)), (10, GRID * TILE + 38))\n    screen.blit(small_font.render(game.message[:90], True, (200, 200, 160)), (330, GRID * TILE + 38))\n    if game.game_over:\n        over = font.render(\"GAME OVER - Press R to restart\", True, (255, 80, 80))\n        rect = over.get_rect(center=(WIN_W // 2, WIN_H // 2))\n        screen.blit(over, rect)\n```\n\nHmm, message and monster stats overlapping positions: monster stats at x=10, message at x=330 — could overlap if stats long. \"Monster: Dark Knight HP 23 ATK 23\" ~ 34 chars * ~7px = 240px at small font 14? small_font size 14 → char ~8px → 270px. OK under 330. Message truncated to 90 chars might overflow 800 width from x=330: 470px / ~7px ≈ 67 chars. Truncate to 60. Fine.\n\nAlso show controls hint? Maybe in HUD line: \"WASD move\". Put at right side. Keep minimal.\n\nmain.py:\n\n```python\nimport pygame\n\nimport game as game_mod\nimport ui\n\ndef main():\n    pygame.init()\n    screen = pygame.display.set_mode((ui.WIN_W, ui.WIN_H))\n    pygame.display.set_caption(\"Tower of the Sorcerer - Roguelike\")\n    clock = pygame.time.Clock()\n    font = pygame.font.SysFont(None, 22)\n    small_font = pygame.font.SysFont(None, 16)\n    g = game_mod.Game()\n    key_dirs = {\n        pygame.K_w: (-1, 0), pygame.K_a: (0, -1),\n        pygame.K_s: (1, 0), pygame.K_d: (0, 1),\n        pygame.K_UP: (-1, 0), pygame.K_LEFT: (0, -1),\n        pygame.K_DOWN: (1, 0), pygame.K_RIGHT: (0, 1),\n    }\n    running = True\n    while running:\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                running = False\n            elif event.type == pygame.KEYDOWN:\n                if event.key == pygame.K_ESCAPE:\n                    running = False\n                elif event.key == pygame.K_r and g.game_over:\n                    g.reset()\n                elif event.key in key_dirs:\n                    g.try_move(*key_dirs[event.key])\n        ui.draw(screen, font, small_font, g)\n        pygame.display.flip()\n        clock.tick(60)\n    pygame.quit()\n\nif __name__ == \"__main__\":\n    main()\n```\n\nCheck mapgen door: (n-3, n-3) = (77,77). n-3 = 77. Good, odd → maze cell. Start (1,1). Good.\n\nMaze: cells odd 1..77 (since condition 1 <= nr < n-1 → nr <= 78; odd nr ≤ 77). Good.\n\n_add_loops bounds: r,c in 1..n-2 = 1..78. grid[r][c-1], grid[r][c+1] indices 0..79 fine. For vertical: r±1 fine.\n\nOne issue: in _add_loops, condition `0 < c < n - 1` redundant since c≥1. Remove.\n\nMonster placement excludes tiles near start (Manhattan > 2) so player isn't instantly killed. Also exclude door neighbors? Monster on tile adjacent to door is fine.\n\nChest count: `10 + level` chests. floors slice indices: m_count then chest slice. Ensure m_count + chest count < len(floors). m_count = min(25 + level*5, len(floors)//3); chests = floors[m_count : m_count + 10 + level]. len(floors) ~ 3000, fine.\n\nMonster HP: random 5-15 + level*4. At floor 1: 5-19 damage per fight, player 100 HP, ~25 monsters. Reasonable. Chests heal 20-30.\n\nCombat per spec: subtract monster's HP from player's HP. Done. Monster stats displayed: name, HP, ATK (= its HP since damage = HP). I'll display \"HP\" and \"DMG\" where DMG = hp (damage dealt to player). Show both to be clear.\n\nAlso maybe display adjacent monster stats automatically? \"encountered monster stats\" — bumping = encountering. Last encountered persists in HUD. Good.\n\nAlso when player dies, game_over overlay.\n\nLevel transition: player_pos set to new start. HP persists. Maybe give small bonus? Not needed.\n\nPotential issue: `self.level[\"monsters\"].remove(m)` — m is dict; remove works by identity/equality; dicts compare by value but same object identity found first. Fine.\n\nencountered stores dict reference; after removal from list, dict still referenced — fine.\n\nui.draw loops 6400 rects per frame — pygame can handle at 60fps? 6400 fill rects per frame is okay-ish but might be slow-ish on weak machines; acceptable. Could optimize by drawing to a surface once per level. Let me optimize: cache background surface per level (walls/floor), redraw entities each frame. Implement in ui: keep module-level cache keyed by id(level)? Simpler: Game holds `bg_surface` built at load_floor? That mixes rendering into game. Alternative: ui.draw builds cache: store `_cache = {\"level\": None, \"surf\": None}`; if cache[\"level\"] is not lvl: build surf with walls/floor; then blit surf, then draw door/entities/player. Door is static per level too — include door in cached surf. Entities dynamic. Good.\n\n```python\n_cache = {\"level\": None, \"surf\": None}\n\ndef _build_base(lvl):\n    surf = pygame.Surface((GRID * TILE, GRID * TILE))\n    grid = lvl[\"grid\"]\n    for r in range(GRID):\n        for c in range(GRID):\n            surf.fill(COLORS[grid[r][c]], (c * TILE, r * TILE, TILE, TILE))\n    dr, dc = lvl[\"door\"]\n    surf.fill(DOOR_COLOR, (dc * TILE, dr * TILE, TILE, TILE))\n    return surf\n\ndef draw(...):\n    global _cache\n    if _cache[\"level\"] is not game.level:\n        _cache[\"level\"] = game.level\n        _cache[\"surf\"] = _build_base(game.level)\n    screen.blit(_cache[\"surf\"], (0, 0))\n    ...\n```\n\nGood.\n\nHUD layout: height 70. Row1 y=GRID*TILE+8: HP bar (10, +8, 200, 18), text \"HP x/y\" at x=220, \"Floor N\" at x=420, hint \"WASD: move\" at x=560? Row2 y=+36: monster stats at x=10, message at x=340 truncated.\n\nFont sizes: font 22, small 15.\n\nLet me also handle window caption.\n\nCheck imports: game.py imports mapgen; ui imports pygame, mapgen; main imports pygame, game, ui. All in same dir. No directory paths. Good.\n\nDouble-check maze generation correctness: grid initialized all WALL. stack=[(1,1)], grid[1][1]=FLOOR. Loop: from current cell, neighbors at distance 2 that are WALL and within 1..n-2 → unvisited cells (since visited cells are FLOOR). Carve wall between and the cell. Standard. All odd-odd cells get visited → connected. Corridors (even-odd / odd-even walls carved) are FLOOR connecting cells. Even-even cells remain WALL. All FLOOR tiles connected. \n\nDoor (77,77) odd-odd → FLOOR guaranteed. Start (1,1) FLOOR. has_path BFS will succeed first try. The retry loop is defensive only.\n\nEdge: `_add_loops` may open wall adjacent to border? r,c in 1..78; wall at r=78? grid[78][c] with grid[77][c] and grid[79][c]: grid[79] is border WALL → condition fails. Fine.\n\nNow, \"encountered monster stats\" — also nice: when moving adjacent to monster show its stats? Keep bump-based. Also maybe show stats of monster at current tile before fighting? Bump resolves immediately. Fine.\n\nOne more consideration: the task says \"combat is resolved by subtracting the monster's HP from the player's HP\" — exactly implemented. Monster removed after combat (dies). Player HP could go negative → clamp 0, game over.\n\nRestart with R when dead. Also allow R anytime? Only when dead per code; fine.\n\nAlso add \"N\" for new game? Not needed.\n\nWrite files compactly with docstrings minimal. Ensure no placeholder functions.\n\nLet me also make sure `pygame.font.SysFont(None, 22)` works — yes, uses default font.\n\nPotential performance: entity loops each frame: monsters up to ~min(25+5L, 1000) — fine.\n\nTruncate message: `game.message[:70]`.\n\nHUD width 800. \"HP 100/100\" at 22px ≈ 110px from x=220 → ends 330. \"Floor 12\" at x=420 ≈ 90px → 510. Hint at x=560: \"WASD move  R: restart\" small font at row2 right? Put hint row1 at x=560 small font: \"WASD: Move\". OK.\n\nRow2: monster stats small font at (10, +40); message at (340, +40) truncated to 60 chars ≈ 60*7=420 → 760 OK.\n\nHUD height 70: rows at +8 (18px bar) and +40 (15px text) → fits.\n\nGame over overlay centered.\n\nAlso initial message includes controls.\n\nNow finalize code.\n\nmapgen.py final:\n\n```python\n\"\"\"Map generation for the Tower of the Sorcerer roguelike.\n\nGenerates an 80x80 maze-based floor. The recursive-backtracker maze\nguarantees every floor tile is reachable, so a valid path from the\nstart to the door always exists (verified with BFS as a safeguard).\n\"\"\"\n\nimport random\n\nGRID = 80\nWALL, FLOOR = 1, 0\n\nMONSTER_NAMES = [\n    \"Green Slime\", \"Red Slime\", \"Blue Bat\", \"Skeleton\",\n    \"Ghost\", \"Sorcerer\", \"Stone Golem\", \"Dark Knight\",\n]\n\n\ndef _carve_maze(grid):\n    n = GRID\n    stack = [(1, 1)]\n    grid[1][1] = FLOOR\n    while stack:\n        r, c = stack[-1]\n        options = []\n        for dr, dc in ((-2, 0), (2, 0), (0, -2), (0, 2)):\n            nr, nc = r + dr, c + dc\n            if 1 <= nr < n - 1 and 1 <= nc < n - 1 and grid[nr][nc] == WALL:\n                options.append((nr, nc, r + dr // 2, c + dc // 2))\n        if options:\n            nr, nc, wr, wc = random.choice(options)\n            grid[wr][wc] = FLOOR\n            grid[nr][nc] = FLOOR\n            stack.append((nr, nc))\n        else:\n            stack.pop()\n\n\ndef _add_loops(grid, count):\n    \"\"\"Knock out extra walls so the floor has loops, not just one path.\"\"\"\n    n = GRID\n    for _ in range(count):\n        r = random.randint(1, n - 2)\n        c = random.randint(1, n - 2)\n        if grid[r][c] != WALL:\n            continue\n        if grid[r][c - 1] == FLOOR and grid[r][c + 1] == FLOOR:\n            grid[r][c] = FLOOR\n        elif grid[r - 1][c] == FLOOR and grid[r + 1][c] == FLOOR:\n            grid[r][c] = FLOOR\n\n\ndef has_path(grid, start, door):\n    n = GRID\n    seen = {start}\n    queue = [start]\n    while queue:\n        r, c = queue.pop()\n        if (r, c) == door:\n            return True\n        for nr, nc in ((r + 1, c), (r - 1, c), (r, c + 1), (r, c - 1)):\n            if 0 <= nr < n and 0 <= nc < n and grid[nr][nc] == FLOOR and (nr, nc) not in seen:\n                seen.add((nr, nc))\n                queue.append((nr, nc))\n    return False\n\n\ndef generate_level(floor_num):\n    n = GRID\n    start, door = (1, 1), (n - 3, n - 3)\n    grid = None\n    for _ in range(50):\n        grid = [[WALL] * n for _ in range(n)]\n        _carve_maze(grid)\n        _add_loops(grid, 400)\n        if has_path(grid, start, door):\n            break\n    floors = [\n        (r, c) for r in range(n) for c in range(n)\n        if grid[r][c] == FLOOR and (r, c) not in (start, door)\n        and abs(r - start[0]) + abs(c - start[1]) > 2\n    ]\n    random.shuffle(floors)\n    m_count = min(25 + floor_num * 5, len(floors) // 3)\n    monsters = [\n        {\"pos\": [r, c], \"name\": random.choice(MONSTER_NAMES),\n         \"hp\": random.randint(5, 15) + floor_num * 4}\n        for r, c in floors[:m_count]\n    ]\n    chests = [\n        {\"pos\": [r, c]}\n        for r, c in floors[m_count:m_count + 10 + floor_num]\n    ]\n    return {\"grid\": grid, \"start\": start, \"door\": door,\n            \"monsters\": monsters, \"chests\": chests}\n```\n\ngame.py final:\n\n```python\n\"\"\"Core game state and rules for the Tower of the Sorcerer roguelike.\"\"\"\n\nimport random\n\nimport mapgen\n\nGRID = mapgen.GRID\nWALL, FLOOR = mapgen.WALL, mapgen.FLOOR\nMAX_HP = 100\n\n\nclass Game:\n    \"\"\"Holds the player, current floor, and resolves movement/combat.\"\"\"\n\n    def __init__(self):\n        self.reset()\n\n    def reset(self):\n        self.floor_num = 1\n        self.max_hp = MAX_HP\n        self.hp = MAX_HP\n        self.game_over = False\n        self.encountered = None\n        self.message = \"W/A/S/D to move. Reach the green door!\"\n        self._load_floor()\n\n    def _load_floor(self):\n        self.level = mapgen.generate_level(self.floor_num)\n        self.player_pos = list(self.level[\"start\"])\n        self.encountered = None\n\n    def try_move(self, dr, dc):\n        if self.game_over:\n            return\n        n = GRID\n        r = self.player_pos[0] + dr\n        c = self.player_pos[1] + dc\n        if not (0 <= r < n and 0 <= c < n) or self.level[\"grid\"][r][c] == WALL:\n            return\n        self.player_pos = [r, c]\n        self._resolve_tile(r, c)\n\n    def _resolve_tile(self, r, c):\n        if (r, c) == self.level[\"door\"]:\n            self.floor_num += 1\n            self.message = \"You descend to floor %d.\" % self.floor_num\n            self._load_floor()\n            return\n        monster = self._monster_at(r, c)\n        if monster is not None:\n            damage = monster[\"hp\"]\n            self.hp -= damage\n            self.encountered = monster\n            self.message = \"Fought %s: took %d damage.\" % (monster[\"name\"], damage)\n            self.level[\"monsters\"].remove(monster)\n            if self.hp <= 0:\n                self.hp = 0\n                self.game_over = True\n                self.message = \"You died on floor %d! Press R to restart.\" % self.floor_num\n            return\n        chest = self._chest_at(r, c)\n        if chest is not"
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "70c53497f69480dcd0ac89aae0aea0d8cea4a1756c68dcd85bff418f23ef18dc",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "70c53497f69480dcd0ac89aae0aea0d8cea4a1756c68dcd85bff418f23ef18dc",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "450ac8920d082cf425ae2ce1c290a58afc650b32dfe83f446b4756273696babf",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "8e302bf24268ee7780dda8d748d2e8780a6eb92660192c3e3288204c15e06054",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "450ac8920d082cf425ae2ce1c290a58afc650b32dfe83f446b4756273696babf",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b6f469fed50a4a254722737c21f1f8cec6e77954679d195ede335ec6b24380e1",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "450ac8920d082cf425ae2ce1c290a58afc650b32dfe83f446b4756273696babf",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "6b88069882ee9cbf7ef43bad49de1db175ef9ed3afd9245a4733a9d37e0d65aa",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "450ac8920d082cf425ae2ce1c290a58afc650b32dfe83f446b4756273696babf",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "6b88069882ee9cbf7ef43bad49de1db175ef9ed3afd9245a4733a9d37e0d65aa",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "f1e3f2e58dc34e5eafa8bdade352ecebe0c72c3dcad3f600bbcd28d201e17031",
+        "source_digests": {
+          "main.py": "e6394a87ce63c8591ce0be0726207646ca952c83a767a51422e59c5211cee119"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "source/pure-contract\\content_lab\\startup_probe.py",
+          "data/runs/mpst_contract/r04/10_Tiny Rouge/artifact\\main.py",
+          "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-_pm5qxkn\\probe.json"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "profile": "tkinter_event_loop",
+        "observation": {
+          "event_loop_observed": true,
+          "mapped_window": true,
+          "widget_count": 2,
+          "callback_errors": []
+        },
+        "id": "d0f7e39ca7da7de330f3bba834f292f22e4783415d434093989d252d0307bf36"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "f1e3f2e58dc34e5eafa8bdade352ecebe0c72c3dcad3f600bbcd28d201e17031",
+        "source_digests": {
+          "main.py": "e6394a87ce63c8591ce0be0726207646ca952c83a767a51422e59c5211cee119"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "source/pure-contract\\content_lab\\startup_probe.py",
+          "data/runs/mpst_contract/r04/10_Tiny Rouge/artifact\\main.py",
+          "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-21m4f_ax\\probe.json"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "profile": "tkinter_event_loop",
+        "observation": {
+          "event_loop_observed": true,
+          "mapped_window": true,
+          "widget_count": 2,
+          "callback_errors": []
+        },
+        "id": "c511172bfa6e1c3ebcaf1988e66ada245ea409d8db39d17d29987a78b2ae557e"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "f1e3f2e58dc34e5eafa8bdade352ecebe0c72c3dcad3f600bbcd28d201e17031",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "69fc4eb10ab1f174059d510e4b3ad524fb315af7afe5233370d6b729b2d79bb8",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "f1e3f2e58dc34e5eafa8bdade352ecebe0c72c3dcad3f600bbcd28d201e17031",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "a6e84518fd1c4ed528320bf85e6278ccd2eac4aa1c41e1679d3881f215c6f85b",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "f1e3f2e58dc34e5eafa8bdade352ecebe0c72c3dcad3f600bbcd28d201e17031",
+        "source_digests": {
+          "main.py": "e6394a87ce63c8591ce0be0726207646ca952c83a767a51422e59c5211cee119"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "source/pure-contract\\content_lab\\startup_probe.py",
+          "data/runs/mpst_contract/r04/10_Tiny Rouge/artifact\\main.py",
+          "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-8vy64f__\\probe.json"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "profile": "tkinter_event_loop",
+        "observation": {
+          "event_loop_observed": true,
+          "mapped_window": true,
+          "widget_count": 2,
+          "callback_errors": []
+        },
+        "id": "bc9c24bb7b7faaae485b8bc1effec2253b9a316b2d20ac1068ac03422fa26477"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": true,
+      "evidence_id": "bc9c24bb7b7faaae485b8bc1effec2253b9a316b2d20ac1068ac03422fa26477"
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "task_index": 22,
+  "project_name": "MonopolyGo",
+  "framework": "ChatDev",
+  "workflow_status": "completed",
+  "workspace": "data/runs/baseline/r08/22_MonopolyGo/artifact",
+  "source_file_count": 5,
+  "python_compile": {
+    "checked": 5,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-04T15:09:15+0800",
+  "judge": {
+    "verdict": "fail",
+    "functional_completeness": 0.15,
+    "executable_likelihood": 0.1,
+    "implemented_requirements": [
+      {
+        "requirement": "Dice rolling",
+        "fulfilled": true,
+        "evidence": "dice.py defines a Dice class with a roll() method that returns two die values and a doubles flag."
+      },
+      {
+        "requirement": "Board layout with spaces (GO, properties, Chance, Tax, Jail, Free Parking, Go To Jail)",
+        "fulfilled": true,
+        "evidence": "board.py defines a 24‑space Board with all required space types and their on_land hooks."
+      },
+      {
+        "requirement": "Player model tracking money, position, owned properties, jail status",
+        "fulfilled": true,
+        "evidence": "player.py defines a Player class with fields for money, position, properties, in_jail, etc."
+      },
+      {
+        "requirement": "Moving a player around the board based on dice rolls",
+        "fulfilled": false,
+        "evidence": "Game class in game.py has no method that updates a player’s position or calls Board.get()."
+      },
+      {
+        "requirement": "Buying unowned properties when landed on",
+        "fulfilled": false,
+        "evidence": "Board spaces call Game.handle_property, but Game does not implement handle_property."
+      },
+      {
+        "requirement": "Collecting rent from owned properties",
+        "fulfilled": false,
+        "evidence": "No Game logic for rent calculation or payment is present."
+      },
+      {
+        "requirement": "Chance cards with effects",
+        "fulfilled": false,
+        "evidence": "chance.py only contains a stub play(self) function; there is no ChanceDeck class or card definitions."
+      },
+      {
+        "requirement": "Jail mechanics (going to jail, paying fine, trying to roll doubles)",
+        "fulfilled": false,
+        "evidence": "Game constants for jail are defined, but no methods implement sending a player to jail, handling turns in jail, or paying the fine."
+      },
+      {
+        "requirement": "Free Parking pot collection",
+        "fulfilled": false,
+        "evidence": "Board defines FreeParkingSpace.on_land calling Game.collect_free_parking_pot, but Game lacks that method."
+      },
+      {
+        "requirement": "Display of game information and player prompts",
+        "fulfilled": false,
+        "evidence": "No code in any file prints board state, player balances, or asks for input beyond storing an input_fn in Game."
+      },
+      {
+        "requirement": "Overall game loop handling rounds, turn order, and win condition",
+        "fulfilled": false,
+        "evidence": "Game.__init__ sets up state, but there is no run loop; chance.py’s play() references undefined attributes (self.game_over, self.players, etc.)."
+      }
+    ],
+    "critical_issues": [
+      "Game class lacks essential methods: move_player, handle_property, handle_chance, charge, collect_free_parking_pot, send_to_jail, take_turn, check_game_over, declare_winner, etc.",
+      "ChanceDeck class is imported but not defined anywhere, making the import fail.",
+      "No implementation of the main game loop; the only loop present (in chance.py) references undefined state.",
+      "No user interaction code to prompt for buying decisions or jail actions.",
+      "Rent collection, property purchase, and monopoly rent doubling logic are missing.",
+      "The code will raise ImportError for missing chance module components and AttributeError for missing Game methods."
+    ],
+    "summary": "The repository provides a solid foundation for the board layout, dice, and player model, but the core game mechanics required by the benchmark are absent. Critical gameplay functions, chance card handling, jail rules, rent/payment logic, and any interactive loop are missing, making the implementation incomplete and unlikely to run as a playable Monopoly Go! game.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": false
+}

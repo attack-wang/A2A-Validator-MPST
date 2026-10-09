@@ -1,0 +1,88 @@
+{
+  "task_index": 15,
+  "project_name": "SnakeGame",
+  "framework": "ChatDev",
+  "workflow_status": "completed",
+  "workspace": "data/runs/mpst/r04/15_SnakeGame/artifact",
+  "source_file_count": 6,
+  "python_compile": {
+    "checked": 6,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-02T21:45:50+0800",
+  "judge": {
+    "verdict": "fail",
+    "functional_completeness": 0.9,
+    "executable_likelihood": 0.2,
+    "implemented_requirements": [
+      {
+        "requirement": "Player controls snake using directional inputs",
+        "fulfilled": true,
+        "evidence": "game.py → handle_keydown maps arrow/WASD keys to settings.UP/DOWN/LEFT/RIGHT and calls snake.turn()"
+      },
+      {
+        "requirement": "Snake moves around the board and can eat food items",
+        "fulfilled": true,
+        "evidence": "game.py → step() calls snake.move() and checks if snake.head == food.position"
+      },
+      {
+        "requirement": "Snake grows each time it eats",
+        "fulfilled": true,
+        "evidence": "game.py → when head equals food.position, score is increased and snake.grow() is called"
+      },
+      {
+        "requirement": "Game ends on self‑collision",
+        "fulfilled": true,
+        "evidence": "game.py → step() sets game_over = True if snake.hits_self() returns True"
+      },
+      {
+        "requirement": "Game ends on boundary collision",
+        "fulfilled": true,
+        "evidence": "game.py → step() sets game_over = True if snake.hits_boundary() returns True"
+      },
+      {
+        "requirement": "Board updates after each move",
+        "fulfilled": true,
+        "evidence": "game.py → render() is called every loop iteration and draws board, snake, food, HUD"
+      },
+      {
+        "requirement": "Current score is shown based on food eaten",
+        "fulfilled": true,
+        "evidence": "game.py → render_hud() draws the score; score is incremented when food is eaten"
+      },
+      {
+        "requirement": "Multiple difficulty levels are offered",
+        "fulfilled": true,
+        "evidence": "settings.py defines DIFFICULTY_LEVELS; menu.py lists them; Game uses the chosen level to set move_interval"
+      },
+      {
+        "requirement": "Food is placed randomly avoiding the snake's body",
+        "fulfilled": true,
+        "evidence": "food.py → randomize_position() builds free_cells excluding snake_body"
+      },
+      {
+        "requirement": "Game‑over overlay with final score",
+        "fulfilled": true,
+        "evidence": "game.py → render_game_over() displays \"GAME OVER\" and final score"
+      }
+    ],
+    "critical_issues": [
+      "main.py lacks required imports (pygame, sys, Menu, Game) and therefore cannot be executed.",
+      "Menu.show() never returns a difficulty name because the return value from handle_events() is ignored; the loop runs indefinitely.",
+      "Game.__init__ expects only a difficulty name, but main.py calls Game(choice, high_score), causing a TypeError.",
+      "Game.run() contains an infinite while True loop that never returns; main.py expects a result value to decide whether to quit.",
+      "menu.py's render() method ends with an ellipsis (\"...\") indicating incomplete drawing code.",
+      "main.py calls sys.exit(0) but sys is not imported."
+    ],
+    "summary": "The codebase implements the core Snake mechanics—directional control, movement, food consumption, growth, collision detection, scoring, and difficulty selection—using pygame. All major gameplay requirements are present and demonstrable in the source. However, the surrounding application scaffolding is broken: the entry point (main.py) is missing imports and passes incorrect arguments, the menu never returns a selection, and the main game loop never exits. These integration defects make the project unlikely to run as provided, resulting in a failing verdict despite high functional completeness.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": false
+}

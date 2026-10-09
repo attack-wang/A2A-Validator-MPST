@@ -1,0 +1,40 @@
+{
+  "task_index": 25,
+  "project_name": "FlappyBird",
+  "description": "Build a Flappy Bird clone. The player presses a key to 'flap' and keep the bird from falling. Randomly generated vertical gaps in 'pipes' appear. Each successful pass increases the score. The game ends if the bird collides with a pipe or the ground. Gradually adjust difficulty by varying gap sizes and pipe speeds.",
+  "framework": "ChatDev1.0",
+  "model": "glm-5.3-flash:cloud",
+  "content_contracts_enabled": true,
+  "session_type_enabled": true,
+  "status": "failed",
+  "error": "exit code 1",
+  "failure_type": "content_contract",
+  "project_path": "data/runs/mpst_contract/r09/25_FlappyBird/artifact",
+  "elapsed_seconds": 223.438,
+  "contract_rejections": 3,
+  "violated_rules": [
+    "output_truncated",
+    "output_truncated",
+    "current_startup_passed"
+  ],
+  "last_diagnostic": "es = []\n        self.score = 0\n        self.speed = 3.0\n        self.gap_h = 170\n        self.spawn_timer = 0\n        self.spawn_interval = 90\n        self.over = False\n        self.started = False\n\n    def adjust_difficulty(self):\n        self.speed = min(3.0 + self.score * 0.06, 7.0)\n        self.gap_h = max(170 - self.score * 2.5, 110)\n        self.spawn_interval = max(90 - self.score, 55)\n\n    def spawn_pipe(self):\n        jitter = random.randint(-15, 15)\n        self.pipes.append(Pipe(max(100, self.gap_h + jitter)))\n\n    def update(self):\n        if not self.started:\n            return\n        self.adjust_difficulty()\n        self.bird.update()\n        self.spawn_timer += 1\n        if self.spawn_timer >= self.spawn_interval:\n            self.spawn_timer = 0\n            self.spawn_pipe()\n        for p in self.pipes:\n            p.x -= self.speed\n            if not p.passed and p.x + PIPE_W < self.bird.x - self.bird.r:\n                p.passed = True\n                self.score += 1\n        self.pipes = [p for p in self.pipes if p.x + PIPE_W > 0]\n        if self.bird.y + self.bird.r >= GROUND_Y:\n            self.bird.y = GROUND_Y - self.bird.r\n            self.over = True\n        if self.bird.y - self.bird.r < 0:\n            self.bird.y = self.bird.r\n            self.bird.vel = 0\n        for p in self.pipes:\n            top, bottom = p.rects()\n            if self.bird.rect().colliderect(top) or self.bird.rect().colliderect(bottom):\n                self.over = True\n                break\n\n    def draw(self):\n        self.screen.fill(SKY)\n        pygame.draw.rect(self.screen, SAND, (0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y))\n        for p in self.pipes:\n            top, bottom = p.rects()\n            pygame.draw.rect(self.screen, GREEN, top)\n            pygame.draw.rect(self.screen, GREEN, bottom)\n            pygame.draw.rect(self.screen, DARK, top, 3)\n            pygame.draw.rect(self.screen, DARK, bottom, 3)\n        b = self.bird\n        pygame.draw.circle(self.screen, YELLOW, (b.x, int(b.y)), b.r)\n        pygame.draw.circle(self.screen, ORANGE, (b.x + 10, int(b.y)), 4)\n        pygame.draw.circle(self.screen, BLACK, (b.x + 5, int(b.y) - 4), 2)\n        s = self.font.render(str(self.score), True, WHITE)\n        self.screen.blit(s, (WIDTH // 2 - s.get_width() // 2, 20))\n        if not self.started:\n            m = self.small.render(\"Press SPACE to flap and start\", True, BLACK)\n            self.screen.blit(m, (WIDTH // 2 - m.get_width() // 2, HEIGHT // 2 - 60))\n        if self.over:\n            go = self.font.render(\"Game Over!\", True, RED)\n            rs = self.small.render(\"Press R to restart, ESC to quit\", True, BLACK)\n            self.screen.blit(go, (WIDTH // 2 - go.get_width() // 2, HEIGHT // 2 - 50))\n            self.screen.blit(rs, (WIDTH // 2 - rs.get_width() // 2, HEIGHT // 2 - 10))\n        pygame.display.flip()\n\n    def run(self, clock):\n        while True:\n            clock.tick(60)\n            for e in pygame.event.get():\n                if e.type == pygame.QUIT:\n                    pygame.quit()\n                    sys.exit()\n                if e.type == pygame.KEYDOWN:\n                    if e.key in (pygame.K_SPACE, pygame.K_UP) and not self.over:\n                        self.started = True\n                        self.bird.flap()\n                    elif e.key == pygame.K_r and self.over:\n                        self.reset()\n                    elif e.key == pygame.K_ESCAPE:\n                        pygame.quit()\n                        sys.exit()\n            if not self.over:\n                self.update()\n            self.draw()\n```\n\nrequirements.txt\n```python\npygame>=2.0\n```\n\ndir: data/runs/mpst_contract/r09/25_FlappyBird/artifact\n**[Software Info]**:\n\n \n\n💰**cost**=unknown\n\n🔨**version_updates**=-1\n\n📃**num_code_files**=2\n\n🏞**num_png_files**=0\n\n📚**num_doc_files**=5\n\n📃**code_lines**=145\n\n📋**env_lines**=-1\n\n📒**manual_lines**=-1\n\n🗣**num_utterances**=14\n\n🤔**num_self_reflections**=0\n\n❓**num_prompt_tokens**=11957\n\n❗**num_completion_tokens**=33619\n\n🌟**num_total_tokens**=45576\n\nTraceback (most recent call last):\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\run.py\", line 136, in <module>\n    chat_chain.execute_chain()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\chat_chain.py\", line 183, in execute_chain\n    content_guard.finish()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\content_guard.py\", line 134, in finish\n    raise ContentViolation(\"chatdev.stage_exit.v1\", findings)\ncontent_lab.chatdev_contracts.ContentViolation: {\"contract\": \"chatdev.stage_exit.v1\", \"violations\": [{\"layer\": \"A\", \"rule\": \"current_startup_passed\", \"path\": \"$\", \"message\": \"Current startup did not pass.\", \"repair\": \"Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior.\"}]}\n",
+  "artifact_pass": false,
+  "evaluation_error": null,
+  "result_path": "data/runs/mpst_contract/r09/25_FlappyBird\\run_result.json",
+  "model_decision_enabled": false,
+  "model_decision_calls": 0,
+  "terminal_contract": "chatdev.stage_exit.v1",
+  "terminal_rules": [
+    "current_startup_passed"
+  ],
+  "audit_checks": 20,
+  "delivered_phases": [
+    "DemandAnalysis",
+    "LanguageChoose",
+    "Coding",
+    "CodeReviewComment",
+    "CodeReviewModification",
+    "TestErrorSummary",
+    "TestModification"
+  ]
+}

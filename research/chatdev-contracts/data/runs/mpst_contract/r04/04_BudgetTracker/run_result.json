@@ -1,0 +1,38 @@
+{
+  "task_index": 4,
+  "project_name": "BudgetTracker",
+  "description": "Create a budget tracker to monitor expenses and savings",
+  "framework": "ChatDev1.0",
+  "model": "glm-5.3-flash:cloud",
+  "content_contracts_enabled": true,
+  "session_type_enabled": true,
+  "status": "failed",
+  "error": "exit code 1",
+  "failure_type": "content_contract",
+  "project_path": "data/runs/mpst_contract/r04/04_BudgetTracker/artifact",
+  "elapsed_seconds": 63.235,
+  "contract_rejections": 1,
+  "violated_rules": [
+    "current_startup_passed"
+  ],
+  "last_diagnostic": "er.transactions)} transaction(s) from {DEFAULT_FILE}.\")\n    actions = {\n        \"1\": lambda: add_transaction(tracker, \"expense\"),\n        \"2\": lambda: add_transaction(tracker, \"income\"),\n        \"3\": lambda: list_transactions(tracker),\n        \"4\": lambda: show_summary(tracker),\n        \"5\": lambda: delete_transaction(tracker),\n        \"6\": lambda: save_now(tracker),\n    }\n    while True:\n        print(MENU)\n        choice = input(\"Choose an option: \").strip()\n        if choice == \"0\":\n            save(tracker)\n            print(f\"Saved to {DEFAULT_FILE}. Goodbye!\")\n            break\n        action = actions.get(choice)\n        if action:\n            action()\n        else:\n            print(\"Invalid option, try again.\")\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nbudget.py\n```python\nfrom dataclasses import dataclass, field, asdict\nfrom datetime import datetime\nfrom typing import List\nimport uuid\n\n\n@dataclass\nclass Transaction:\n    kind: str  # \"expense\" or \"income\"\n    category: str\n    amount: float\n    note: str = \"\"\n    date: str = field(default_factory=lambda: datetime.now().strftime(\"%Y-%m-%d\"))\n    tid: str = field(default_factory=lambda: uuid.uuid4().hex[:8])\n\n    def to_dict(self):\n        return asdict(self)\n\n    @classmethod\n    def from_dict(cls, d):\n        return cls(\n            d[\"kind\"],\n            d[\"category\"],\n            float(d[\"amount\"]),\n            d.get(\"note\", \"\"),\n            d.get(\"date\", datetime.now().strftime(\"%Y-%m-%d\")),\n            d.get(\"tid\", uuid.uuid4().hex[:8]),\n        )\n\n\nclass BudgetTracker:\n    def __init__(self):\n        self.transactions: List[Transaction] = []\n\n    def add(self, kind, category, amount, note=\"\"):\n        if kind not in (\"expense\", \"income\"):\n            raise ValueError(\"kind must be 'expense' or 'income'\")\n        if amount <= 0:\n            raise ValueError(\"amount must be positive\")\n        t = Transaction(kind, category.strip() or \"Uncategorized\", round(amount, 2), note)\n        self.transactions.append(t)\n        return t\n\n    def remove(self, tid):\n        for i, t in enumerate(self.transactions):\n            if t.tid == tid:\n                return self.transactions.pop(i)\n        return None\n\n    def total(self, kind):\n        return round(sum(t.amount for t in self.transactions if t.kind == kind), 2)\n\n    def balance(self):\n        return round(self.total(\"income\") - self.total(\"expense\"), 2)\n\n    def by_category(self, kind):\n        out = {}\n        for t in self.transactions:\n            if t.kind == kind:\n                out[t.category] = round(out.get(t.category, 0.0) + t.amount, 2)\n        return dict(sorted(out.items(), key=lambda kv: -kv[1]))\n\n    def savings_rate(self):\n        inc = self.total(\"income\")\n        if inc <= 0:\n            return 0.0\n        return round((inc - self.total(\"expense\")) / inc * 100, 1)\n```\n\nstorage.py\n```python\nimport json\nimport os\nfrom budget import BudgetTracker, Transaction\n\nDEFAULT_FILE = \"budget_data.json\"\n\n\ndef load(path=DEFAULT_FILE):\n    tracker = BudgetTracker()\n    if os.path.exists(path):\n        try:\n            with open(path, \"r\", encoding=\"utf-8\") as f:\n                data = json.load(f)\n            if isinstance(data, dict):\n                tracker.transactions = [Transaction.from_dict(d) for d in data.get(\"transactions\", [])]\n        except (json.JSONDecodeError, OSError, KeyError, TypeError, ValueError, AttributeError):\n            tracker = BudgetTracker()\n    return tracker\n\n\ndef save(tracker, path=DEFAULT_FILE):\n    with open(path, \"w\", encoding=\"utf-8\") as f:\n        json.dump({\"transactions\": [t.to_dict() for t in tracker.transactions]}, f, indent=2)\n```\n\ndir: data/runs/mpst_contract/r04/04_BudgetTracker/artifact\n**[Software Info]**:\n\n \n\n💰**cost**=unknown\n\n🔨**version_updates**=-1\n\n📃**num_code_files**=3\n\n🏞**num_png_files**=0\n\n📚**num_doc_files**=5\n\n📃**code_lines**=157\n\n📋**env_lines**=-1\n\n📒**manual_lines**=-1\n\n🗣**num_utterances**=14\n\n🤔**num_self_reflections**=0\n\n❓**num_prompt_tokens**=10598\n\n❗**num_completion_tokens**=8523\n\n🌟**num_total_tokens**=19121\n\nTraceback (most recent call last):\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\run.py\", line 136, in <module>\n    chat_chain.execute_chain()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\chat_chain.py\", line 183, in execute_chain\n    content_guard.finish()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\content_guard.py\", line 134, in finish\n    raise ContentViolation(\"chatdev.stage_exit.v1\", findings)\ncontent_lab.chatdev_contracts.ContentViolation: {\"contract\": \"chatdev.stage_exit.v1\", \"violations\": [{\"layer\": \"A\", \"rule\": \"current_startup_passed\", \"path\": \"$\", \"message\": \"Current startup did not pass.\", \"repair\": \"Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior.\"}]}\n",
+  "artifact_pass": true,
+  "evaluation_error": null,
+  "result_path": "data/runs/mpst_contract/r04/04_BudgetTracker\\run_result.json",
+  "model_decision_enabled": false,
+  "model_decision_calls": 0,
+  "terminal_contract": "chatdev.stage_exit.v1",
+  "terminal_rules": [
+    "current_startup_passed"
+  ],
+  "audit_checks": 18,
+  "delivered_phases": [
+    "DemandAnalysis",
+    "LanguageChoose",
+    "Coding",
+    "CodeReviewComment",
+    "CodeReviewModification",
+    "TestErrorSummary",
+    "TestModification"
+  ]
+}

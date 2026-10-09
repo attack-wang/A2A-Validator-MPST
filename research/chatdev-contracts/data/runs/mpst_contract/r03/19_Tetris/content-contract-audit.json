@@ -1,0 +1,314 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " [modality]\".\n\nSince this is my turn to respond, I should express my opinion on the product modality. As the CPO, I would recommend Application since it's a game that requires real-time interactivity, keyboard input handling, and visual rendering - Python with pygame is well-suited for this.\n\nI should give my opinion and invite the other party's thoughts, or if I'm confident, I could propose and wait for agreement. The typical ChatDev flow is that both agents express opinions and then agree. Since I'm responding first, I should state my recommendation and ask for the other's opinion.\n\nLet me write a response that discusses the product modality only, recommending Application for the Tetris game.As the Chief Product Officer, I've reviewed the customer's request for a Tetris game. Let me share my analysis on the most suitable product modality:\n\n**Requirements Analysis:**\n- Real-time interactive gameplay (falling tetrominoes, player movement/rotation)\n- Continuous visual updates (board refresh after each move/drop)\n- Keyboard input handling\n- Dynamic scoring and game state management\n- Progressive difficulty (increasing drop speed)\n\n**Modality Evaluation:**\n- **Image/Document/PowerPoint/Excel/PDF/Mind Map**: These are static or presentation-oriented formats — completely unsuitable for an interactive game.\n- **Dashboard**: Designed for real-time information display, not for interactive gameplay with user input.\n- **Website**: Could technically work via HTML/JavaScript, but may have limitations with keyboard responsiveness and game loop performance in some environments.\n- **Application**: A Python-based application (e.g., using pygame or tkinter) is ideal — it natively supports real-time game loops, keyboard event handling, graphical rendering of the board and tetrominoes, and smooth animation for falling pieces and line-clearing effects.\n\n**My Recommendation:** Given that Tetris demands real-time interactivity, responsive controls, and continuous rendering, the **Application** modality is the clear best fit. It fully satisfies all the customer's functional requirements and ensures a polished, playable game experience.\n\nWhat are your thoughts on this? Do you agree that Application is the right choice?"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\nimport tkinter as tk\nimport random\n\nCELL = 26\nCOLS, ROWS = 10, 20\nPANEL = 150\n\nSHAPES = {\n    'I': [[1, 1, 1, 1]],\n    'O': [[1, 1], [1, 1]],\n    'T': [[0, 1, 0], [1, 1, 1]],\n    'S': [[0, 1, 1], [1, 1, 0]],\n    'Z': [[1, 1, 0], [0, 1, 1]],\n    'J': [[1, 0, 0], [1, 1, 1]],\n    'L': [[0, 0, 1], [1, 1, 1]],\n}\nCOLORS = {'I': '#00e5ff', 'O': '#ffd500', 'T': '#a64dff', 'S': '#3ddc55',\n          'Z': '#ff3b3b', 'J': '#3b6bff', 'L': '#ff9a3b'}\n\n\nclass Tetris:\n    def __init__(self, root):\n        self.root = root\n        root.title('Tetris')\n        self.canvas = tk.Canvas(root, width=COLS * CELL + PANEL, height=ROWS * CELL,\n                                bg='#101018', highlightthickness=0)\n        self.canvas.pack()\n        root.bind('<Left>', lambda e: self.move(-1))\n        root.bind('<Right>', lambda e: self.move(1))\n        root.bind('<Down>', lambda e: self.soft_drop())\n        root.bind('<Up>', lambda e: self.rotate())\n        root.bind('<space>', lambda e: self.hard_drop())\n        for k in ('p', 'P'):\n            root.bind('<%s>' % k, lambda e: self.toggle_pause())\n        for k in ('r', 'R'):\n            root.bind('<%s>' % k, lambda e: self.reset())\n        self.reset()\n\n    def reset(self):\n        job = getattr(self, 'job', None)\n        if job:\n            self.root.after_cancel(job)\n        self.grid = [[None] * COLS for _ in range(ROWS)]\n        self.score = 0\n        self.lines = 0\n        self.level = 1\n        self.over = False\n        self.paused = False\n        self.next_key = random.choice(list(SHAPES))\n        self.spawn()\n        self.delay = self.speed()\n        self.draw()\n        self.job = self.root.after(self.delay, self.loop)\n\n    def speed(self):\n        return max(90, 600 - (self.level - 1) * 55)\n\n    def spawn(self):\n        self.key = self.next_key\n        self.next_key = random.choice(list(SHAPES))\n        self.piece = [row[:] for row in SHAPES[self.key]]\n        self.px = (COLS - len(self.piece[0])) // 2\n        self.py = 0\n        if self.collide(self.piece, self.px, self.py):\n            self.over = True\n            self.draw()\n\n    def collide(self, m, x, y):\n        for cy, row in enumerate(m):\n            for cx, v in enumerate(row):\n                if v:\n                    bx, by = x + cx, y + cy\n                    if bx < 0 or bx >= COLS or by >= ROWS:\n                        return True\n                    if by >= 0 and self.grid[by][bx]:\n                        return True\n        return False\n\n    def loop(self):\n        if self.over or self.paused:\n            return\n        self.tick()\n        if not self.over:\n            self.job = self.root.after(self.delay, self.loop)\n\n    def tick(self):\n        if self.collide(self.piece, self.px, self.py + 1):\n            self.lock()\n        else:\n            self.py += 1\n        self.draw()\n\n    def lock(self):\n        for cy, row in enumerate(self.piece):\n            for cx, v in enumerate(row):\n                if v and self.py + cy >= 0:\n                    self.grid[self.py + cy][self.px + cx] = self.key\n        self.clear_lines()\n        self.spawn()\n\n    def clear_lines(self):\n        full = [r for r in self.grid if all(r)]\n        if full:\n            n = len(full)\n            for r in full:\n                self.grid.remove(r)\n            for _ in range(n):\n                self.grid.insert(0, [None] * COLS)\n            self.lines += n\n            self.score += [0, 100, 300, 500, 800][n] * self.level\n            new_level = self.lines // 10 + 1\n            if new_level > self.level:\n                self.level = new_level\n                self.delay = self.speed()\n\n    def move(self, dx):\n        if self.over or self.paused:\n            return\n        if not self.collide(self.piece, self.px + dx, self.py):\n            self.px += dx\n        self.draw()\n\n    def rotate(self):\n        if self.over or self.paused:\n            return\n        r = [list(row) for row in zip(*self.piece[::-1])]\n        for off in (0, -1, 1, -2, 2):\n            if not self.collide(r, self.px + off, self.py):\n                self.piece, self.px = r, self.px + off\n                break\n        self.draw()\n\n    def soft_drop(self):\n        if self.over or self.paused:\n            return\n        if not self.collide(self.piece, self.px, self.py + 1):\n            self.py += 1\n            self.score += 1\n        else:\n            self.lock()\n        self.draw()\n\n    def hard_drop(self):\n        if self.over or self.paused:\n            return\n        d = 0\n        while not self.collide(self.piece, self.px, self.py + 1):\n            self.py += 1\n            d += 1\n        self.score += d * 2\n        self.lock()\n        self.draw()\n\n    def toggle_pause(self):\n        if self.over:\n            return\n        self.paused = not self.paused\n        if not self.paused:\n            self.job = self.root.after(self.delay, self.loop)\n        self.draw()\n\n    def cell(self, x, y, color):\n        self.canvas.create_rectangle(x * CELL + 1, y * CELL + 1,\n                                     (x + 1) * CELL - 1, (y + 1) * CELL - 1,\n                                     fill=color, outline='#0a0a12')\n\n    def draw(self):\n        c = self.canvas\n        c.delete('all')\n        for y in range(ROWS):\n            for x in range(COLS):\n                k = self.grid[y][x]\n                self.cell(x, y, COLORS[k] if k else '#1c1c28')\n        for cy, row in enumerate(self.piece):\n            for cx, v in enumerate(row):\n                if v and self.py + cy >= 0:\n                    self.cell(self.px + cx, self.py + cy, COLORS[self.key])\n        cx0 = COLS * CELL + PANEL // 2\n        c.create_text(cx0, 24, text='TETRIS', fill='white', font=('Arial', 14, 'bold'))\n        c.create_text(cx0, 58, text='Score: %d' % self.score, fill='white', font=('Arial', 12))\n        c.create_text(cx0, 82, text='Lines: %d' % self.lines, fill='white', font=('Arial', 12))\n        c.create_text(cx0, 106, text='Level: %d' % self.level, fill='white', font=('Arial', 12))\n        c.create_text(cx0, 138, text='Next:', fill='white', font=('Arial', 11))\n        nm = SHAPES[self.next_key]\n        ox = COLS * CELL + (PANEL - len(nm[0]) * 16) // 2\n        oy = 156\n        for cy, row in enumerate(nm):\n            for cx, v in enumerate(row):\n                if v:\n                    c.create_rectangle(ox + cx * 16, oy + cy * 16,\n                                       ox + cx * 16 + 15, oy + cy * 16 + 15,\n                                       fill=COLORS[self.next_key], outline='')\n        c.create_text(cx0, ROWS * CELL - 56,\n                      text='<- -> move | ^ rotate\\nv soft | Space hard\\nP pause | R restart',\n                      fill='#9a9ab0', font=('Arial', 9), justify='center')\n        if self.paused:\n            c.create_text(COLS * CELL // 2, ROWS * CELL // 2, text='PAUSED',\n                          fill='yellow', font=('Arial', 22, 'bold'))\n        if self.over:\n            c.create_rectangle(0, ROWS * CELL // 2 - 40, COLS * CELL, ROWS * CELL // 2 + 40,\n                               fill='black', stipple='gray50')\n            c.create_text(COLS * CELL // 2, ROWS * CELL // 2 - 12, text='GAME OVER',\n                          fill='red', font=('Arial', 20, 'bold'))\n            c.create_text(COLS * CELL // 2, ROWS * CELL // 2 + 18, text='Press R to restart',\n                          fill='white', font=('Arial', 11))\n\n\nif __name__ == '__main__':\n    root = tk.Tk()\n    Tetris(root)\n    root.mainloop()\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "5e7fb8f66d767a17e9b82940f8ada6c243d37a0c5293d6e3af5861fbcaf9bcf9",
+      "result": "{\"verdict\": \"changes_requested\", \"issues\": [{\"file\": \"main.py\", \"line\": 159, \"message\": \"toggle_pause() schedules a new gravity loop on unpause without cancelling a still-pending after() job. If the player presses P twice quickly (pause then unpause within one tick interval), two loop callbacks are pending; each fires, ticks, and reschedules itself, creating permanent duplicate gravity chains (piece falls at 2x+ speed, worsening with every rapid pause/unpause). reset() only cancels the latest self.job id, so ghost loops also survive a restart. Fix: in toggle_pause(), call root.after_cancel(self.job) (guarding for a stale/already-fired id, which is a safe no-op) before scheduling on unpause, and cancel the pending job when pausing, so exactly one loop chain exists at all times.\"}]}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "5e7fb8f66d767a17e9b82940f8ada6c243d37a0c5293d6e3af5861fbcaf9bcf9",
+      "result": "main.py\n```python\nimport tkinter as tk\nimport random\n\nCELL = 26\nCOLS, ROWS = 10, 20\nPANEL = 150\n\nSHAPES = {\n    'I': [[1, 1, 1, 1]],\n    'O': [[1, 1], [1, 1]],\n    'T': [[0, 1, 0], [1, 1, 1]],\n    'S': [[0, 1, 1], [1, 1, 0]],\n    'Z': [[1, 1, 0], [0, 1, 1]],\n    'J': [[1, 0, 0], [1, 1, 1]],\n    'L': [[0, 0, 1], [1, 1, 1]],\n}\nCOLORS = {'I': '#00e5ff', 'O': '#ffd500', 'T': '#a64dff', 'S': '#3ddc55',\n          'Z': '#ff3b3b', 'J': '#3b6bff', 'L': '#ff9a3b'}\n\n\nclass Tetris:\n    def __init__(self, root):\n        self.root = root\n        self.job = None\n        root.title('Tetris')\n        self.canvas = tk.Canvas(root, width=COLS * CELL + PANEL, height=ROWS * CELL,\n                                bg='#101018', highlightthickness=0)\n        self.canvas.pack()\n        root.bind('<Left>', lambda e: self.move(-1))\n        root.bind('<Right>', lambda e: self.move(1))\n        root.bind('<Down>', lambda e: self.soft_drop())\n        root.bind('<Up>', lambda e: self.rotate())\n        root.bind('<space>', lambda e: self.hard_drop())\n        for k in ('p', 'P'):\n            root.bind('<%s>' % k, lambda e: self.toggle_pause())\n        for k in ('r', 'R'):\n            root.bind('<%s>' % k, lambda e: self.reset())\n        self.reset()\n\n    def cancel_job(self):\n        if self.job is not None:\n            try:\n                self.root.after_cancel(self.job)\n            except Exception:\n                pass\n            self.job = None\n\n    def schedule(self):\n        self.cancel_job()\n        self.job = self.root.after(self.delay, self.loop)\n\n    def reset(self):\n        self.cancel_job()\n        self.grid = [[None] * COLS for _ in range(ROWS)]\n        self.score = 0\n        self.lines = 0\n        self.level = 1\n        self.over = False\n        self.paused = False\n        self.next_key = random.choice(list(SHAPES))\n        self.spawn()\n        self.delay = self.speed()\n        self.draw()\n        if not self.over:\n            self.schedule()\n\n    def speed(self):\n        return max(90, 600 - (self.level - 1) * 55)\n\n    def spawn(self):\n        self.key = self.next_key\n        self.next_key = random.choice(list(SHAPES))\n        self.piece = [row[:] for row in SHAPES[self.key]]\n        self.px = (COLS - len(self.piece[0])) // 2\n        self.py = 0\n        if self.collide(self.piece, self.px, self.py):\n            self.over = True\n            self.draw()\n\n    def collide(self, m, x, y):\n        for cy, row in enumerate(m):\n            for cx, v in enumerate(row):\n                if v:\n                    bx, by = x + cx, y + cy\n                    if bx < 0 or bx >= COLS or by >= ROWS:\n                        return True\n                    if by >= 0 and self.grid[by][bx]:\n                        return True\n        return False\n\n    def loop(self):\n        self.job = None\n        if self.over or self.paused:\n            return\n        self.tick()\n        if not self.over and not self.paused:\n            self.schedule()\n\n    def tick(self):\n        if self.collide(self.piece, self.px, self.py + 1):\n            self.lock()\n        else:\n            self.py += 1\n        self.draw()\n\n    def lock(self):\n        for cy, row in enumerate(self.piece):\n            for cx, v in enumerate(row):\n                if v and self.py + cy >= 0:\n                    self.grid[self.py + cy][self.px + cx] = self.key\n        self.clear_lines()\n        self.spawn()\n\n    def clear_lines(self):\n        full = [r for r in self.grid if all(r)]\n        if full:\n            n = len(full)\n            for r in full:\n                self.grid.remove(r)\n            for _ in range(n):\n                self.grid.insert(0, [None] * COLS)\n            self.lines += n\n            self.score += [0, 100, 300, 500, 800][n] * self.level\n            new_level = self.lines // 10 + 1\n            if new_level > self.level:\n                self.level = new_level\n                self.delay = self.speed()\n\n    def move(self, dx):\n        if self.over or self.paused:\n            return\n        if not self.collide(self.piece, self.px + dx, self.py):\n            self.px += dx\n        self.draw()\n\n    def rotate(self):\n        if self.over or self.paused:\n            return\n        r = [list(row) for row in zip(*self.piece[::-1])]\n        for off in (0, -1, 1, -2, 2):\n            if not self.collide(r, self.px + off, self.py):\n                self.piece, self.px = r, self.px + off\n                break\n        self.draw()\n\n    def soft_drop(self):\n        if self.over or self.paused:\n            return\n        if not self.collide(self.piece, self.px, self.py + 1):\n            self.py += 1\n            self.score += 1\n        else:\n            self.lock()\n        self.draw()\n\n    def hard_drop(self):\n        if self.over or self.paused:\n            return\n        d = 0\n        while not self.collide(self.piece, self.px, self.py + 1):\n            self.py += 1\n            d += 1\n        self.score += d * 2\n        self.lock()\n        self.draw()\n\n    def toggle_pause(self):\n        if self.over:\n            return\n        if self.paused:\n            self.paused = False\n            self.schedule()\n        else:\n            self.paused = True\n            self.cancel_job()\n        self.draw()\n\n    def cell(self, x, y, color):\n        self.canvas.create_rectangle(x * CELL + 1, y * CELL + 1,\n                                     (x + 1) * CELL - 1, (y + 1) * CELL - 1,\n                                     fill=color, outline='#0a0a12')\n\n    def draw(self):\n        c = self.canvas\n        c.delete('all')\n        for y in range(ROWS):\n            for x in range(COLS):\n                k = self.grid[y][x]\n                self.cell(x, y, COLORS[k] if k else '#1c1c28')\n        for cy, row in enumerate(self.piece):\n            for cx, v in enumerate(row):\n                if v and self.py + cy >= 0:\n                    self.cell(self.px + cx, self.py + cy, COLORS[self.key])\n        cx0 = COLS * CELL + PANEL // 2\n        c.create_text(cx0, 24, text='TETRIS', fill='white', font=('Arial', 14, 'bold'))\n        c.create_text(cx0, 58, text='Score: %d' % self.score, fill='white', font=('Arial', 12))\n        c.create_text(cx0, 82, text='Lines: %d' % self.lines, fill='white', font=('Arial', 12))\n        c.create_text(cx0, 106, text='Level: %d' % self.level, fill='white', font=('Arial', 12))\n        c.create_text(cx0, 138, text='Next:', fill='white', font=('Arial', 11))\n        nm = SHAPES[self.next_key]\n        ox = COLS * CELL + (PANEL - len(nm[0]) * 16) // 2\n        oy = 156\n        for cy, row in enumerate(nm):\n            for cx, v in enumerate(row):\n                if v:\n                    c.create_rectangle(ox + cx * 16, oy + cy * 16,\n                                       ox + cx * 16 + 15, oy + cy * 16 + 15,\n                                       fill=COLORS[self.next_key], outline='')\n        c.create_text(cx0, ROWS * CELL - 56,\n                      text='<- -> move | ^ rotate\\nv soft | Space hard\\nP pause | R restart',\n                      fill='#9a9ab0', font=('Arial', 9), justify='center')\n        if self.paused:\n            c.create_text(COLS * CELL // 2, ROWS * CELL // 2, text='PAUSED',\n                          fill='yellow', font=('Arial', 22, 'bold'))\n        if self.over:\n            c.create_rectangle(0, ROWS * CELL // 2 - 40, COLS * CELL, ROWS * CELL // 2 + 40,\n                               fill='black', stipple='gray50')\n            c.create_text(COLS * CELL // 2, ROWS * CELL // 2 - 12, text='GAME OVER',\n                          fill='red', font=('Arial', 20, 'bold'))\n            c.create_text(COLS * CELL // 2, ROWS * CELL // 2 + 18, text='Press R to restart',\n                          fill='white', font=('Arial', 11))\n\n\nif __name__ == '__main__':\n    root = tk.Tk()\n    Tetris(root)\n    root.mainloop()\n```"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "85b679c926da77fc3df32a094c5f9407542da448dab04907a6c04f28b35c90a6",
+      "result": "{\"status\": \"passed\", \"test_run_id\": \"5b845684825836281561ffdf3e177a4bc147599a9518681098f281618c32c049\", \"summary\": \"Startup smoke test passed (exit code 0) for the Tkinter Tetris implementation in main.py. The event loop was observed, the window mapped successfully, one widget was created, and no callback errors occurred. The source implements all required features: all seven standard tetromino shapes (I, O, T, S, Z, J, L) with distinct colors, piece movement/rotation with wall-kick offsets, soft and hard drops, line clearing with level-based scoring (100/300/500/800 x level), increasing drop speed per level (600ms down to 90ms floor), game over when a new piece cannot spawn, next-piece preview, pause (P) and restart (R) controls. No source errors or missing dependencies were detected; the failure to launch category does not apply.\"}"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "85b679c926da77fc3df32a094c5f9407542da448dab04907a6c04f28b35c90a6",
+    "source_digests": {
+      "main.py": "3e3815d8c0e4a31af48b555b2032e442da7e3c41c1eac2e2e4eea1febe6513ab"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "source/pure-contract\\content_lab\\startup_probe.py",
+      "data/runs/mpst_contract/r03/19_Tetris/artifact\\main.py",
+      "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-0kdx2rpu\\probe.json"
+    ],
+    "timeout_seconds": 3,
+    "status": "passed",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "profile": "tkinter_event_loop",
+    "observation": {
+      "event_loop_observed": true,
+      "mapped_window": true,
+      "widget_count": 1,
+      "callback_errors": []
+    },
+    "id": "b7c1b25080854e4b5ba3687ccc7c4d273ad3d77ff9ca3c82c50db77d6c66d87a"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "9c1c2ae248154bae9bdb952adf15a05c4d4f813c0887d6bbc51533ca7322b564",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "54b7c70787f7c0acb9de6ed43de2cc9882912aa044af7666028d8fb07b1d76ca",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "63f0a94e9e4d6576b8ffc959a9fb2dc674a84154fe2e9fad1c7b10a99bc0dedb",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "output_truncated",
+          "path": "$",
+          "message": "Model output reached its generation/context limit.",
+          "repair": "Output budget was exhausted. Omit analysis, architecture descriptions and drafts. Return a smaller complete implementation satisfying the task, with explicit filenames and closed code fences."
+        }
+      ],
+      "candidate_sha256": "22abc7555e1f850e5605f9e4f05d7a455bf75712e6c28af2f522b01de3bc9764",
+      "termination_reasons": [
+        "length"
+      ],
+      "rejected_candidate": "main.py\n```python\nimport pygame\nimport random\n\nCELL = 30\nCOLS, ROWS = 10, 20\nSIDEBAR = 170\nWIDTH, HEIGHT = COLS * CELL + SIDEBAR, ROWS * CELL\n\nSHAPES = {\n    'I': [[1, 1, 1, 1]],\n    'O': [[1, 1], [1, 1]],\n    'T': [[0, 1, 0], [1, 1, 1]],\n    'S': [[0, 1, 1], [1, 1, 0]],\n    'Z': [[1, 1, 0], [0, 1, 1]],\n    'J': [[1, 0, 0], [1, 1, 1]],\n    'L': [[0, 0, 1], [1, 1, 1]],\n}\nCOLORS = {\n    'I': (0, 230, 230), 'O': (230, 220, 0), 'T': (170, 0, 230),\n    'S': (0, 220, 0), 'Z': (230, 0, 0), 'J': (30, 30, 230), 'L': (230, 150, 0),\n}\n\n\ndef rotate(shape):\n    return [list(row) for row in zip(*shape[::-1])]\n\n\ndef cells(shape, x, y):\n    return [(x + c, y + r) for r, row in enumerate(shape) for c, v in enumerate(row) if v]\n\n\nclass Piece:\n    def __init__(self):\n        self.kind = random.choice(list(SHAPES))\n        self.shape = [row[:] for row in SHAPES[self.kind]]\n        self.x = (COLS - len(self.shape[0])) // 2\n        self.y = 0\n\n\nclass Tetris:\n    def __init__(self):\n        self.reset()\n\n    def reset(self):\n        self.board = [[None] * COLS for _ in range(ROWS)]\n        self.score = 0\n        self.lines = 0\n        self.level = 1\n        self.piece = Piece()\n        self.next = Piece()\n        self.over = False\n        self.fall_time = 0.0\n\n    def drop_delay(self):\n        return max(0.08, 0.8 - (self.level - 1) * 0.07)\n\n    def valid(self, shape, x, y):\n        for cx, cy in cells(shape, x, y):\n            if cx < 0 or cx >= COLS or cy >= ROWS:\n                return False\n            if cy >= 0 and self.board[cy][cx] is not None:\n                return False\n        return True\n\n    def move(self, dx, dy=0):\n        if self.valid(self.piece.shape, self.piece.x + dx, self.piece.y + dy):\n            self.piece.x += dx\n            self.piece.y += dy\n            return True\n        return False\n\n    def rotate_piece(self):\n        rotated = rotate(self.piece.shape)\n        for kick in (0, -1, 1, -2, 2):\n            if self.valid(rotated, self.piece.x + kick, self.piece.y):\n                self.piece.shape = rotated\n                self.piece.x += kick\n                return True\n        return False\n\n    def soft_drop(self):\n        if self.move(0, 1):\n            self.score += 1\n            self.fall_time = 0.0\n\n    def hard_drop(self):\n        dist = 0\n        while self.move(0, 1):\n            dist += 1\n        self.score += dist * 2\n        self.lock()\n\n    def lock(self):\n        for cx, cy in cells(self.piece.shape, self.piece.x, self.piece.y):\n            if cy >= 0:\n                self.board[cy][cx] = self.piece.kind\n        self.clear_lines()\n        self.piece = self.next\n        self.next = Piece()\n        self.fall_time = 0.0\n        if not self.valid(self.piece.shape, self.piece.x, self.piece.y):\n            self.over = True\n\n    def clear_lines(self):\n        kept = [row for row in self.board if any(cell is None for cell in row)]\n        cleared = ROWS - len(kept)\n        if cleared:\n            self.board = [[None] * COLS for _ in range(cleared)] + kept\n            self.lines += cleared\n            self.level = self.lines // 10 + 1\n            self.score += {1: 100, 2: 300, 3: 500, 4: 800}.get(cleared, 800) * self.level\n\n    def update(self, dt):\n        if self.over:\n            return\n        self.fall_time += dt\n        if self.fall_time >= self.drop_delay():\n            self.fall_time = 0.0\n            if not self.move(0, 1):\n                self.lock()\n\n\ndef draw(screen, game, font, small):\n    screen.fill((15, 15, 25))\n    pygame.draw.rect(screen, (35, 35, 48), (0, 0, COLS * CELL, ROWS * CELL))\n    for y in range(ROWS):\n        for x in range(COLS):\n            rect = (x * CELL, y * CELL, CELL, CELL)\n            kind = game.board[y][x]\n            if kind:\n                pygame.draw.rect(screen, COLORS[kind], rect)\n            pygame.draw.rect(screen, (55, 55, 70), rect, 1)\n    for cx, cy in cells(game.piece.shape, game.piece.x, game.piece.y):\n        if cy >= 0:\n            rect = (cx * CELL, cy * CELL, CELL, CELL)\n            pygame.draw.rect(screen, COLORS[game.piece.kind], rect)\n            pygame.draw.rect(screen, (240, 240, 240), rect, 1)\n    sx = COLS * CELL + 12\n    for i, text in enumerate([\"Score: %d\" % game.score,\n                              \"Lines: %d\" % game.lines,\n                              \"Level: %d\" % game.level]):\n        screen.blit(font.render(text, True, (255, 255, 255)), (sx, 20 + i * 32))\n    screen.blit(font.render(\"Next:\", True, (255, 255, 255)), (sx, 130))\n    for cx, cy in cells(game.next.shape, 0, 0):\n        rect = (sx + 10 + cx * CELL, 165 + cy * CELL, CELL, CELL)\n        pygame.draw.rect(screen, COLORS[game.next.kind], rect)"
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "d6c19bc3c226538c2ff3d0c8264d460017fb06345c91a027e9d29c07c408ddf9",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "d6c19bc3c226538c2ff3d0c8264d460017fb06345c91a027e9d29c07c408ddf9",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "5e7fb8f66d767a17e9b82940f8ada6c243d37a0c5293d6e3af5861fbcaf9bcf9",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "ae215450be7d09242b8edab20cb0843e602bf344030ceb1f1098062504876b7d",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "5e7fb8f66d767a17e9b82940f8ada6c243d37a0c5293d6e3af5861fbcaf9bcf9",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "373b1a0e342b149a1747d22dbaa0163741cc10f1af8eea8bcd5ae0461180c954",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "5e7fb8f66d767a17e9b82940f8ada6c243d37a0c5293d6e3af5861fbcaf9bcf9",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "4c5d718f9e34e7391b94d532e2214e6d03cbbc8a5f286b4ad2b07c9ca624ec0a",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "5e7fb8f66d767a17e9b82940f8ada6c243d37a0c5293d6e3af5861fbcaf9bcf9",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "4c5d718f9e34e7391b94d532e2214e6d03cbbc8a5f286b4ad2b07c9ca624ec0a",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "85b679c926da77fc3df32a094c5f9407542da448dab04907a6c04f28b35c90a6",
+        "source_digests": {
+          "main.py": "3e3815d8c0e4a31af48b555b2032e442da7e3c41c1eac2e2e4eea1febe6513ab"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "source/pure-contract\\content_lab\\startup_probe.py",
+          "data/runs/mpst_contract/r03/19_Tetris/artifact\\main.py",
+          "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-vh66ulyo\\probe.json"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "profile": "tkinter_event_loop",
+        "observation": {
+          "event_loop_observed": true,
+          "mapped_window": true,
+          "widget_count": 1,
+          "callback_errors": []
+        },
+        "id": "ff7fb1dfdbe39cb931327634d4e43d6d3d4eb14369f1ffcd85feeda1811cb6f3"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "85b679c926da77fc3df32a094c5f9407542da448dab04907a6c04f28b35c90a6",
+        "source_digests": {
+          "main.py": "3e3815d8c0e4a31af48b555b2032e442da7e3c41c1eac2e2e4eea1febe6513ab"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "source/pure-contract\\content_lab\\startup_probe.py",
+          "data/runs/mpst_contract/r03/19_Tetris/artifact\\main.py",
+          "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-kxapheec\\probe.json"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "profile": "tkinter_event_loop",
+        "observation": {
+          "event_loop_observed": true,
+          "mapped_window": true,
+          "widget_count": 1,
+          "callback_errors": []
+        },
+        "id": "5b845684825836281561ffdf3e177a4bc147599a9518681098f281618c32c049"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "85b679c926da77fc3df32a094c5f9407542da448dab04907a6c04f28b35c90a6",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "95ea7ab0de39aebda0bc853ff3b4e54f90d393ccb7549ccbe8176135c321d89e",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "85b679c926da77fc3df32a094c5f9407542da448dab04907a6c04f28b35c90a6",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "80459e539ba2208628cc5fcea69f014d229daf58d6118d69d161991e9817ccc9",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "85b679c926da77fc3df32a094c5f9407542da448dab04907a6c04f28b35c90a6",
+        "source_digests": {
+          "main.py": "3e3815d8c0e4a31af48b555b2032e442da7e3c41c1eac2e2e4eea1febe6513ab"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "source/pure-contract\\content_lab\\startup_probe.py",
+          "data/runs/mpst_contract/r03/19_Tetris/artifact\\main.py",
+          "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-0kdx2rpu\\probe.json"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "profile": "tkinter_event_loop",
+        "observation": {
+          "event_loop_observed": true,
+          "mapped_window": true,
+          "widget_count": 1,
+          "callback_errors": []
+        },
+        "id": "b7c1b25080854e4b5ba3687ccc7c4d273ad3d77ff9ca3c82c50db77d6c66d87a"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": true,
+      "evidence_id": "b7c1b25080854e4b5ba3687ccc7c4d273ad3d77ff9ca3c82c50db77d6c66d87a"
+    }
+  ]
+}

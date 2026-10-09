@@ -1,0 +1,38 @@
+{
+  "task_index": 29,
+  "project_name": "Mastermind",
+  "description": "Implement the classic Mastermind code-breaking game. The computer selects a hidden sequence of colors (or digits), and the player attempts to guess it within a set number of tries. After each guess, show feedback regarding correct color and correct position. Distinguish between exact matches and partial color matches, and provide a clear win/lose outcome.",
+  "framework": "ChatDev1.0",
+  "model": "glm-5.3-flash:cloud",
+  "content_contracts_enabled": true,
+  "session_type_enabled": true,
+  "status": "failed",
+  "error": "exit code 1",
+  "failure_type": "content_contract",
+  "project_path": "data/runs/mpst_contract/r12/29_Mastermind/artifact",
+  "elapsed_seconds": 99.375,
+  "contract_rejections": 1,
+  "violated_rules": [
+    "current_startup_passed"
+  ],
+  "last_diagnostic": "```python\n\"\"\"Core logic for the classic Mastermind code-breaking game.\"\"\"\nimport random\nfrom collections import Counter\n\nCOLORS = \"RGBYOP\"\nCODE_LENGTH = 4\nMAX_TRIES = 10\n\n\ndef generate_code(length=CODE_LENGTH, colors=COLORS):\n    \"\"\"Return a random hidden code as a list of color letters (repeats allowed).\"\"\"\n    return [random.choice(colors) for _ in range(length)]\n\n\ndef evaluate_guess(code, guess):\n    \"\"\"Return (exact, partial) peg counts for a guess against the hidden code.\n\n    exact   = right color in the right position\n    partial = right color in the wrong position (counted via multiset overlap)\n    \"\"\"\n    exact = sum(c == g for c, g in zip(code, guess))\n    common = sum((Counter(code) & Counter(guess)).values())\n    return exact, common - exact\n\n\ndef parse_guess(text, length=CODE_LENGTH, colors=COLORS):\n    \"\"\"Validate raw input; return a list of color letters, or None if invalid.\"\"\"\n    text = text.strip().upper().replace(\" \", \"\").replace(\",\", \"\")\n    if len(text) == length and all(ch in colors for ch in text):\n        return list(text)\n    return None\n```\n\n**[Seminar Conclusion]**:\n\n main.py\n```python\n\"\"\"CLI entry point for the classic Mastermind code-breaking game.\"\"\"\nfrom mastermind import (\n    COLORS,\n    CODE_LENGTH,\n    MAX_TRIES,\n    generate_code,\n    evaluate_guess,\n    parse_guess,\n)\n\n\ndef read_guess(attempt):\n    \"\"\"Prompt until the player enters a valid guess; return it as a list of letters.\"\"\"\n    while True:\n        raw = input(f\"Try {attempt}/{MAX_TRIES} - enter {CODE_LENGTH} colors (e.g. RGBY): \")\n        guess = parse_guess(raw)\n        if guess:\n            return guess\n        print(f\"  Invalid input. Use exactly {CODE_LENGTH} letters from {COLORS}.\")\n\n\ndef play():\n    code = generate_code()\n    print(\"=\" * 44)\n    print(\"MASTERMIND\")\n    print(\"=\" * 44)\n    print(f\"Colors: {' '.join(COLORS)}  (repeats allowed)\")\n    print(f\"Crack the hidden {CODE_LENGTH}-color code within {MAX_TRIES} tries.\")\n    print(\"Feedback: Exact = right color & position,\")\n    print(\"          Partial = right color, wrong position.\")\n    print(\"-\" * 44)\n    for attempt in range(1, MAX_TRIES + 1):\n        guess = read_guess(attempt)\n        exact, partial = evaluate_guess(code, guess)\n        print(f\"  Guess: {' '.join(guess)} -> Exact: {exact} | Partial: {partial}\")\n        if exact == CODE_LENGTH:\n            print(f\"\\n*** YOU WIN! Cracked the code in {attempt} tries. ***\")\n            return\n    print(f\"\\n*** YOU LOSE! The hidden code was: {' '.join(code)} ***\")\n\n\nif __name__ == \"__main__\":\n    play()\n```\n\nmastermind.py\n```python\n\"\"\"Core logic for the classic Mastermind code-breaking game.\"\"\"\nimport random\nfrom collections import Counter\n\nCOLORS = \"RGBYOP\"\nCODE_LENGTH = 4\nMAX_TRIES = 10\n\n\ndef generate_code(length=CODE_LENGTH, colors=COLORS):\n    \"\"\"Return a random hidden code as a list of color letters (repeats allowed).\"\"\"\n    return [random.choice(colors) for _ in range(length)]\n\n\ndef evaluate_guess(code, guess):\n    \"\"\"Return (exact, partial) peg counts for a guess against the hidden code.\n\n    exact   = right color in the right position\n    partial = right color in the wrong position (counted via multiset overlap)\n    \"\"\"\n    exact = sum(c == g for c, g in zip(code, guess))\n    common = sum((Counter(code) & Counter(guess)).values())\n    return exact, common - exact\n\n\ndef parse_guess(text, length=CODE_LENGTH, colors=COLORS):\n    \"\"\"Validate raw input; return a list of color letters, or None if invalid.\"\"\"\n    text = text.strip().upper().replace(\" \", \"\").replace(\",\", \"\")\n    if len(text) == length and all(ch in colors for ch in text):\n        return list(text)\n    return None\n```\n\ndir: data/runs/mpst_contract/r12/29_Mastermind/artifact\n**[Software Info]**:\n\n \n\n💰**cost**=unknown\n\n🔨**version_updates**=-1\n\n📃**num_code_files**=2\n\n🏞**num_png_files**=0\n\n📚**num_doc_files**=5\n\n📃**code_lines**=60\n\n📋**env_lines**=-1\n\n📒**manual_lines**=-1\n\n🗣**num_utterances**=14\n\n🤔**num_self_reflections**=0\n\n❓**num_prompt_tokens**=8189\n\n❗**num_completion_tokens**=10860\n\n🌟**num_total_tokens**=19049\n\nTraceback (most recent call last):\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\run.py\", line 136, in <module>\n    chat_chain.execute_chain()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\chat_chain.py\", line 183, in execute_chain\n    content_guard.finish()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\content_guard.py\", line 134, in finish\n    raise ContentViolation(\"chatdev.stage_exit.v1\", findings)\ncontent_lab.chatdev_contracts.ContentViolation: {\"contract\": \"chatdev.stage_exit.v1\", \"violations\": [{\"layer\": \"A\", \"rule\": \"current_startup_passed\", \"path\": \"$\", \"message\": \"Current startup did not pass.\", \"repair\": \"Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior.\"}]}\n",
+  "artifact_pass": true,
+  "evaluation_error": null,
+  "result_path": "data/runs/mpst_contract/r12/29_Mastermind\\run_result.json",
+  "model_decision_enabled": false,
+  "model_decision_calls": 0,
+  "terminal_contract": "chatdev.stage_exit.v1",
+  "terminal_rules": [
+    "current_startup_passed"
+  ],
+  "audit_checks": 18,
+  "delivered_phases": [
+    "DemandAnalysis",
+    "LanguageChoose",
+    "Coding",
+    "CodeReviewComment",
+    "CodeReviewModification",
+    "TestErrorSummary",
+    "TestModification"
+  ]
+}

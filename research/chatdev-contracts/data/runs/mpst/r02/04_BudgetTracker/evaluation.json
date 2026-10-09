@@ -1,0 +1,66 @@
+{
+  "task_index": 4,
+  "project_name": "BudgetTracker",
+  "framework": "ChatDev",
+  "workflow_status": "completed",
+  "workspace": "data/runs/mpst/r02/04_BudgetTracker/artifact",
+  "source_file_count": 5,
+  "python_compile": {
+    "checked": 5,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-01T15:57:12+0800",
+  "judge": {
+    "verdict": "fail",
+    "functional_completeness": 0.45,
+    "executable_likelihood": 0.3,
+    "implemented_requirements": [
+      {
+        "requirement": "Add, edit, and delete transactions",
+        "fulfilled": true,
+        "evidence": "Database class implements add_transaction, update_transaction, delete_transaction. GUI provides entry form and buttons (_on_add_transaction, _on_update_transaction, _on_delete_transaction) and a Treeview to list transactions."
+      },
+      {
+        "requirement": "Persist data in SQLite",
+        "fulfilled": true,
+        "evidence": "database.py creates tables for transactions, budgets, and savings_goals and provides CRUD methods."
+      },
+      {
+        "requirement": "Display a summary bar with income, expenses, balance, and total savings",
+        "fulfilled": false,
+        "evidence": "gui.py defines label widgets for the summary bar but no code is shown that updates them (e.g., missing _refresh_all implementation)."
+      },
+      {
+        "requirement": "Set and view monthly budgets per category",
+        "fulfilled": false,
+        "evidence": "Database layer has set_budget, get_budgets, delete_budget, but the GUI methods _build_budgets_tab() and related UI are not present in the provided files."
+      },
+      {
+        "requirement": "Create and track savings goals",
+        "fulfilled": false,
+        "evidence": "Database layer implements add_savings_goal, get_savings_goals, add_to_savings, delete_savings_goal, and models define SavingsGoal, but the GUI tab for savings (_build_savings_tab) is missing."
+      },
+      {
+        "requirement": "Render charts for expenses and income",
+        "fulfilled": false,
+        "evidence": "charts.py contains low‑level drawing helpers, but gui.py never calls them; the method _build_charts_tab() is referenced but not defined."
+      }
+    ],
+    "critical_issues": [
+      "Methods _build_budgets_tab, _build_savings_tab, _build_charts_tab, and _refresh_all are referenced in BudgetTrackerApp.__init__ but are not defined in the provided code, causing AttributeError at runtime.",
+      "Summary labels are never updated because the logic that computes and sets their text is missing.",
+      "No event handlers for budget or savings UI are present, making those features inaccessible.",
+      "Potential mismatch between Transaction model field names (tx_type) and database column name (type) – GUI may pass 'type' but Transaction expects 'tx_type', leading to attribute errors when constructing Transaction objects."
+    ],
+    "summary": "The repository contains a solid data layer and a partially built GUI for transaction entry, but essential parts of the user interface (budget management, savings goals, chart display, and summary updates) are missing. Moreover, the main application references undefined methods, making the program unlikely to run without errors. Consequently, the budget tracker does not meet the core requirement of monitoring expenses and savings in a functional, executable form.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": false
+}

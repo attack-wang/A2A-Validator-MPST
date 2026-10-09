@@ -1,0 +1,297 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "As the Chief Product Officer, I've carefully analyzed the customer's requirements for this Mastermind code-breaking game project.\n\n**Understanding the core needs:**\n1. **Interactive gameplay** — the player must repeatedly input guesses against a hidden code\n2. **Dynamic feedback loop** — after each guess, the system must display exact matches (correct color + correct position) versus partial matches (correct color, wrong position)\n3. **Game state management** — tracking a limited number of attempts and delivering a clear win/lose outcome\n\n**My recommendation: Application (via Python)**\n\nHere's my reasoning:\n\n- Mastermind is fundamentally an **interactive game** requiring user input, game loops, and real-time feedback — only an Application can deliver this experience.\n- Python applications give us flexibility: we can build a polished GUI (e.g., tkinter/pygame) with visual color pegs, or a clean command-line interface, both fully supporting the guess-feedback cycle.\n- Other modalities fall short:\n  - **Image, Document, PDF, PowerPoint, Excel, Mind Map** — these are static presentation formats; they cannot support interactive gameplay at all.\n  - **Website** — technically feasible, but the customer's request maps directly onto our proven Application capability for visualized games.\n  - **Dashboard** — designed for real-time information display, not turn-based interactive games.\n\nThe Application modality lets us fully implement the hidden code generation, guess validation, the exact-vs-partial match feedback logic, attempt counting, and unambiguous win/lose messaging.\n\nDo you agree that we should proceed with **Application** as our product modality?"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\n\"\"\"Entry point for the Mastermind code-breaking game.\"\"\"\nfrom game import MastermindGame\n\n\ndef main():\n    print(\"=\" * 50)\n    print(\"            MASTERMIND\")\n    print(\"=\" * 50)\n    while True:\n        MastermindGame().play()\n        again = input(\"\\nPlay again? (y/n): \").strip().lower()\n        if again != \"y\":\n            print(\"Thanks for playing Mastermind. Goodbye!\")\n            break\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\ngame.py\n```python\n\"\"\"Mastermind game logic: secret generation, guess parsing, scoring, game loop.\"\"\"\nimport random\n\nCOLORS = (\"R\", \"G\", \"B\", \"Y\", \"O\", \"P\")\nCOLOR_NAMES = {\n    \"R\": \"Red\", \"G\": \"Green\", \"B\": \"Blue\",\n    \"Y\": \"Yellow\", \"O\": \"Orange\", \"P\": \"Purple\",\n}\nCODE_LENGTH = 4\nMAX_ATTEMPTS = 10\n\n\ndef generate_secret(length=CODE_LENGTH, colors=COLORS):\n    \"\"\"Random hidden code; repeats allowed.\"\"\"\n    return [random.choice(colors) for _ in range(length)]\n\n\ndef parse_guess(text, length=CODE_LENGTH, colors=COLORS):\n    \"\"\"Return a list of color letters, or None if the guess is invalid.\"\"\"\n    tokens = text.upper().replace(\",\", \" \").split()\n    if len(tokens) != length:\n        return None\n    guess = []\n    for token in tokens:\n        if len(token) == 1 and token in colors:\n            guess.append(token)\n        else:\n            return None\n    return guess\n\n\ndef score_guess(secret, guess):\n    \"\"\"Return (exact, partial): exact = right color & position,\n    partial = right color, wrong position (peg-count aware).\"\"\"\n    exact = sum(1 for s, g in zip(secret, guess) if s == g)\n    secret_left, guess_left = {}, {}\n    for s, g in zip(secret, guess):\n        if s != g:\n            secret_left[s] = secret_left.get(s, 0) + 1\n            guess_left[g] = guess_left.get(g, 0) + 1\n    partial = sum(min(secret_left[c], guess_left.get(c, 0)) for c in secret_left)\n    return exact, partial\n\n\nclass MastermindGame:\n    def __init__(self, attempts=MAX_ATTEMPTS, length=CODE_LENGTH, secret=None):\n        self.length = length\n        self.attempts = attempts\n        self.secret = secret if secret is not None else generate_secret(length)\n        self.history = []\n\n    def play(self):\n        print(f\"\\nGuess the hidden {self.length}-color code (repeats allowed).\")\n        print(\"Colors:\", \" \".join(f\"{c}({COLOR_NAMES[c]})\" for c in COLORS))\n        print(f\"You have {self.attempts} tries. Enter letters separated by spaces, e.g. 'R G B Y'.\\n\")\n        turn = 0\n        while turn < self.attempts:\n            raw = input(f\"Attempt {turn + 1}/{self.attempts} - your guess: \").strip()\n            guess = parse_guess(raw, self.length)\n            if guess is None:\n                print(f\"Invalid guess. Enter {self.length} letters from {' '.join(COLORS)}.\\n\")\n                continue\n            turn += 1\n            exact, partial = score_guess(self.secret, guess)\n            self.history.append((turn, guess, exact, partial))\n            print(f\"You guessed : {' '.join(guess)}\")\n            print(f\"Feedback    : exact (color+position) = {exact} | partial (color only) = {partial}\\n\")\n            if exact == self.length:\n                print(f\"YOU WIN! Cracked the code in {turn} attempt(s): {' '.join(self.secret)}\")\n                return True\n        print(f\"GAME OVER - you lost. The secret code was: {' '.join(self.secret)}\")\n        return False\n```\n\ntest_mastermind.py\n```python\n\"\"\"Unit tests for Mastermind logic (run: python -m unittest test_mastermind).\"\"\"\nimport unittest\nfrom game import parse_guess, score_guess, generate_secret\n\n\nclass TestMastermind(unittest.TestCase):\n    def test_all_exact(self):\n        self.assertEqual(score_guess([\"R\", \"G\", \"B\", \"Y\"], [\"R\", \"G\", \"B\", \"Y\"]), (4, 0))\n\n    def test_all_partial(self):\n        self.assertEqual(score_guess([\"R\", \"G\", \"B\", \"Y\"], [\"Y\", \"B\", \"G\", \"R\"]), (0, 4))\n\n    def test_mixed(self):\n        # secret R G B Y vs guess R B G G -> exact: R; partial: B, G\n        self.assertEqual(score_guess([\"R\", \"G\", \"B\", \"Y\"], [\"R\", \"B\", \"G\", \"G\"]), (1, 2))\n\n    def test_repeats(self):\n        # secret R R G Y vs guess R R R R -> exact 2, partial 0\n        self.assertEqual(score_guess([\"R\", \"R\", \"G\", \"Y\"], [\"R\", \"R\", \"R\", \"R\"]), (2, 0))\n\n    def test_parse_valid(self):\n        self.assertEqual(parse_guess(\"r,g b y\"), [\"R\", \"G\", \"B\", \"Y\"])\n\n    def test_parse_invalid(self):\n        self.assertIsNone(parse_guess(\"R G B\"))\n        self.assertIsNone(parse_guess(\"R G B X\"))\n\n    def test_generate_secret(self):\n        secret = generate_secret()\n        self.assertEqual(len(secret), 4)\n        for c in secret:\n            self.assertIn(c, (\"R\", \"G\", \"B\", \"Y\", \"O\", \"P\"))\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "dd3a80468f1a4b66a2598747735275f11092d8935f68444627dda6e941329f70",
+      "result": "{\"verdict\": \"finished\", \"issues\": []}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "dd3a80468f1a4b66a2598747735275f11092d8935f68444627dda6e941329f70",
+      "result": " Finished"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "dd3a80468f1a4b66a2598747735275f11092d8935f68444627dda6e941329f70",
+      "result": "{\"status\": \"failed\", \"test_run_id\": \"7f9bfa57420b66ba33046c1d1eb2c7610b15ca69a7624ea22af8690ffeb4e27d\", \"summary\": \"Startup smoke run of main.py exited with code 1 due to EOFError at the first input() prompt (game.py line 58). The program itself initialized correctly: the Mastermind banner, color legend, and attempt instructions all printed to stdout before the failure. The error is caused by the smoke harness invoking the interactive console game with no stdin attached (EOF when reading a line), i.e., an unsupported invocation for a game that requires interactive player input — not a source-code defect and not a missing dependency. No import errors or exceptions occurred prior to the input call; the failure point is the expected wait for user guess entry.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "dd3a80468f1a4b66a2598747735275f11092d8935f68444627dda6e941329f70",
+      "result": "main.py\n```python\n\"\"\"Entry point for the Mastermind code-breaking game.\"\"\"\nfrom game import MastermindGame, InputClosed, read_line\n\n\ndef main():\n    print(\"=\" * 50)\n    print(\"            MASTERMIND\")\n    print(\"=\" * 50)\n    try:\n        while True:\n            MastermindGame().play()\n            again = read_line(\"\\nPlay again? (y/n): \").strip().lower()\n            if again != \"y\":\n                print(\"Thanks for playing Mastermind. Goodbye!\")\n                break\n    except InputClosed:\n        # stdin reached EOF (closed pipe, Ctrl+D/Ctrl+Z): end the session cleanly.\n        print(\"\\nInput stream closed. Thanks for playing Mastermind. Goodbye!\")\n    except KeyboardInterrupt:\n        print(\"\\nInterrupted. Thanks for playing Mastermind. Goodbye!\")\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\ngame.py\n```python\n\"\"\"Mastermind game logic: secret generation, guess parsing, scoring, game loop.\"\"\"\nimport random\n\nCOLORS = (\"R\", \"G\", \"B\", \"Y\", \"O\", \"P\")\nCOLOR_NAMES = {\n    \"R\": \"Red\", \"G\": \"Green\", \"B\": \"Blue\",\n    \"Y\": \"Yellow\", \"O\": \"Orange\", \"P\": \"Purple\",\n}\nCODE_LENGTH = 4\nMAX_ATTEMPTS = 10\n\n\nclass InputClosed(Exception):\n    \"\"\"Raised when stdin is exhausted (EOF) or interrupted.\"\"\"\n\n\ndef read_line(prompt=\"\"):\n    \"\"\"Read a line from stdin, converting EOF/interrupt into InputClosed.\"\"\"\n    try:\n        return input(prompt)\n    except EOFError:\n        raise InputClosed() from None\n    except KeyboardInterrupt:\n        raise InputClosed() from None\n\n\ndef generate_secret(length=CODE_LENGTH, colors=COLORS):\n    \"\"\"Random hidden code; repeats allowed.\"\"\"\n    return [random.choice(colors) for _ in range(length)]\n\n\ndef parse_guess(text, length=CODE_LENGTH, colors=COLORS):\n    \"\"\"Return a list of color letters, or None if the guess is invalid.\"\"\"\n    tokens = text.upper().replace(\",\", \" \").split()\n    if len(tokens) != length:\n        return None\n    guess = []\n    for token in tokens:\n        if len(token) == 1 and token in colors:\n            guess.append(token)\n        else:\n            return None\n    return guess\n\n\ndef score_guess(secret, guess):\n    \"\"\"Return (exact, partial): exact = right color & position,\n    partial = right color, wrong position (peg-count aware).\"\"\"\n    exact = sum(1 for s, g in zip(secret, guess) if s == g)\n    secret_left, guess_left = {}, {}\n    for s, g in zip(secret, guess):\n        if s != g:\n            secret_left[s] = secret_left.get(s, 0) + 1\n            guess_left[g] = guess_left.get(g, 0) + 1\n    partial = sum(min(secret_left[c], guess_left.get(c, 0)) for c in secret_left)\n    return exact, partial\n\n\nclass MastermindGame:\n    def __init__(self, attempts=MAX_ATTEMPTS, length=CODE_LENGTH, secret=None):\n        self.length = length\n        self.attempts = attempts\n        self.secret = secret if secret is not None else generate_secret(length)\n        self.history = []\n\n    def play(self):\n        print(f\"\\nGuess the hidden {self.length}-color code (repeats allowed).\")\n        print(\"Colors:\", \" \".join(f\"{c}({COLOR_NAMES[c]})\" for c in COLORS))\n        print(f\"You have {self.attempts} tries. Enter letters separated by spaces, e.g. 'R G B Y'.\\n\")\n        turn = 0\n        try:\n            while turn < self.attempts:\n                raw = read_line(f\"Attempt {turn + 1}/{self.attempts} - your guess: \").strip()\n                guess = parse_guess(raw, self.length)\n                if guess is None:\n                    print(f\"Invalid guess. Enter {self.length} letters from {' '.join(COLORS)}.\\n\")\n                    continue\n                turn += 1\n                exact, partial = score_guess(self.secret, guess)\n                self.history.append((turn, guess, exact, partial))\n                print(f\"You guessed : {' '.join(guess)}\")\n                print(f\"Feedback    : exact (color+position) = {exact} | partial (color only) = {partial}\\n\")\n                if exact == self.length:\n                    print(f\"YOU WIN! Cracked the code in {turn} attempt(s): {' '.join(self.secret)}\")\n                    return True\n        except InputClosed:\n            print(f\"\\nInput stream closed. The secret code was: {' '.join(self.secret)}\")\n            raise\n        print(f\"GAME OVER - you lost. The secret code was: {' '.join(self.secret)}\")\n        return False\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "3d96dfface359b454532eb09ba7ccaad98b7e90c8170fe3444463bdd40ff3418",
+    "source_digests": {
+      "game.py": "e5bbc660524ec599e08c0ffafe47347b33b9450af11dfca9bbb624172cb12cf0",
+      "main.py": "5d8d1082c178a49d967e7be7280b98ac5126e75f87dec833002f9303cbf05d5d",
+      "test_mastermind.py": "2bc465e9df1d2cd2e4d32afdf686937f08030e811be7088d1fab3c63d78a8d4c"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "main.py"
+    ],
+    "timeout_seconds": 3,
+    "status": "passed",
+    "exit_code": 0,
+    "stdout": "==================================================\n            MASTERMIND\n==================================================\n\nGuess the hidden 4-color code (repeats allowed).\nColors: R(Red) G(Green) B(Blue) Y(Yellow) O(Orange) P(Purple)\nYou have 10 tries. Enter letters separated by spaces, e.g. 'R G B Y'.\n\nAttempt 1/10 - your guess: \nInput stream closed. The secret code was: R P G R\n\nInput stream closed. Thanks for playing Mastermind. Goodbye!\n",
+    "stderr": "",
+    "profile": "process_exit",
+    "id": "46676cefec4c939201a6efc8c0fd326f63367f14a5773f1ea2b79102ffffc061"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "c96726d98c3da9b7b82e8991322e4c7ba458534792513724fd0c9bd2d243d6c4",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "c96726d98c3da9b7b82e8991322e4c7ba458534792513724fd0c9bd2d243d6c4",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "e27fa5eb0cf1b5fe6e39b0128208c12c76d99e5530fded3fc388ff0d5204f25e",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b9ec79109264fd244bfde8e94283123028ca12a005e047c508eb489c3e01b928",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b9ec79109264fd244bfde8e94283123028ca12a005e047c508eb489c3e01b928",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "dd3a80468f1a4b66a2598747735275f11092d8935f68444627dda6e941329f70",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "9afcbf824cbf79cc575c1899797e46986ae45d12e15841d590c08f956fedec53",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "dd3a80468f1a4b66a2598747735275f11092d8935f68444627dda6e941329f70",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2e268ff0cef63580c64233b07e8fd026c494a543f47a7717f2245832819f24fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "dd3a80468f1a4b66a2598747735275f11092d8935f68444627dda6e941329f70",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "adcce22d5919d9d5075881946db6b278a97393ba806e6c84be6ea8c465d040a2",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "dd3a80468f1a4b66a2598747735275f11092d8935f68444627dda6e941329f70",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3713dc9d1785c47081ef36c7e993dd51ecf9c4913bd8e04500b2a4717fc9a3a0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "dd3a80468f1a4b66a2598747735275f11092d8935f68444627dda6e941329f70",
+        "source_digests": {
+          "game.py": "2b1f055550d71b6efce27dc647213178fa032ba81dc2e9b6d04f6224dff31e12",
+          "main.py": "4a73fd99f36ba6a086235c21c99390ca0756bed992a94644f088988d4cf8f0f2",
+          "test_mastermind.py": "2bc465e9df1d2cd2e4d32afdf686937f08030e811be7088d1fab3c63d78a8d4c"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "==================================================\n            MASTERMIND\n==================================================\n\nGuess the hidden 4-color code (repeats allowed).\nColors: R(Red) G(Green) B(Blue) Y(Yellow) O(Orange) P(Purple)\nYou have 10 tries. Enter letters separated by spaces, e.g. 'R G B Y'.\n\nAttempt 1/10 - your guess: ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r09/29_Mastermind/artifact\\main.py\", line 18, in <module>\n    main()\n  File \"data/runs/mpst_contract/r09/29_Mastermind/artifact\\main.py\", line 10, in main\n    MastermindGame().play()\n  File \"data/runs/mpst_contract/r09/29_Mastermind/artifact\\game.py\", line 58, in play\n    raw = input(f\"Attempt {turn + 1}/{self.attempts} - your guess: \").strip()\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "7f9bfa57420b66ba33046c1d1eb2c7610b15ca69a7624ea22af8690ffeb4e27d"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "dd3a80468f1a4b66a2598747735275f11092d8935f68444627dda6e941329f70",
+        "source_digests": {
+          "game.py": "2b1f055550d71b6efce27dc647213178fa032ba81dc2e9b6d04f6224dff31e12",
+          "main.py": "4a73fd99f36ba6a086235c21c99390ca0756bed992a94644f088988d4cf8f0f2",
+          "test_mastermind.py": "2bc465e9df1d2cd2e4d32afdf686937f08030e811be7088d1fab3c63d78a8d4c"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "==================================================\n            MASTERMIND\n==================================================\n\nGuess the hidden 4-color code (repeats allowed).\nColors: R(Red) G(Green) B(Blue) Y(Yellow) O(Orange) P(Purple)\nYou have 10 tries. Enter letters separated by spaces, e.g. 'R G B Y'.\n\nAttempt 1/10 - your guess: ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r09/29_Mastermind/artifact\\main.py\", line 18, in <module>\n    main()\n  File \"data/runs/mpst_contract/r09/29_Mastermind/artifact\\main.py\", line 10, in main\n    MastermindGame().play()\n  File \"data/runs/mpst_contract/r09/29_Mastermind/artifact\\game.py\", line 58, in play\n    raw = input(f\"Attempt {turn + 1}/{self.attempts} - your guess: \").strip()\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "7f9bfa57420b66ba33046c1d1eb2c7610b15ca69a7624ea22af8690ffeb4e27d"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "dd3a80468f1a4b66a2598747735275f11092d8935f68444627dda6e941329f70",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "75403d51c7bd3e6709902cf4c7424b68099091a01660378f83f2d94abcd2e52f",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "dd3a80468f1a4b66a2598747735275f11092d8935f68444627dda6e941329f70",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "725a6baba5d9b4ab384dee3695801273c68a05e6c6b154645f35081e6de3600b",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "dd3a80468f1a4b66a2598747735275f11092d8935f68444627dda6e941329f70",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "bee43f8fb4cb7f8f3cb4d86cf2e808a12e8e7bfa8215645a14436a82935dd8f5",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "dd3a80468f1a4b66a2598747735275f11092d8935f68444627dda6e941329f70",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "bee43f8fb4cb7f8f3cb4d86cf2e808a12e8e7bfa8215645a14436a82935dd8f5",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "3d96dfface359b454532eb09ba7ccaad98b7e90c8170fe3444463bdd40ff3418",
+        "source_digests": {
+          "game.py": "e5bbc660524ec599e08c0ffafe47347b33b9450af11dfca9bbb624172cb12cf0",
+          "main.py": "5d8d1082c178a49d967e7be7280b98ac5126e75f87dec833002f9303cbf05d5d",
+          "test_mastermind.py": "2bc465e9df1d2cd2e4d32afdf686937f08030e811be7088d1fab3c63d78a8d4c"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "==================================================\n            MASTERMIND\n==================================================\n\nGuess the hidden 4-color code (repeats allowed).\nColors: R(Red) G(Green) B(Blue) Y(Yellow) O(Orange) P(Purple)\nYou have 10 tries. Enter letters separated by spaces, e.g. 'R G B Y'.\n\nAttempt 1/10 - your guess: \nInput stream closed. The secret code was: R P G R\n\nInput stream closed. Thanks for playing Mastermind. Goodbye!\n",
+        "stderr": "",
+        "profile": "process_exit",
+        "id": "46676cefec4c939201a6efc8c0fd326f63367f14a5773f1ea2b79102ffffc061"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": true,
+      "evidence_id": "46676cefec4c939201a6efc8c0fd326f63367f14a5773f1ea2b79102ffffc061"
+    }
+  ]
+}

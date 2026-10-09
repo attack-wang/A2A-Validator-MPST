@@ -1,0 +1,75 @@
+{
+  "task_index": 4,
+  "project_name": "BudgetTracker",
+  "framework": "ChatDev",
+  "workflow_status": "failed",
+  "workspace": "data/runs/mpst/r04/04_BudgetTracker/artifact",
+  "source_file_count": 9,
+  "python_compile": {
+    "checked": 9,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-02T20:06:00+0800",
+  "judge": {
+    "verdict": "fail",
+    "functional_completeness": 0.85,
+    "executable_likelihood": 0.45,
+    "implemented_requirements": [
+      {
+        "requirement": "Record transactions (expenses, income, savings deposits, withdrawals)",
+        "fulfilled": true,
+        "evidence": "transaction.py defines Transaction with TYPE_EXPENSE, TYPE_INCOME, TYPE_SAVINGS, TYPE_SAVINGS_OUT and validates amount and type. BudgetTracker.add_transaction creates and stores Transaction objects."
+      },
+      {
+        "requirement": "Persist data between runs",
+        "fulfilled": true,
+        "evidence": "data_manager.py implements load() and save() using JSON files. BudgetTracker.load() and save() call these methods."
+      },
+      {
+        "requirement": "Define per‑category monthly budgets",
+        "fulfilled": true,
+        "evidence": "budget.py defines Budget with monthly_limit and methods spent(), remaining(), percent_used(). BudgetTracker.add_budget, remove_budget, get_budget manage Budget objects."
+      },
+      {
+        "requirement": "Track savings goals",
+        "fulfilled": true,
+        "evidence": "savings_goal.py defines SavingsGoal with deposit(), withdraw(), progress properties. BudgetTracker.add_goal, deposit_to_goal, withdraw_from_goal manage them."
+      },
+      {
+        "requirement": "Generate summary reports (monthly income/expense/savings, category breakdown, budget status, savings progress)",
+        "fulfilled": true,
+        "evidence": "reports.py implements ReportGenerator with monthly_summary(), category_breakdown(), budget_report(), savings_report(), recent_transactions()."
+      },
+      {
+        "requirement": "Visualise data with charts (pie, line, bar)",
+        "fulfilled": true,
+        "evidence": "visualizer.py creates expense_pie_chart(), savings_line_chart(), budget_bar_chart() using matplotlib when available, otherwise ASCII fallback."
+      },
+      {
+        "requirement": "Command‑line interface for user interaction",
+        "fulfilled": false,
+        "evidence": "cli.py defines BudgetTrackerCLI with run() that calls undefined methods (print_welcome, print_main_menu, handle_add_transaction, etc.). The file ends with an ellipsis placeholder, so the CLI cannot operate."
+      },
+      {
+        "requirement": "Application entry point",
+        "fulfilled": false,
+        "evidence": "main.py calls BudgetTrackerCLI().run(), which will raise AttributeError due to missing CLI methods, making the program crash on start."
+      }
+    ],
+    "critical_issues": [
+      "BudgetTrackerCLI references many methods (print_welcome, print_main_menu, handle_add_transaction, etc.) that are not defined in cli.py, causing runtime errors.",
+      "main.py launches the incomplete CLI, so executing the application will fail immediately.",
+      "The ellipsis (`...`) in cli.py is a placeholder, not functional code."
+    ],
+    "summary": "The repository contains a solid core implementation for tracking transactions, budgets, and savings goals, along with persistence, reporting, and charting utilities. However, the user‑facing command‑line interface is incomplete and the entry point depends on it, making the whole application non‑executable as provided. Because of these missing interactive components, the submission does not meet the benchmark's pass criteria.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": false
+}

@@ -1,0 +1,345 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "As the Chief Product Officer, I've reviewed the customer's task: developing a two-player Pong game with paddle controls, ball bouncing, scoring, a winning threshold, and ball resets.\n\nGiven the requirements — real-time interactive gameplay, keyboard input for two players, dynamic ball physics, and score tracking — the most suitable modality is clearly an **Application**. An application implemented via Python (e.g., with pygame) can fully realize the visualized, interactive game experience the customer expects. Other modalities like Website, Document, or PowerPoint cannot properly deliver real-time two-player interaction.\n\nDo you agree that we should build this as an Application?"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\nimport math\nimport random\nimport sys\n\nimport pygame\n\nWIDTH, HEIGHT = 800, 600\nFPS = 60\nPADDLE_W, PADDLE_H = 12, 90\nPADDLE_SPEED = 6\nBALL_SIZE = 14\nBALL_SPEED = 5\nMAX_VY = 8\nWINNING_SCORE = 5\n\nWHITE = (255, 255, 255)\nBLACK = (0, 0, 0)\n\n\nclass Paddle:\n    def __init__(self, x):\n        self.rect = pygame.Rect(x, (HEIGHT - PADDLE_H) // 2, PADDLE_W, PADDLE_H)\n        self.score = 0\n\n    def move(self, dy):\n        self.rect.y = max(0, min(HEIGHT - PADDLE_H, self.rect.y + dy))\n\n    def center(self):\n        self.rect.y = (HEIGHT - PADDLE_H) // 2\n\n    def draw(self, surface):\n        pygame.draw.rect(surface, WHITE, self.rect)\n\n\nclass Ball:\n    def __init__(self):\n        self.rect = pygame.Rect(0, 0, BALL_SIZE, BALL_SIZE)\n        self.reset()\n\n    def reset(self):\n        self.rect.center = (WIDTH // 2, HEIGHT // 2)\n        angle = random.uniform(-math.pi / 6, math.pi / 6)\n        direction = random.choice((-1, 1))\n        self.vx = direction * BALL_SPEED * math.cos(angle)\n        self.vy = BALL_SPEED * math.sin(angle)\n\n    def move(self):\n        self.rect.x += int(round(self.vx))\n        self.rect.y += int(round(self.vy))\n        if self.rect.top <= 0:\n            self.rect.top = 0\n            self.vy = abs(self.vy)\n        elif self.rect.bottom >= HEIGHT:\n            self.rect.bottom = HEIGHT\n            self.vy = -abs(self.vy)\n\n    def draw(self, surface):\n        pygame.draw.rect(surface, WHITE, self.rect)\n\n\nclass PongGame:\n    def __init__(self):\n        pygame.init()\n        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))\n        pygame.display.set_caption(\"Pong - P1: W/S   P2: Up/Down\")\n        self.clock = pygame.time.Clock()\n        self.big_font = pygame.font.SysFont(\"consolas\", 56)\n        self.mid_font = pygame.font.SysFont(\"consolas\", 30)\n        self.left = Paddle(30)\n        self.right = Paddle(WIDTH - 30 - PADDLE_W)\n        self.ball = Ball()\n        self.winner = None\n\n    def serve(self):\n        self.ball.reset()\n        self.left.center()\n        self.right.center()\n\n    def handle_events(self):\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                pygame.quit()\n                sys.exit()\n            if event.type == pygame.KEYDOWN:\n                if event.key == pygame.K_ESCAPE:\n                    pygame.quit()\n                    sys.exit()\n                if self.winner and event.key == pygame.K_r:\n                    self.left.score = 0\n                    self.right.score = 0\n                    self.winner = None\n                    self.serve()\n\n    def update(self):\n        keys = pygame.key.get_pressed()\n        if keys[pygame.K_w]:\n            self.left.move(-PADDLE_SPEED)\n        if keys[pygame.K_s]:\n            self.left.move(PADDLE_SPEED)\n        if keys[pygame.K_UP]:\n            self.right.move(-PADDLE_SPEED)\n        if keys[pygame.K_DOWN]:\n            self.right.move(PADDLE_SPEED)\n\n        self.ball.move()\n\n        if self.ball.vx < 0 and self.ball.rect.colliderect(self.left.rect):\n            self.ball.rect.left = self.left.rect.right\n            self.ball.vx = abs(self.ball.vx)\n            offset = (self.ball.rect.centery - self.left.rect.centery) / (PADDLE_H / 2)\n            self.ball.vy += offset * 2.5\n        elif self.ball.vx > 0 and self.ball.rect.colliderect(self.right.rect):\n            self.ball.rect.right = self.right.rect.left\n            self.ball.vx = -abs(self.ball.vx)\n            offset = (self.ball.rect.centery - self.right.rect.centery) / (PADDLE_H / 2)\n            self.ball.vy += offset * 2.5\n        self.ball.vy = max(-MAX_VY, min(MAX_VY, self.ball.vy))\n\n        if self.ball.rect.right <= 0:\n            self.right.score += 1\n            self.serve()\n        elif self.ball.rect.left >= WIDTH:\n            self.left.score += 1\n            self.serve()\n\n        if self.left.score >= WINNING_SCORE:\n            self.winner = \"Player 1\"\n        elif self.right.score >= WINNING_SCORE:\n            self.winner = \"Player 2\"\n\n    def draw(self):\n        self.screen.fill(BLACK)\n        pygame.draw.aaline(self.screen, WHITE, (WIDTH // 2, 0), (WIDTH // 2, HEIGHT))\n        self.left.draw(self.screen)\n        self.right.draw(self.screen)\n        self.ball.draw(self.screen)\n        self.screen.blit(self.big_font.render(str(self.left.score), True, WHITE),\n                         (WIDTH // 2 - 80, 20))\n        self.screen.blit(self.big_font.render(str(self.right.score), True, WHITE),\n                         (WIDTH // 2 + 45, 20))\n        if self.winner:\n            text = self.mid_font.render(\n                f\"{self.winner} wins!  R = restart, ESC = quit\", True, WHITE)\n            self.screen.blit(text, text.get_rect(center=(WIDTH // 2, HEIGHT // 2)))\n        pygame.display.flip()\n\n    def run(self):\n        while True:\n            self.clock.tick(FPS)\n            self.handle_events()\n            if self.winner is None:\n                self.update()\n            self.draw()\n\n\ndef main():\n    PongGame().run()\n\n\nif __name__ == \"__main__\":\n    main()\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "7e55d453a2c6f995df0a99179754fa699775c4c75860dd57e26ce0f52f64ae3c",
+      "result": "{\"verdict\": \"finished\", \"issues\": []}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "7e55d453a2c6f995df0a99179754fa699775c4c75860dd57e26ce0f52f64ae3c",
+      "result": "main.py\n```python\nimport math\nimport random\nimport sys\n\nimport pygame\n\nWIDTH, HEIGHT = 800, 600\nFPS = 60\nPADDLE_W, PADDLE_H = 12, 90\nPADDLE_SPEED = 6\nBALL_SIZE = 14\nBALL_SPEED = 5\nMAX_VY = 8\nWINNING_SCORE = 5\n\nWHITE = (255, 255, 255)\nBLACK = (0, 0, 0)\n\n\nclass Paddle:\n    def __init__(self, x):\n        self.rect = pygame.Rect(x, (HEIGHT - PADDLE_H) // 2, PADDLE_W, PADDLE_H)\n        self.score = 0\n\n    def move(self, dy):\n        self.rect.y = max(0, min(HEIGHT - PADDLE_H, self.rect.y + dy))\n\n    def center(self):\n        self.rect.y = (HEIGHT - PADDLE_H) // 2\n\n    def draw(self, surface):\n        pygame.draw.rect(surface, WHITE, self.rect)\n\n\nclass Ball:\n    def __init__(self):\n        self.rect = pygame.Rect(0, 0, BALL_SIZE, BALL_SIZE)\n        self.reset()\n\n    def reset(self):\n        self.rect.center = (WIDTH // 2, HEIGHT // 2)\n        angle = random.uniform(-math.pi / 6, math.pi / 6)\n        direction = random.choice((-1, 1))\n        self.vx = direction * BALL_SPEED * math.cos(angle)\n        self.vy = BALL_SPEED * math.sin(angle)\n\n    def move(self):\n        self.rect.x += int(round(self.vx))\n        self.rect.y += int(round(self.vy))\n        if self.rect.top <= 0:\n            self.rect.top = 0\n            self.vy = abs(self.vy)\n        elif self.rect.bottom >= HEIGHT:\n            self.rect.bottom = HEIGHT\n            self.vy = -abs(self.vy)\n\n    def draw(self, surface):\n        pygame.draw.rect(surface, WHITE, self.rect)\n\n\nclass PongGame:\n    def __init__(self):\n        pygame.init()\n        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))\n        pygame.display.set_caption(\"Pong - P1: W/S   P2: Up/Down\")\n        self.clock = pygame.time.Clock()\n        self.big_font = pygame.font.SysFont(\"consolas\", 56)\n        self.mid_font = pygame.font.SysFont(\"consolas\", 30)\n        self.left = Paddle(30)\n        self.right = Paddle(WIDTH - 30 - PADDLE_W)\n        self.ball = Ball()\n        self.winner = None\n\n    def serve(self):\n        self.ball.reset()\n        self.left.center()\n        self.right.center()\n\n    def handle_events(self):\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                pygame.quit()\n                sys.exit()\n            if event.type == pygame.KEYDOWN:\n                if event.key == pygame.K_ESCAPE:\n                    pygame.quit()\n                    sys.exit()\n                if self.winner and event.key == pygame.K_r:\n                    self.left.score = 0\n                    self.right.score = 0\n                    self.winner = None\n                    self.serve()\n\n    def update(self):\n        keys = pygame.key.get_pressed()\n        if keys[pygame.K_w]:\n            self.left.move(-PADDLE_SPEED)\n        if keys[pygame.K_s]:\n            self.left.move(PADDLE_SPEED)\n        if keys[pygame.K_UP]:\n            self.right.move(-PADDLE_SPEED)\n        if keys[pygame.K_DOWN]:\n            self.right.move(PADDLE_SPEED)\n\n        self.ball.move()\n\n        if self.ball.vx < 0 and self.ball.rect.colliderect(self.left.rect):\n            self.ball.rect.left = self.left.rect.right\n            self.ball.vx = abs(self.ball.vx)\n            offset = (self.ball.rect.centery - self.left.rect.centery) / (PADDLE_H / 2)\n            self.ball.vy += offset * 2.5\n        elif self.ball.vx > 0 and self.ball.rect.colliderect(self.right.rect):\n            self.ball.rect.right = self.right.rect.left\n            self.ball.vx = -abs(self.ball.vx)\n            offset = (self.ball.rect.centery - self.right.rect.centery) / (PADDLE_H / 2)\n            self.ball.vy += offset * 2.5\n        self.ball.vy = max(-MAX_VY, min(MAX_VY, self.ball.vy))\n\n        if self.ball.rect.right <= 0:\n            self.right.score += 1\n            self.serve()\n        elif self.ball.rect.left >= WIDTH:\n            self.left.score += 1\n            self.serve()\n\n        if self.left.score >= WINNING_SCORE:\n            self.winner = \"Player 1\"\n        elif self.right.score >= WINNING_SCORE:\n            self.winner = \"Player 2\"\n\n    def draw(self):\n        self.screen.fill(BLACK)\n        pygame.draw.aaline(self.screen, WHITE, (WIDTH // 2, 0), (WIDTH // 2, HEIGHT))\n        self.left.draw(self.screen)\n        self.right.draw(self.screen)\n        self.ball.draw(self.screen)\n        self.screen.blit(self.big_font.render(str(self.left.score), True, WHITE),\n                         (WIDTH // 2 - 80, 20))\n        self.screen.blit(self.big_font.render(str(self.right.score), True, WHITE),\n                         (WIDTH // 2 + 45, 20))\n        if self.winner:\n            text = self.mid_font.render(\n                f\"{self.winner} wins!  R = restart, ESC = quit\", True, WHITE)\n            self.screen.blit(text, text.get_rect(center=(WIDTH // 2, HEIGHT // 2)))\n        pygame.display.flip()\n\n    def run(self):\n        while True:\n            self.clock.tick(FPS)\n            self.handle_events()\n            if self.winner is None:\n                self.update()\n            self.draw()\n\n\ndef main():\n    PongGame().run()\n\n\nif __name__ == \"__main__\":\n    main()\n```"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "7e55d453a2c6f995df0a99179754fa699775c4c75860dd57e26ce0f52f64ae3c",
+      "result": "{\"status\": \"failed\", \"test_run_id\": \"18a148c907ce3029bf0df390280677de41e46c8d839e31d7eaa41768b2075e55\", \"summary\": \"Startup smoke failed with exit code 1 due to ModuleNotFoundError: No module named 'pygame' at main.py line 5. This is a missing dependency in the host environment, not a source code error; the game logic was not executed or verified. Install pygame (e.g., pip install pygame) in the host Python environment and rerun to validate the Pong implementation.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "7e55d453a2c6f995df0a99179754fa699775c4c75860dd57e26ce0f52f64ae3c",
+      "result": "main.py\n```python\nimport math\nimport random\nimport tkinter as tk\n\nWIDTH, HEIGHT = 800, 600\nPADDLE_W, PADDLE_H = 12, 90\nPADDLE_SPEED = 6\nBALL_SIZE = 14\nBALL_SPEED = 5.0\nMAX_VY = 8.0\nWINNING_SCORE = 5\nFRAME_MS = 16\n\n\nclass PongGame:\n    def __init__(self, root):\n        self.root = root\n        root.title(\"Pong - P1: W/S   P2: Up/Down   R: restart   ESC: quit\")\n        self.canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT,\n                                bg=\"black\", highlightthickness=0)\n        self.canvas.pack()\n        self.canvas.focus_set()\n        self.keys = set()\n\n        self.left_score = 0\n        self.right_score = 0\n        self.winner = None\n\n        self.lx = 30.0\n        self.rx = WIDTH - 30.0 - PADDLE_W\n        self.ly = self.ry = (HEIGHT - PADDLE_H) / 2.0\n\n        self.canvas.create_line(WIDTH / 2, 0, WIDTH / 2, HEIGHT,\n                                fill=\"white\", dash=(4, 8))\n        self.left_item = self.canvas.create_rectangle(\n            self.lx, self.ly, self.lx + PADDLE_W, self.ly + PADDLE_H, fill=\"white\")\n        self.right_item = self.canvas.create_rectangle(\n            self.rx, self.ry, self.rx + PADDLE_W, self.ry + PADDLE_H, fill=\"white\")\n        self.ball_item = self.canvas.create_oval(\n            0, 0, BALL_SIZE, BALL_SIZE, fill=\"white\")\n        self.l_score_item = self.canvas.create_text(\n            WIDTH / 2 - 60, 40, text=\"0\", fill=\"white\", font=(\"Consolas\", 40, \"bold\"))\n        self.r_score_item = self.canvas.create_text(\n            WIDTH / 2 + 60, 40, text=\"0\", fill=\"white\", font=(\"Consolas\", 40, \"bold\"))\n        self.msg_item = self.canvas.create_text(\n            WIDTH / 2, HEIGHT / 2, text=\"\", fill=\"white\", font=(\"Consolas\", 20))\n\n        root.bind(\"<KeyPress>\", self.key_down)\n        root.bind(\"<KeyRelease>\", self.key_up)\n\n        self.reset_ball()\n        self.loop()\n\n    def reset_ball(self):\n        self.bx = WIDTH / 2.0\n        self.by = HEIGHT / 2.0\n        angle = random.uniform(-math.pi / 6, math.pi / 6)\n        self.bvx = random.choice((-1.0, 1.0)) * BALL_SPEED * math.cos(angle)\n        self.bvy = BALL_SPEED * math.sin(angle)\n\n    def key_down(self, event):\n        sym = event.keysym.lower()\n        if sym == \"escape\":\n            self.root.destroy()\n            return\n        self.keys.add(sym)\n        if sym == \"r\" and self.winner:\n            self.left_score = 0\n            self.right_score = 0\n            self.winner = None\n            self.ly = self.ry = (HEIGHT - PADDLE_H) / 2.0\n            self.reset_ball()\n\n    def key_up(self, event):\n        self.keys.discard(event.keysym.lower())\n\n    def move_paddles(self):\n        if \"w\" in self.keys:\n            self.ly -= PADDLE_SPEED\n        if \"s\" in self.keys:\n            self.ly += PADDLE_SPEED\n        if \"up\" in self.keys:\n            self.ry -= PADDLE_SPEED\n        if \"down\" in self.keys:\n            self.ry += PADDLE_SPEED\n        self.ly = max(0.0, min(HEIGHT - PADDLE_H, self.ly))\n        self.ry = max(0.0, min(HEIGHT - PADDLE_H, self.ry))\n\n    def hits(self, px, py):\n        return (self.bx + BALL_SIZE / 2.0 >= px\n                and self.bx - BALL_SIZE / 2.0 <= px + PADDLE_W\n                and self.by + BALL_SIZE / 2.0 >= py\n                and self.by - BALL_SIZE / 2.0 <= py + PADDLE_H)\n\n    def spin(self, py):\n        return (self.by - (py + PADDLE_H / 2.0)) / (PADDLE_H / 2.0) * 2.5\n\n    def update(self):\n        if self.winner:\n            return\n        self.move_paddles()\n\n        self.bx += self.bvx\n        self.by += self.bvy\n        if self.by - BALL_SIZE / 2.0 <= 0:\n            self.by = BALL_SIZE / 2.0\n            self.bvy = abs(self.bvy)\n        elif self.by + BALL_SIZE / 2.0 >= HEIGHT:\n            self.by = HEIGHT - BALL_SIZE / 2.0\n            self.bvy = -abs(self.bvy)\n\n        if self.bvx < 0 and self.hits(self.lx, self.ly):\n            self.bx = self.lx + PADDLE_W + BALL_SIZE / 2.0\n            self.bvx = abs(self.bvx)\n            self.bvy += self.spin(self.ly)\n        elif self.bvx > 0 and self.hits(self.rx, self.ry):\n            self.bx = self.rx - BALL_SIZE / 2.0\n            self.bvx = -abs(self.bvx)\n            self.bvy += self.spin(self.ry)\n        self.bvy = max(-MAX_VY, min(MAX_VY, self.bvy))\n\n        if self.bx + BALL_SIZE / 2.0 <= 0:\n            self.right_score += 1\n            self.check_winner()\n            self.reset_ball()\n        elif self.bx - BALL_SIZE / 2.0 >= WIDTH:\n            self.left_score += 1\n            self.check_winner()\n            self.reset_ball()\n\n    def check_winner(self):\n        if self.left_score >= WINNING_SCORE:\n            self.winner = \"Player 1\"\n        elif self.right_score >= WINNING_SCORE:\n            self.winner = \"Player 2\"\n\n    def draw(self):\n        self.canvas.coords(self.left_item, self.lx, self.ly,\n                           self.lx + PADDLE_W, self.ly + PADDLE_H)\n        self.canvas.coords(self.right_item, self.rx, self.ry,\n                           self.rx + PADDLE_W, self.ry + PADDLE_H)\n        self.canvas.coords(self.ball_item, self.bx - BALL_SIZE / 2.0,\n                           self.by - BALL_SIZE / 2.0,\n                           self.bx + BALL_SIZE / 2.0,\n                           self.by + BALL_SIZE / 2.0)\n        self.canvas.itemconfigure(self.l_score_item, text=str(self.left_score))\n        self.canvas.itemconfigure(self.r_score_item, text=str(self.right_score))\n        self.canvas.itemconfigure(\n            self.msg_item,\n            text=f\"{self.winner} wins!  R = restart, ESC = quit\" if self.winner else \"\")\n\n    def loop(self):\n        try:\n            self.update()\n            self.draw()\n            self.root.after(FRAME_MS, self.loop)\n        except tk.TclError:\n            return\n\n\ndef main():\n    root = tk.Tk()\n    PongGame(root)\n    root.mainloop()\n\n\nif __name__ == \"__main__\":\n    main()\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "cbe2f8dd175456e9a31cc77a0bfd94ac3e733c5c3864deeecd5360fb2b7824e5",
+    "source_digests": {
+      "main.py": "6b3026198b41de90451bc0949bdf082a1bc9e44636044a558449406ba0f8c15c"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "source/pure-contract\\content_lab\\startup_probe.py",
+      "data/runs/mpst_contract/r04/28_Pong/artifact\\main.py",
+      "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-49dh6w3y\\probe.json"
+    ],
+    "timeout_seconds": 3,
+    "status": "passed",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "profile": "tkinter_event_loop",
+    "observation": {
+      "event_loop_observed": true,
+      "mapped_window": true,
+      "widget_count": 1,
+      "callback_errors": []
+    },
+    "id": "a5af441303ff83b024ad28c6550f6ef61c14b118dca995957b517bcbb7238302"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "308b6fc5e9a85264f24b6a9432dabe01fb6e84ce9f68b19237adc755730ca94b",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "308b6fc5e9a85264f24b6a9432dabe01fb6e84ce9f68b19237adc755730ca94b",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "32fc7490aeb4847ba50de5e535ac76b21b44544f66ec5c3b52452bd0474905e9",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "1ec9b7cc9ab1c1e2348eeb22e0c2bff7733de2072d5463faacabe14e48a3b2e4",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "1ec9b7cc9ab1c1e2348eeb22e0c2bff7733de2072d5463faacabe14e48a3b2e4",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "7e55d453a2c6f995df0a99179754fa699775c4c75860dd57e26ce0f52f64ae3c",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "review_schema",
+          "path": "$",
+          "message": "Expected verdict and issues in a JSON object.",
+          "repair": "Return {\"verdict\":\"finished|changes_requested\",\"issues\":[{\"file\":\"main.py\",\"line\":1,\"message\":\"...\"}]}."
+        }
+      ],
+      "candidate_sha256": "505f09e8077c2a7ff18f9b0538b8e3ac999c04c9766b836ec3ddffa15d8cc45f",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": "Let me review the Pong game code for functional correctness against the required features:\n\nRequired features:\n1. Two-player Pong game - each player controls a vertical paddle moving up/down ✓\n2. Ball bounces between paddles and off top/bottom edges ✓\n3. Players score when opponent misses ✓\n4. Winning score threshold ✓ (WINNING_SCORE = 5)\n5. Reset ball after each point ✓ (serve() calls ball.reset())\n\nLet me look for defects:\n\n1. **Ball reset after point**: `serve()` is called after scoring, which resets the ball. ✓\n\n2. **Winning score check**: After score increments, checks if >= WINNING_SCORE. ✓\n\n3. **Ball collision with paddles**: \n   - Left paddle: `if self.ball.vx < 0 and self.ball.rect.colliderect(self.left.rect)` - checks ball moving left. Sets ball.rect.left = paddle.right, reverses vx. ✓\n   - Right paddle: similar. ✓\n   \n   One issue: after collision, the ball position is corrected, but the ball could tunnel through at high speeds. With BALL_SPEED = 5 and MAX_VY = 8, tunneling is unlikely at 60 FPS. Not a blocking defect.\n\n4. **Ball out of bounds check**: `if self.ball.rect.right <= 0` - ball moves left past left edge. But wait - the ball rect is 14 wide. When ball.rect.right <= 0, the ball has completely exited the left edge. That's fine for scoring.\n\n   Actually wait, there's a subtle issue: the ball's left edge check `self.ball.rect.left >= WIDTH` - ball completely exits right edge. Fine.\n\n5. **Top/bottom bounce**: \n   ```python\n   if self.rect.top <= 0:\n       self.rect.top = 0\n       self.vy = abs(self.vy)\n   elif self.rect.bottom >= HEIGHT:\n       self.rect.bottom = HEIGHT\n       self.vy = -abs(self.vy)\n   ```\n   ✓ Correct.\n\n6. **Paddle movement clamping**: `max(0, min(HEIGHT - PADDLE_H, self.rect.y + dy))` ✓\n\n7. **Winner state**: When winner is set, update() stops being called, draw shows winner text. R restarts. ✓\n\n8. **Potential issue with ball reset direction**: After a point, ball.reset() randomizes direction. The task says \"reset the ball after each point\" - done. Some implementations serve toward the player who just scored/lost, but random is acceptable.\n\n9. **Collision when ball spawns overlapping paddle?** Ball resets to center, paddles at edges. No overlap.\n\n10. **Issue: ball collision check happens after ball.move(), and scoring check after collision. If ball hits paddle and is repositioned, then scoring check: `self.ball.rect.right <= 0` - after left paddle collision, ball.rect.left = paddle.right = 30+12=42, so right = 56 > 0. Fine.\n\n11. **Potential defect: ball passing through paddle from behind?** If ball.vx < 0 and ball collides with left paddle - if the ball somehow gets behind the paddle (e.g., spawned behind), it would be pushed to the front. Edge case, unlikely.\n\n12. **Issue with `int(round(self.vx))`**: If vx is small... vx = BALL_SPEED * cos(angle), angle in [-pi/6, pi/6], cos >= cos(pi/6) ≈ 0.866, so vx magnitude >= 4.33, int rounds to 4 or 5. Never zero. Fine.\n\n13. **vy could be zero**: angle could be near 0, vy = BALL_SPEED * sin(angle) could round to 0. That's fine - ball moves straight.\n\n14. **After paddle bounce, vy += offset * 2.5, clamped to MAX_VY.** Fine.\n\n15. **A real potential defect: the ball can get \"stuck\" bouncing vertically?** vy clamped to MAX_VY = 8, vx unchanged. vx never becomes 0. Fine.\n\n16. **Score display positions**: left score at WIDTH//2 - 80, right at +45. Fine.\n\n17. **`pygame.quit()` then `sys.exit()` inside handle_events** - fine.\n\n18. **Winner check happens every update even after winner set?** No - update() only called when winner is None. But winner is set within update() itself; after setting winner, the rest of update continues but that's harmless.\n\n19. **Hmm, one actual issue: when the ball goes out on the left, `self.right.score += 1` then `self.serve()` resets ball AND centers paddles.** Centering paddles on each point is a design choice, not a defect.\n\n20. **Ball reset direction after point**: random direction - could serve toward the winner... acceptable.\n\n21. **Potential tunneling with paddle**: ball moves 5-8 px per frame, paddle width 12. At max speed, ball could pass through paddle in one frame? Ball moves int(round(vx)) ≈ 5 px horizontally. Paddle is 12 wide. Ball 14 wide. Combined 26 > 5, so no tunneling horizontally. Vertically, ball could move 8px per frame, paddle 90 tall - fine.\n\n22. **Collision check ordering**: The ball could hit the paddle's top/bottom edge while moving horizontally, causing weird vy. Acceptable for Pong.\n\n23. **One more check: `self.ball.rect.colliderect(self.left.rect)` when ball.vx < 0.** If ball is moving left but has already passed the paddle (behind it), collision won't trigger, ball exits, point scored. Correct behavior.\n\n24. **What if the ball hits the paddle while vx > 0 against left paddle?** Not checked - ball moving right away from left paddle. Fine.\n\n25. **Issue: after winner is determined, ball keeps its last position drawn - fine.**\n\n26. **Font \"consolas\"** - SysFont falls back to default if not found. Fine.\n\n27. **`pygame.draw.aaline`** - fine.\n\nHmm, is there any real blocking defect? Let me think about the scoring condition more carefully.\n\n`if self.ball.rect.right <= 0:` - the ball's right edge <= 0 means the ball fully exited left. But wait - before this, the collision check with left paddle: ball.vx < 0 and colliderect. If the ball is at x = -5 (partially off-screen) and the paddle is at x=30, no collision. Ball continues to exit. Score for right player. Correct.\n\nBut here's a subtle bug: the ball's top/bottom bounce in `move()` clamps position. If ball.rect.top <= 0, set top = 0. Fine.\n\nWhat about the ball moving so fast vertically that... no, clamped.\n\nAnother potential issue: **the ball could collide with the paddle multiple times in consecutive frames if repositioned incorrectly**. After left paddle collision: ball.rect.left = left.rect.right, vx = abs(vx) > 0. Next frame, ball moves right, away. Fine.\n\nWhat about the ball hitting the paddle edge-on (ball above/below paddle but overlapping corner)? colliderect triggers, ball teleports to paddle face, vy adjusted. Acceptable.\n\n**Potential real defect: When the ball is served toward a paddle and the paddle is at the wall... no.**\n\nLet me reconsider: is there an issue with the ball's vy after paddle bounce making the ball nearly vertical? vx stays at ~4-5, vy up to 8. Fine.\n\n**What about the ball getting stuck oscillating between top and bottom with vx small?** vx >= 4.33 magnitude always. Fine.\n\nHmm, what about `int(round(self.vx))` when vx = 4.33 → 4. Fine.\n\n**Score check placement**: winner determined inside update() after scoring. If left.score reaches 5, winner = \"Player 1\". Then run loop stops updating. Draw shows winner. R restarts. ✓\n\n**Restart**: resets scores, winner=None, serve(). ✓\n\n**ESC/QUIT handling**: ✓\n\nI'm not finding a blocking functional defect. Let me double-check the paddle collision offset calculation:\n\n```python\noffset = (self.ball.rect.centery - self.left.rect.centery) / (PADDLE_H / 2)\nself.ball.vy += offset * 2.5\n```\n\noffset in [-1, 1] roughly (could exceed if ball hits corner). vy += up to 2.5. Then clamped. Fine.\n\nWait — one thing: after the ball bounces off the paddle, the vy is modified but the ball's vy could make it move back into the paddle? No, vx reversed, moves away horizontally.\n\n**Edge case: ball collides with paddle while ball is behind paddle moving toward it?** If ball.vx < 0 and ball is to the right of the left paddle moving left - normal collision. If ball somehow is to the left of the paddle (behind) moving left - colliderect false (no overlap), ball exits. Fine.\n\n**What if ball spawns and immediately... no.**\n\nHmm, actually let me reconsider the requirement: \"Incorporate a winning score threshold and reset the ball after each point.\" Both done.\n\n\"Players score a point when the opponent misses the ball.\" Done.\n\n\"The ball bounces between the two paddles and off the top and bottom edges.\" Done.\n\n\"Each player controls a vertical paddle, moving up and down to bounce a ball back.\" Done - W/S and Up/Down.\n\nSo functionally complete. Is there any defect worth reporting?\n\nOne thing I notice: in `handle_events`, when winner exists and player presses R, it restarts. But during normal play, pressing R does nothing. Fine.\n\nAnother: `pygame.quit()` followed by `sys.exit()` - if called, the run loop's clock.tick... fine.\n\nPotential minor issue: **the ball's vy is not re-randomized on paddle hit to prevent infinite loops** - not needed.\n\n**Potential issue: ball speed never increases** - not required.\n\n**Issue: `self.ball.rect.right <= 0` vs `self.ball.rect.right < 0`** - at exactly 0, scored. Fine.\n\nHmm, wait. There's one thing: the ball reset uses `random.choice((-1, 1))` for direction. After a point is scored by the right player (ball exited left), the ball could be served toward the left again immediately. Standard Pong serves toward the player who just lost the point (or the scorer). Random is acceptable per task (\"reset the ball after each point\" - no direction requirement).\n\nLet me check the draw of scores: `str(self.left.score)` at (WIDTH//2 - 80, 20). The big_font 56px, two digits could overlap center line but cosmetic.\n\nActually, let me look more carefully at a potential gameplay bug: **the ball can hit the paddle from the side/top when the paddle moves into the ball**. If the paddle moves up into the ball's path while ball.vx > 0 near the left paddle... the left paddle collision only triggers when vx < 0. If the paddle moves into the ball while the ball moves right (away), the ball could overlap the paddle and pass through it. Minor edge case, common in simple Pong implementations. Not blocking.\n\nAnother: **ball tunneling through paddle when moving fast diagonally**: horizontal step ~5px, paddle 12px + ball 14px = 26px overlap zone. No tunneling.\n\nWhat about the ball moving 8px vertically per frame and the paddle moving 6px - paddle could \"catch\" the ball from the side. Minor.\n\nI think the code is functionally correct. Let me check for any Python errors:\n\n- `import math, random, sys, pygame` - all used. ✓\n- `Paddle.__init__` - fine.\n- `Ball.reset` - fine.\n- `PongGame.__init__` - pygame.init, set_mode, caption, clock, fonts, paddles, ball, winner. ✓\n- `serve` - resets ball and centers paddles. ✓\n- `handle_events` - ✓\n- `update` - ✓\n- `draw` - ✓\n- `run` - ✓\n- `main` - ✓\n\nOne potential runtime concern: `pygame.font.SysFont(\"consolas\", 56)` - if consolas not available, pygame falls back to default font. No crash.\n\n`pygame.draw.aaline(self.screen, WHITE, (WIDTH // 2, 0), (WIDTH // 2, HEIGHT))` - fine.\n\nHmm, wait. There's one subtle bug I should check: in `update()`, the scoring check:\n\n```python\nif self.ball.rect.right <= 0:\n    self.right.score += 1\n    self.serve()\nelif self.ball.rect.left >= WIDTH:\n    self.left.score += 1\n    self.serve()\n```\n\nAfter serve(), ball is at center. Then winner check. Fine.\n\nBut note: the collision resolution sets `self.ball.rect.left = self.left.rect.right` — if the ball approaches at a steep angle and the paddle is near the wall... fine.\n\nActually, here's a possible issue: **the ball's collision with the paddle happens even if the ball is far past the paddle vertically?** No, colliderect requires overlap.\n\nWhat about the ball hitting the paddle when the ball's vx < 0 but the ball is moving left and overlaps the paddle's right edge by a lot (e.g., spawned overlapping)? Not applicable.\n\nOK here's another thought: **the ball could get trapped inside the paddle**. After collision, ball.rect.left = paddle.rect.right. Ball moves right. Next frame, ball no longer overlaps. Fine.\n\nBut what if the paddle moves toward the ball after the bounce? Paddle speed 6, ball vx ~5. Paddle could catch up and overlap the ball while ball.vx > 0 — left paddle collision requires vx < 0, so no re-collision; ball passes through paddle visually. Minor cosmetic/physics edge case, not blocking.\n\nI'm fairly confident this is functionally complete and correct. The instructions say: \"Report at most the highest-priority actionable defect with a real filename and line number.\" If there are no blocking defects, verdict = finished with empty issues.\n\nLet me do one more careful pass for actual bugs:\n\n1. `Ball.move()` - bounce logic: `if self.rect.top <= 0: self.rect.top = 0; self.vy = abs(self.vy)`. If vy is negative, abs makes it positive (down). Correct. `elif self.rect.bottom >= HEIGHT: self.rect.bottom = HEIGHT; self.vy = -abs(self.vy)`. Correct.\n\n2. In `update()`, paddle input: W = up (-), S = down (+). Correct. Up arrow = up, Down = down. Correct.\n\n3. `self.ball.vy = max(-MAX_VY, min(MAX_VY, self.ball.vy))` - clamp. Correct.\n\n4. Winner text: `f\"{self.winner} wins!  R = restart, ESC = quit\"`. Correct.\n\n5. Restart resets scores and serves. Correct.\n\n6. `run()`: `self.clock.tick(FPS)` then handle_events, update (if no winner), draw. Correct.\n\n7. On QUIT event: pygame.quit() and sys.exit(). Correct.\n\nOne thing: when the winner is set, the ball stops moving (update not called), and the final frame shows the ball wherever it was. Fine.\n\nPotential issue: **after a point is scored and serve() is called, the paddles are centered.** The task doesn't prohibit this. Fine.\n\nPotential issue: **the ball reset angle range ±30° means vy up to BALL_SPEED * 0.5 = 2.5.** Fine.\n\nPotential issue: **`int(round(self.vx))` truncation could cause the ball's actual speed to differ from intended** - cosmetic.\n\nHmm, actually, wait. Let me reconsider one thing: the ball's vy after paddle hit: `self.ball.vy += offset * 2.5`. If offset is at max (±1), vy changes by ±2.5. Starting vy could be up to ±2.5 from serve. Max vy after hit: 5, under MAX_VY 8. Fine.\n\nWhat if the ball hits the paddle repeatedly due to vy pushing it into the paddle's edge? After bounce, vx > 0 (moving right), so left paddle collision won't re-trigger. Fine.\n\nI'm now confident: no blocking defects. The game implements all required features.\n\nActually hold on, let me check one more time the scoring edge: `if self.ball.rect.right <= 0`. The ball moves int(round(vx)) per frame. When the ball's right edge reaches exactly 0 or below, point scored. But before that, could the ball's left edge be < 0 while right > 0 (partially visible)? Yes, and it keeps moving until fully out. That's fine — actually, some might argue the point should be scored when the ball fully exits, which is what happens. Fine.\n\nAlso check: does the ball bounce off the top/bottom correctly when partially off-screen? `if self.rect.top <= 0: self.rect.top = 0` — clamps. Fine.\n\nOne more: `pygame.display.set_caption(\"Pong - P1: W/S   P2: Up/Down\")` — informative. Fine.\n\nVerdict: finished, empty issues.\n\nWait, but the instructions say \"Review happens before startup testing; do not claim runtime success.\" So I just say finished based on code review.\n\nActually, let me reconsider whether there's any defect I'm missing. The prompt says \"Report at most the highest-priority actionable defect\" — implying I should report one if it exists. Let me scan once more for genuine bugs...\n\nHmm, one thing: in `handle_events`, `pygame.quit()` then `sys.exit()` — if this happens, fine.\n\nAnother: `self.big_font.render(str(self.left.score), True, WHITE)` — fine.\n\nAnother potential: **the ball could be served directly at a paddle-centered position and the paddle is centered too — the ball travels straight horizontally (if angle ≈ 0) and hits the paddle center. Fine.**\n\nAnother: **`random.choice((-1, 1))` — tuple, fine.**\n\nAnother: **`math.pi / 6` — 30 degrees. Fine.**\n\nAnother: **`PADDLE_SPEED = 6` at 60 FPS = 360 px/s. Fine.**\n\nAnother: **`Ball.__init__` creates rect then calls reset which sets center. Fine.**\n\nAnother: **`PongGame.run` — infinite loop. Fine.**\n\nAnother: **winner check: `if self.left.score >= WINNING_SCORE` — uses >= in case of overshoot. Fine.**\n\nI genuinely don't find a blocking defect. The code is clean, complete, and implements all requirements.\n\nFinal answer: {\"verdict\":\"finished\",\"issues\":[]}{\"verdict\":\"finished\",\"issues\":[]}"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "7e55d453a2c6f995df0a99179754fa699775c4c75860dd57e26ce0f52f64ae3c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "41a4b7cba60fe48a82dea68df25c150b1c1a538a99dbfb89714d4f298e56bd57",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "7e55d453a2c6f995df0a99179754fa699775c4c75860dd57e26ce0f52f64ae3c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2e268ff0cef63580c64233b07e8fd026c494a543f47a7717f2245832819f24fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "7e55d453a2c6f995df0a99179754fa699775c4c75860dd57e26ce0f52f64ae3c",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "missing_source_files",
+          "path": "$",
+          "message": "No explicitly declared Python source files were delivered.",
+          "repair": "Stop analysis. Start with main.py on its own line followed by a fenced Python code block. Return compact complete executable files only."
+        }
+      ],
+      "candidate_sha256": "814d210a069889388d5a7d3c039365077f4777423f5ec55fa800c64a28e78eb7",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": "<INFO> Finished."
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "7e55d453a2c6f995df0a99179754fa699775c4c75860dd57e26ce0f52f64ae3c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "1ec9b7cc9ab1c1e2348eeb22e0c2bff7733de2072d5463faacabe14e48a3b2e4",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "7e55d453a2c6f995df0a99179754fa699775c4c75860dd57e26ce0f52f64ae3c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "1ec9b7cc9ab1c1e2348eeb22e0c2bff7733de2072d5463faacabe14e48a3b2e4",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "7e55d453a2c6f995df0a99179754fa699775c4c75860dd57e26ce0f52f64ae3c",
+        "source_digests": {
+          "main.py": "62e894ecce7ec32619be9c4c5746d63d66e4fe1250dae1acf60101539ca9cbc8"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r04/28_Pong/artifact\\main.py\", line 5, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+        "profile": "process_exit",
+        "id": "18a148c907ce3029bf0df390280677de41e46c8d839e31d7eaa41768b2075e55"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "7e55d453a2c6f995df0a99179754fa699775c4c75860dd57e26ce0f52f64ae3c",
+        "source_digests": {
+          "main.py": "62e894ecce7ec32619be9c4c5746d63d66e4fe1250dae1acf60101539ca9cbc8"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r04/28_Pong/artifact\\main.py\", line 5, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+        "profile": "process_exit",
+        "id": "18a148c907ce3029bf0df390280677de41e46c8d839e31d7eaa41768b2075e55"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "7e55d453a2c6f995df0a99179754fa699775c4c75860dd57e26ce0f52f64ae3c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "e7b327e507bcaf7407f072094b2386e42adf236a6076fa08fb2dab2d6b52548a",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "7e55d453a2c6f995df0a99179754fa699775c4c75860dd57e26ce0f52f64ae3c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "775a4cadf3ecb5766c50845a41b9c35c4eac346d8f1c55160e5a3519c1f05974",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "7e55d453a2c6f995df0a99179754fa699775c4c75860dd57e26ce0f52f64ae3c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "9d9abc54cb41485c9d8e13b5884048d7d5852671745cbc8b733c205936f8b201",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "7e55d453a2c6f995df0a99179754fa699775c4c75860dd57e26ce0f52f64ae3c",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "9d9abc54cb41485c9d8e13b5884048d7d5852671745cbc8b733c205936f8b201",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "cbe2f8dd175456e9a31cc77a0bfd94ac3e733c5c3864deeecd5360fb2b7824e5",
+        "source_digests": {
+          "main.py": "6b3026198b41de90451bc0949bdf082a1bc9e44636044a558449406ba0f8c15c"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "source/pure-contract\\content_lab\\startup_probe.py",
+          "data/runs/mpst_contract/r04/28_Pong/artifact\\main.py",
+          "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-49dh6w3y\\probe.json"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "profile": "tkinter_event_loop",
+        "observation": {
+          "event_loop_observed": true,
+          "mapped_window": true,
+          "widget_count": 1,
+          "callback_errors": []
+        },
+        "id": "a5af441303ff83b024ad28c6550f6ef61c14b118dca995957b517bcbb7238302"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": true,
+      "evidence_id": "a5af441303ff83b024ad28c6550f6ef61c14b118dca995957b517bcbb7238302"
+    }
+  ]
+}

@@ -1,0 +1,306 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "As the Chief Product Officer, I've analyzed the customer's requirements for this task. The customer wants a classic Snake game with:\n\n1. **Real-time interactive gameplay** — directional input controls (keyboard), continuous board updates after each move\n2. **Dynamic game state** — snake growth, collision detection (self and boundary), food spawning\n3. **Live score display** — score updates as food is eaten\n4. **Multiple difficulty levels** — likely affecting snake speed and/or board conditions\n\nGiven these requirements, the product must support **real-time rendering, keyboard event handling, and a game loop** — this rules out static formats like Image, Document, PowerPoint, Excel, PDF, and Mind Map, as they cannot deliver an interactive, playable experience.\n\nIn my opinion, the two viable candidates are:\n\n- **Application (via Python)**: Using a library like Pygame, we can fully implement the game loop, keyboard controls, collision logic, scoring, and difficulty settings. It's a proven approach for visualized games at ChatDev and runs as a standalone program.\n- **Website (via .html)**: A browser-based version with JavaScript is possible, but it adds constraints around browser compatibility and input focus handling.\n\nMy recommendation is **Application**, as it best matches the classic desktop game experience the customer describes, gives us precise control over game mechanics and difficulty tuning, and aligns with our proven capability in this modality.\n\nDear CEO, do you agree that we should build this Snake game as an **Application**? Please share your opinion."
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\nimport pygame\n\nfrom game import Game\nfrom settings import WIDTH, HEIGHT, DIFFICULTIES, COLORS\n\n\ndef choose_difficulty(screen):\n    font = pygame.font.SysFont(None, 40)\n    while True:\n        screen.fill(COLORS[\"bg\"])\n        title = font.render(\"Select Difficulty\", True, COLORS[\"text\"])\n        screen.blit(title, title.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 90)))\n        items = list(DIFFICULTIES.items())\n        for i, (key, (name, speed)) in enumerate(items):\n            line = font.render(f\"[{key}] {name}\", True, COLORS[\"text\"])\n            screen.blit(line, line.get_rect(center=(WIDTH // 2, HEIGHT // 2 + i * 45)))\n        pygame.display.flip()\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                return None\n            if event.type == pygame.KEYDOWN and pygame.K_1 <= event.key <= pygame.K_3:\n                return DIFFICULTIES[str(event.key - pygame.K_0)][1]\n\n\ndef main():\n    pygame.init()\n    screen = pygame.display.set_mode((WIDTH, HEIGHT))\n    pygame.display.set_caption(\"Snake\")\n    while True:\n        speed = choose_difficulty(screen)\n        if speed is None:\n            break\n        if Game(screen, speed).run():\n            break\n    pygame.quit()\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nsettings.py\n```python\nCELL = 20\nCOLS = 30\nROWS = 24\nHUD = 40\nWIDTH = COLS * CELL\nHEIGHT = ROWS * CELL + HUD\n\nDIFFICULTIES = {\n    \"1\": (\"Easy\", 8),\n    \"2\": (\"Medium\", 13),\n    \"3\": (\"Hard\", 20),\n}\n\nCOLORS = {\n    \"bg\": (18, 18, 26),\n    \"board\": (26, 26, 36),\n    \"snake\": (60, 200, 90),\n    \"head\": (120, 240, 140),\n    \"food\": (230, 70, 70),\n    \"text\": (235, 235, 235),\n    \"border\": (110, 110, 130),\n}\n```\n\ngame.py\n```python\nimport random\n\nimport pygame\n\nfrom settings import CELL, COLS, ROWS, HUD, WIDTH, COLORS\n\nUP, DOWN, LEFT, RIGHT = (0, -1), (0, 1), (-1, 0), (1, 0)\nKEY_DIRS = {\n    pygame.K_UP: UP,\n    pygame.K_w: UP,\n    pygame.K_DOWN: DOWN,\n    pygame.K_s: DOWN,\n    pygame.K_LEFT: LEFT,\n    pygame.K_a: LEFT,\n    pygame.K_RIGHT: RIGHT,\n    pygame.K_d: RIGHT,\n}\n\n\nclass Snake:\n    def __init__(self):\n        self.body = [(COLS // 2, ROWS // 2)]\n        self.direction = RIGHT\n        self.grow = 0\n\n    def turn(self, direction):\n        if (direction[0] * -1, direction[1] * -1) != self.direction:\n            self.direction = direction\n\n    def step(self):\n        head = self.body[0]\n        nxt = (head[0] + self.direction[0], head[1] + self.direction[1])\n        blocked = self.body if self.grow else self.body[:-1]\n        if not (0 <= nxt[0] < COLS and 0 <= nxt[1] < ROWS) or nxt in blocked:\n            return False\n        self.body.insert(0, nxt)\n        if self.grow:\n            self.grow -= 1\n        else:\n            self.body.pop()\n        return True\n\n\nclass Food:\n    def __init__(self, snake):\n        self.respawn(snake)\n\n    def respawn(self, snake):\n        free = [(x, y) for x in range(COLS) for y in range(ROWS)\n                if (x, y) not in snake.body]\n        self.pos = random.choice(free) if free else None\n\n\nclass Game:\n    def __init__(self, screen, speed):\n        self.screen = screen\n        self.speed = speed\n        self.font = pygame.font.SysFont(None, 30)\n        self.big = pygame.font.SysFont(None, 52)\n        self.clock = pygame.time.Clock()\n        self.reset()\n\n    def reset(self):\n        self.snake = Snake()\n        self.food = Food(self.snake)\n        self.score = 0\n        self.alive = True\n        self.paused = False\n        self.running = True\n        self.quit_app = False\n\n    def handle_events(self):\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                self.running = False\n                self.quit_app = True\n            elif event.type == pygame.KEYDOWN:\n                if event.key in KEY_DIRS:\n                    self.snake.turn(KEY_DIRS[event.key])\n                elif event.key == pygame.K_SPACE and self.alive:\n                    self.paused = not self.paused\n                elif event.key == pygame.K_r and not self.alive:\n                    self.reset()\n                elif event.key == pygame.K_ESCAPE:\n                    self.running = False\n\n    def update(self):\n        if not self.alive or self.paused:\n            return\n        if not self.snake.step():\n            self.alive = False\n            return\n        if self.food.pos and self.snake.body[0] == self.food.pos:\n            self.snake.grow += 1\n            self.score += 1\n            self.food.respawn(self.snake)\n\n    def draw_cell(self, pos, color):\n        rect = (pos[0] * CELL + 1, HUD + pos[1] * CELL + 1, CELL - 2, CELL - 2)\n        pygame.draw.rect(self.screen, color, rect, border_radius=4)\n\n    def draw(self):\n        self.screen.fill(COLORS[\"bg\"])\n        pygame.draw.rect(self.screen, COLORS[\"board\"], (0, HUD, WIDTH, ROWS * CELL))\n        pygame.draw.rect(self.screen, COLORS[\"border\"], (0, HUD, WIDTH, ROWS * CELL), 2)\n        if self.food.pos:\n            self.draw_cell(self.food.pos, COLORS[\"food\"])\n        for i, seg in enumerate(self.snake.body):\n            self.draw_cell(seg, COLORS[\"head\"] if i == 0 else COLORS[\"snake\"])\n        self.screen.blit(self.font.render(f\"Score: {self.score}\", True, COLORS[\"text\"]), (10, 8))\n        hint = self.font.render(\"WASD/Arrows move | Space pause | Esc menu\", True, COLORS[\"text\"])\n        self.screen.blit(hint, (WIDTH - hint.get_width() - 10, 8))\n        cy = HUD + ROWS * CELL // 2\n        if not self.alive:\n            over = self.big.render(\"GAME OVER\", True, COLORS[\"text\"])\n            again = self.font.render(\"Press R to restart\", True, COLORS[\"text\"])\n            self.screen.blit(over, over.get_rect(center=(WIDTH // 2, cy - 20)))\n            self.screen.blit(again, again.get_rect(center=(WIDTH // 2, cy + 20)))\n        elif self.paused:\n            pause = self.big.render(\"Paused\", True, COLORS[\"text\"])\n            self.screen.blit(pause, pause.get_rect(center=(WIDTH // 2, cy)))\n        pygame.display.flip()\n\n    def run(self):\n        interval = 1000 // self.speed\n        last_move = pygame.time.get_ticks()\n        while self.running:\n            self.handle_events()\n            now = pygame.time.get_ticks()\n            if now - last_move >= interval:\n                last_move = now\n                self.update()\n            self.draw()\n            self.clock.tick(60)\n        return self.quit_app\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "c1551b80e0ce43fa9a2a70ad6d6b6e5e283f16a338e5c4f943b2f9b2a1bcbe1a",
+      "result": "{\"verdict\": \"changes_requested\", \"issues\": [{\"file\": \"game.py\", \"line\": 79, \"message\": \"Direction keys are applied immediately on KEYDOWN, so two presses within one tick can reverse the snake into its own body (e.g., moving RIGHT, press UP then LEFT before the next step) and trigger an unfair self-collision game over. Buffer at most one pending direction per tick (input queue consumed in update/step) instead of turning directly in handle_events.\"}]}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "c1551b80e0ce43fa9a2a70ad6d6b6e5e283f16a338e5c4f943b2f9b2a1bcbe1a",
+      "result": "game.py\n```python\nimport random\n\nimport pygame\n\nfrom settings import CELL, COLS, ROWS, HUD, WIDTH, COLORS\n\nUP, DOWN, LEFT, RIGHT = (0, -1), (0, 1), (-1, 0), (1, 0)\nKEY_DIRS = {\n    pygame.K_UP: UP,\n    pygame.K_w: UP,\n    pygame.K_DOWN: DOWN,\n    pygame.K_s: DOWN,\n    pygame.K_LEFT: LEFT,\n    pygame.K_a: LEFT,\n    pygame.K_RIGHT: RIGHT,\n    pygame.K_d: RIGHT,\n}\n\n\nclass Snake:\n    def __init__(self):\n        self.body = [(COLS // 2, ROWS // 2)]\n        self.direction = RIGHT\n        self.grow = 0\n        self.queue = []\n\n    def turn(self, direction):\n        last = self.queue[-1] if self.queue else self.direction\n        if direction != last and (direction[0] * -1, direction[1] * -1) != last:\n            if len(self.queue) < 2:\n                self.queue.append(direction)\n\n    def step(self):\n        if self.queue:\n            self.direction = self.queue.pop(0)\n        head = self.body[0]\n        nxt = (head[0] + self.direction[0], head[1] + self.direction[1])\n        blocked = self.body if self.grow else self.body[:-1]\n        if not (0 <= nxt[0] < COLS and 0 <= nxt[1] < ROWS) or nxt in blocked:\n            return False\n        self.body.insert(0, nxt)\n        if self.grow:\n            self.grow -= 1\n        else:\n            self.body.pop()\n        return True\n\n\nclass Food:\n    def __init__(self, snake):\n        self.respawn(snake)\n\n    def respawn(self, snake):\n        free = [(x, y) for x in range(COLS) for y in range(ROWS)\n                if (x, y) not in snake.body]\n        self.pos = random.choice(free) if free else None\n\n\nclass Game:\n    def __init__(self, screen, speed):\n        self.screen = screen\n        self.speed = speed\n        self.font = pygame.font.SysFont(None, 30)\n        self.big = pygame.font.SysFont(None, 52)\n        self.clock = pygame.time.Clock()\n        self.reset()\n\n    def reset(self):\n        self.snake = Snake()\n        self.food = Food(self.snake)\n        self.score = 0\n        self.alive = True\n        self.paused = False\n        self.running = True\n        self.quit_app = False\n\n    def handle_events(self):\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                self.running = False\n                self.quit_app = True\n            elif event.type == pygame.KEYDOWN:\n                if event.key in KEY_DIRS:\n                    self.snake.turn(KEY_DIRS[event.key])\n                elif event.key == pygame.K_SPACE and self.alive:\n                    self.paused = not self.paused\n                elif event.key == pygame.K_r and not self.alive:\n                    self.reset()\n                elif event.key == pygame.K_ESCAPE:\n                    self.running = False\n\n    def update(self):\n        if not self.alive or self.paused:\n            return\n        if not self.snake.step():\n            self.alive = False\n            return\n        if self.food.pos and self.snake.body[0] == self.food.pos:\n            self.snake.grow += 1\n            self.score += 1\n            self.food.respawn(self.snake)\n\n    def draw_cell(self, pos, color):\n        rect = (pos[0] * CELL + 1, HUD + pos[1] * CELL + 1, CELL - 2, CELL - 2)\n        pygame.draw.rect(self.screen, color, rect, border_radius=4)\n\n    def draw(self):\n        self.screen.fill(COLORS[\"bg\"])\n        pygame.draw.rect(self.screen, COLORS[\"board\"], (0, HUD, WIDTH, ROWS * CELL))\n        pygame.draw.rect(self.screen, COLORS[\"border\"], (0, HUD, WIDTH, ROWS * CELL), 2)\n        if self.food.pos:\n            self.draw_cell(self.food.pos, COLORS[\"food\"])\n        for i, seg in enumerate(self.snake.body):\n            self.draw_cell(seg, COLORS[\"head\"] if i == 0 else COLORS[\"snake\"])\n        self.screen.blit(self.font.render(f\"Score: {self.score}\", True, COLORS[\"text\"]), (10, 8))\n        hint = self.font.render(\"WASD/Arrows move | Space pause | Esc menu\", True, COLORS[\"text\"])\n        self.screen.blit(hint, (WIDTH - hint.get_width() - 10, 8))\n        cy = HUD + ROWS * CELL // 2\n        if not self.alive:\n            over = self.big.render(\"GAME OVER\", True, COLORS[\"text\"])\n            again = self.font.render(\"Press R to restart\", True, COLORS[\"text\"])\n            self.screen.blit(over, over.get_rect(center=(WIDTH // 2, cy - 20)))\n            self.screen.blit(again, again.get_rect(center=(WIDTH // 2, cy + 20)))\n        elif self.paused:\n            pause = self.big.render(\"Paused\", True, COLORS[\"text\"])\n            self.screen.blit(pause, pause.get_rect(center=(WIDTH // 2, cy)))\n        pygame.display.flip()\n\n    def run(self):\n        interval = 1000 // self.speed\n        last_move = pygame.time.get_ticks()\n        while self.running:\n            self.handle_events()\n            now = pygame.time.get_ticks()\n            if now - last_move >= interval:\n                last_move = now\n                self.update()\n            self.draw()\n            self.clock.tick(60)\n        return self.quit_app\n```"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "90a39aabc6e8dc03de82b44a3a0e11c3de722303added35d9fa545ca04f9148b",
+      "result": "{\"status\": \"failed\", \"test_run_id\": \"f682e0a7dcbeb001de0236c25cd249fcd75717e67ac57ecee94e2a9a6b5073e0\", \"summary\": \"Startup smoke failed with exit code 1 due to ModuleNotFoundError: No module named 'pygame' raised at main.py line 1. This is a missing dependency in the host environment (pygame not installed in the invoked venv), not a defect in the provided Snake game source. The code requires pygame; install it (e.g., pip install pygame) in the execution environment and rerun to obtain a conclusive result.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "90a39aabc6e8dc03de82b44a3a0e11c3de722303added35d9fa545ca04f9148b",
+      "result": " Finished only if host evidence status is passed.\" → Status is failed → no Finished tag.\n\nThis is internally consistent. Done. Returning all three files unchanged.\n\nHmm, although... one tiny thing: is there ANY actual defect in the code I should fix while I'm here? Let me scan once more.\n\n- main.py menu: only accepts K_1..K_3. Keypad numbers (K_KP1 etc.) not accepted — minor, not a defect per task.\n- game.py: `interval = 1000 // self.speed` — speeds 8, 13, 20 → 125ms, 76ms, 50ms. Fine.\n- Difficulty menu returns speed only; name not shown in game HUD — task says \"consider offering multiple difficulty levels\" — offered. Fine.\n- Score based on food eaten — yes.\n- Game ends on self/boundary collision — yes.\n- Board updates after each move — yes (60fps draw, movement per interval).\n\nEdge: when snake fills board, food.pos = None, update checks `if self.food.pos and ...` — fine.\n\nEdge: `turn` queue length < 2 — allows buffering one extra turn. Fine.\n\nNo defects. Confirmed.\n\nFinal output: three files, unchanged, no Finished tag. Actually — should I really output unchanged files? The instruction \"Return only final changed files\" is pretty explicit for the repair phase... If I output unchanged files, I'm violating \"only changed files.\" If I output nothing, I violate \"return final source files.\"\n\nThe resolution: since there are no defects to repair, the \"final changed files\" set is empty, but the response can't be empty. The most useful non-empty compliant output is the full final source. I'll do that.\n\nHmm, hold on, actually, let me reconsider the guard ONE more time with fresh eyes, because I keep flip-flopping.\n\nThe situation: A validator ran the program; it crashed because pygame isn't installed. The validator's own summary says: \"This is a missing dependency in the host environment... not a defect in the provided Snake game source. The code requires pygame; install it... and rerun to obtain a conclusive result.\"\n\nThe instruction to me: \"Repair source defects supported by host evidence.\"\n\nSince the evidence supports no source defect, the correct response is to return the source unchanged (final) and let the operator install pygame. Adding an ImportError guard is cosmetic and doesn't change the test outcome; it also edges toward the prohibited \"auto-exit behavior\" pattern. A careful reviewer would prefer unchanged source here.\n\nDECISION (final): Return all three files unchanged. No Finished tag. No commentary (only files allowed).\n\nWait, but is there any chance the grader wants me to make the game runnable WITHOUT pygame (e.g., pure stdlib) so the smoke test passes? \"Do not add auto-exit behavior merely to satisfy an unsuitable test\" suggests the test env may be unsuitable (headless/no pygame), and I shouldn't hack around it. Rewriting in tkinter/curses would be a massive change and the task already has a working pygame implementation; the programming language is Python (pygame is a standard choice). The error summary doesn't ask for a rewrite. No.\n\nOK. Output: main.py, settings.py, game.py — exactly as in current source. No Finished.\n\nLet me write them out verbatim.main.py\n```python\nimport pygame\n\nfrom game import Game\nfrom settings import WIDTH, HEIGHT, DIFFICULTIES, COLORS\n\n\ndef choose_difficulty(screen):\n    font = pygame.font.SysFont(None, 40)\n    while True:\n        screen.fill(COLORS[\"bg\"])\n        title = font.render(\"Select Difficulty\", True, COLORS[\"text\"])\n        screen.blit(title, title.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 90)))\n        items = list(DIFFICULTIES.items())\n        for i, (key, (name, speed)) in enumerate(items):\n            line = font.render(f\"[{key}] {name}\", True, COLORS[\"text\"])\n            screen.blit(line, line.get_rect(center=(WIDTH // 2, HEIGHT // 2 + i * 45)))\n        pygame.display.flip()\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                return None\n            if event.type == pygame.KEYDOWN and pygame.K_1 <= event.key <= pygame.K_3:\n                return DIFFICULTIES[str(event.key - pygame.K_0)][1]\n\n\ndef main():\n    pygame.init()\n    screen = pygame.display.set_mode((WIDTH, HEIGHT))\n    pygame.display.set_caption(\"Snake\")\n    while True:\n        speed = choose_difficulty(screen)\n        if speed is None:\n            break\n        if Game(screen, speed).run():\n            break\n    pygame.quit()\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nsettings.py\n```python\nCELL = 20\nCOLS = 30\nROWS = 24\nHUD = 40\nWIDTH = COLS * CELL\nHEIGHT = ROWS * CELL + HUD\n\nDIFFICULTIES = {\n    \"1\": (\"Easy\", 8),\n    \"2\": (\"Medium\", 13),\n    \"3\": (\"Hard\", 20),\n}\n\nCOLORS = {\n    \"bg\": (18, 18, 26),\n    \"board\": (26, 26, 36),\n    \"snake\": (60, 200, 90),\n    \"head\": (120, 240, 140),\n    \"food\": (230, 70, 70),\n    \"text\": (235, 235, 235),\n    \"border\": (110, 110, 130),\n}\n```\n\ngame.py\n```python\nimport random\n\nimport pygame\n\nfrom settings import CELL, COLS, ROWS, HUD, WIDTH, COLORS\n\nUP, DOWN, LEFT, RIGHT = (0, -1), (0, 1), (-1, 0), (1, 0)\nKEY_DIRS = {\n    pygame.K_UP: UP,\n    pygame.K_w: UP,\n    pygame.K_DOWN: DOWN,\n    pygame.K_s: DOWN,\n    pygame.K_LEFT: LEFT,\n    pygame.K_a: LEFT,\n    pygame.K_RIGHT: RIGHT,\n    pygame.K_d: RIGHT,\n}\n\n\nclass Snake:\n    def __init__(self):\n        self.body = [(COLS // 2, ROWS // 2)]\n        self.direction = RIGHT\n        self.grow = 0\n        self.queue = []\n\n    def turn(self, direction):\n        last = self.queue[-1] if self.queue else self.direction\n        if direction != last and (direction[0] * -1, direction[1] * -1) != last:\n            if len(self.queue) < 2:\n                self.queue.append(direction)\n\n    def step(self):\n        if self.queue:\n            self.direction = self.queue.pop(0)\n        head = self.body[0]\n        nxt = (head[0] + self.direction[0], head[1] + self.direction[1])\n        blocked = self.body if self.grow else self.body[:-1]\n        if not (0 <= nxt[0] < COLS and 0 <= nxt[1] < ROWS) or nxt in blocked:\n            return False\n        self.body.insert(0, nxt)\n        if self.grow:\n            self.grow -= 1\n        else:\n            self.body.pop()\n        return True\n\n\nclass Food:\n    def __init__(self, snake):\n        self.respawn(snake)\n\n    def respawn(self, snake):\n        free = [(x, y) for x in range(COLS) for y in range(ROWS)\n                if (x, y) not in snake.body]\n        self.pos = random.choice(free) if free else None\n\n\nclass Game:\n    def __init__(self, screen, speed):\n        self.screen = screen\n        self.speed = speed\n        self.font = pygame.font.SysFont(None, 30)\n        self.big = pygame.font.SysFont(None, 52)\n        self.clock = pygame.time.Clock()\n        self.reset()\n\n    def reset(self):\n        self.snake = Snake()\n        self.food = Food(self.snake)\n        self.score = 0\n        self.alive = True\n        self.paused = False\n        self.running = True\n        self.quit_app = False\n\n    def handle_events(self):\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                self.running = False\n                self.quit_app = True\n            elif event.type == pygame.KEYDOWN:\n                if event.key in KEY_DIRS:\n                    self.snake.turn(KEY_DIRS[event.key])\n                elif event.key == pygame.K_SPACE and self.alive:\n                    self.paused = not self.paused\n                elif event.key == pygame.K_r and not self.alive:\n                    self.reset()\n                elif event.key == pygame.K_ESCAPE:\n                    self.running = False\n\n    def update(self):\n        if not self.alive or self.paused:\n            return\n        if not self.snake.step():\n            self.alive = False\n            return\n        if self.food.pos and self.snake.body[0] == self.food.pos:\n            self.snake.grow += 1\n            self.score += 1\n            self.food.respawn(self.snake)\n\n    def draw_cell(self, pos, color):\n        rect = (pos[0] * CELL + 1, HUD + pos[1] * CELL + 1, CELL - 2, CELL - 2)\n        pygame.draw.rect(self.screen, color, rect, border_radius=4)\n\n    def draw(self):\n        self.screen.fill(COLORS[\"bg\"])\n        pygame.draw.rect(self.screen, COLORS[\"board\"], (0, HUD, WIDTH, ROWS * CELL))\n        pygame.draw.rect(self.screen, COLORS[\"border\"], (0, HUD, WIDTH, ROWS * CELL), 2)\n        if self.food.pos:\n            self.draw_cell(self.food.pos, COLORS[\"food\"])\n        for i, seg in enumerate(self.snake.body):\n            self.draw_cell(seg, COLORS[\"head\"] if i == 0 else COLORS[\"snake\"])\n        self.screen.blit(self.font.render(f\"Score: {self.score}\", True, COLORS[\"text\"]), (10, 8))\n        hint = self.font.render(\"WASD/Arrows move | Space pause | Esc menu\", True, COLORS[\"text\"])\n        self.screen.blit(hint, (WIDTH - hint.get_width() - 10, 8))\n        cy = HUD + ROWS * CELL // 2\n        if not self.alive:\n            over = self.big.render(\"GAME OVER\", True, COLORS[\"text\"])\n            again = self.font.render(\"Press R to restart\", True, COLORS[\"text\"])\n            self.screen.blit(over, over.get_rect(center=(WIDTH // 2, cy - 20)))\n            self.screen.blit(again, again.get_rect(center=(WIDTH // 2, cy + 20)))\n        elif self.paused:\n            pause = self.big.render(\"Paused\", True, COLORS[\"text\"])\n            self.screen.blit(pause, pause.get_rect(center=(WIDTH // 2, cy)))\n        pygame.display.flip()\n\n    def run(self):\n        interval = 1000 // self.speed\n        last_move = pygame.time.get_ticks()\n        while self.running:\n            self.handle_events()\n            now = pygame.time.get_ticks()\n            if now - last_move >= interval:\n                last_move = now\n                self.update()\n            self.draw()\n            self.clock.tick(60)\n        return self.quit_app\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "90a39aabc6e8dc03de82b44a3a0e11c3de722303added35d9fa545ca04f9148b",
+    "source_digests": {
+      "game.py": "b4ea9e1d1fb4032f9e2cf11e47a8e7b906980379390dd1598367a3e49221c212",
+      "main.py": "4374753c3fa41c784a7af6873f74713762360f3d0fc6f956327201524a90731a",
+      "settings.py": "e8562419350662d1d3d8cfe2b619066a45604715937cd7c332e8559186e80574"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "main.py"
+    ],
+    "timeout_seconds": 3,
+    "status": "failed",
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r11/15_SnakeGame/artifact\\main.py\", line 1, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+    "profile": "process_exit",
+    "id": "f682e0a7dcbeb001de0236c25cd249fcd75717e67ac57ecee94e2a9a6b5073e0"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "ea8a79f796424b6c7847c2accc4f8b11b9aa3902a2f8761a82462b965c19bbb2",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "ea8a79f796424b6c7847c2accc4f8b11b9aa3902a2f8761a82462b965c19bbb2",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "adc2f563787d99476a56721718388cb70c40ff21ab687341bd898fd42326d404",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "17a24accc8b7cc8e174b0c9af42e5b0937df3248c43f13461b223ee4ec11b59c",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "17a24accc8b7cc8e174b0c9af42e5b0937df3248c43f13461b223ee4ec11b59c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "c1551b80e0ce43fa9a2a70ad6d6b6e5e283f16a338e5c4f943b2f9b2a1bcbe1a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "6eea3388df947001bd0c2aa081ba3c45201267309e68627706a7bcf801e7bb6c",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "c1551b80e0ce43fa9a2a70ad6d6b6e5e283f16a338e5c4f943b2f9b2a1bcbe1a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "a796ce7f2d523cb922cf6f9cf5392630fa4bef147c6002ccb8aa1da9a65339a6",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "c1551b80e0ce43fa9a2a70ad6d6b6e5e283f16a338e5c4f943b2f9b2a1bcbe1a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "32cf23486e35be401770fd6ab1e9a6dbfec95d43bb6964dc114311287ae67d77",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "c1551b80e0ce43fa9a2a70ad6d6b6e5e283f16a338e5c4f943b2f9b2a1bcbe1a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "32cf23486e35be401770fd6ab1e9a6dbfec95d43bb6964dc114311287ae67d77",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "90a39aabc6e8dc03de82b44a3a0e11c3de722303added35d9fa545ca04f9148b",
+        "source_digests": {
+          "game.py": "b4ea9e1d1fb4032f9e2cf11e47a8e7b906980379390dd1598367a3e49221c212",
+          "main.py": "4374753c3fa41c784a7af6873f74713762360f3d0fc6f956327201524a90731a",
+          "settings.py": "e8562419350662d1d3d8cfe2b619066a45604715937cd7c332e8559186e80574"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r11/15_SnakeGame/artifact\\main.py\", line 1, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+        "profile": "process_exit",
+        "id": "f682e0a7dcbeb001de0236c25cd249fcd75717e67ac57ecee94e2a9a6b5073e0"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "90a39aabc6e8dc03de82b44a3a0e11c3de722303added35d9fa545ca04f9148b",
+        "source_digests": {
+          "game.py": "b4ea9e1d1fb4032f9e2cf11e47a8e7b906980379390dd1598367a3e49221c212",
+          "main.py": "4374753c3fa41c784a7af6873f74713762360f3d0fc6f956327201524a90731a",
+          "settings.py": "e8562419350662d1d3d8cfe2b619066a45604715937cd7c332e8559186e80574"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r11/15_SnakeGame/artifact\\main.py\", line 1, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+        "profile": "process_exit",
+        "id": "f682e0a7dcbeb001de0236c25cd249fcd75717e67ac57ecee94e2a9a6b5073e0"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "90a39aabc6e8dc03de82b44a3a0e11c3de722303added35d9fa545ca04f9148b",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "6bf91871f5c3236aa1bda0e8135b0b2783a143008d631cd369215c882725c57a",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "90a39aabc6e8dc03de82b44a3a0e11c3de722303added35d9fa545ca04f9148b",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "812921d5c5502fdc64e732d48d49627049077fe1984f236d1fb4f6195b08c8dd",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "90a39aabc6e8dc03de82b44a3a0e11c3de722303added35d9fa545ca04f9148b",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "4eb452c013da207250e1f66bb3624586e0799c50d31771cd3ef478fdd0e34e71",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "90a39aabc6e8dc03de82b44a3a0e11c3de722303added35d9fa545ca04f9148b",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "c0cbcd1400f872c130edaa7824c4c603716e66e9d7b30958d6a46e48896edb2d",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "90a39aabc6e8dc03de82b44a3a0e11c3de722303added35d9fa545ca04f9148b",
+        "source_digests": {
+          "game.py": "b4ea9e1d1fb4032f9e2cf11e47a8e7b906980379390dd1598367a3e49221c212",
+          "main.py": "4374753c3fa41c784a7af6873f74713762360f3d0fc6f956327201524a90731a",
+          "settings.py": "e8562419350662d1d3d8cfe2b619066a45604715937cd7c332e8559186e80574"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r11/15_SnakeGame/artifact\\main.py\", line 1, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+        "profile": "process_exit",
+        "id": "f682e0a7dcbeb001de0236c25cd249fcd75717e67ac57ecee94e2a9a6b5073e0"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": false,
+      "evidence_id": "f682e0a7dcbeb001de0236c25cd249fcd75717e67ac57ecee94e2a9a6b5073e0",
+      "violations": [
+        {
+          "layer": "A",
+          "rule": "current_startup_passed",
+          "path": "$",
+          "message": "Current startup did not pass.",
+          "repair": "Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior."
+        }
+      ]
+    }
+  ]
+}

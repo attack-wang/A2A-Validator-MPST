@@ -1,0 +1,4 @@
+STATS_FILE = Path.home() / ".wordle_stats.json"
+def load_stats() -> dict with keys played, wins, current_streak, max_streak, distribution {"1":0..."6":0, "fail":0}, last_played date
+def record_result(won, attempts) -> updates and saves; streak logic: if won: current_streak += 1 (if last played was yesterday? For simplicity, streak increments if consecutive days played and won; if last_played != yesterday and not None, reset to 1). Hmm, daily streak semantics: streak counts consecutive days with a win. If you play today and win: if last_played == yesterday -> streak+1 else streak=1. If lose: streak=0. max_streak = max.
+def render_summary(colors) -> string with played, win %, streak, distribution bars.

@@ -1,0 +1,79 @@
+{
+  "task_index": 22,
+  "project_name": "MonopolyGo",
+  "framework": "ChatDev1.0",
+  "workflow_status": "failed",
+  "workspace": "data/runs/mpst_contract/r09/22_MonopolyGo/artifact",
+  "source_file_count": 1,
+  "python_compile": {
+    "checked": 1,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-07T02:57:05+0800",
+  "judge": {
+    "verdict": "pass",
+    "functional_completeness": 0.95,
+    "executable_likelihood": 0.9,
+    "implemented_requirements": [
+      {
+        "requirement": "Dice rolling and movement around the board",
+        "fulfilled": true,
+        "evidence": "Game.turn() uses random.randint(1,6) twice to roll dice and then calls self.move(p, d1+d2) which updates p.pos with wrap‑around logic."
+      },
+      {
+        "requirement": "Property purchase prompt and handling",
+        "fulfilled": true,
+        "evidence": "In Game.land() for kind \"prop\" it asks input(\"Buy %s for $%d (rent $%d)? (y/n)\" ...) and, on \"y\", deducts money, records ownership and updates self.owner."
+      },
+      {
+        "requirement": "Rent collection when landing on owned property",
+        "fulfilled": true,
+        "evidence": "Game.land() detects if p.pos in self.owner and, if owned by another alive player, calls self.pay(p, rent, o) which transfers rent."
+      },
+      {
+        "requirement": "Chance card handling with various effects",
+        "fulfilled": true,
+        "evidence": "Game.chance() selects a random entry from CHANCE and processes effects such as moving to GO, sending to jail, moving back 3 spaces, and money adjustments."
+      },
+      {
+        "requirement": "Tracking player money and property ownership",
+        "fulfilled": true,
+        "evidence": "Player class stores self.money and self.owned; Game.owner maps board positions to player indices; net_worth() sums cash and property purchase prices."
+      },
+      {
+        "requirement": "Displaying game status information each round",
+        "fulfilled": true,
+        "evidence": "Game.info() prints round number, each player's name, money, position, owned properties and jail/bankrupt status."
+      },
+      {
+        "requirement": "Jail rules: paying, rolling doubles, third‑turn forced payment",
+        "fulfilled": true,
+        "evidence": "Game.turn() contains a branch for p.jail that offers (p)ay $50 or (r)oll for doubles, tracks attempts, and forces a $50 payment on the third failed attempt."
+      },
+      {
+        "requirement": "Free Parking pot accumulation and collection",
+        "fulfilled": true,
+        "evidence": "Tax squares add to self.pot; chance cards with negative money also add to pot; landing on \"parking\" gives the player the pot amount and resets it."
+      },
+      {
+        "requirement": "Game end conditions and winner determination",
+        "fulfilled": true,
+        "evidence": "Game.play() loops until max_rounds or only one player alive; Game.finish() announces the winner (single survivor or richest by net worth)."
+      }
+    ],
+    "critical_issues": [
+      "The game relies on interactive input (e.g., buying decisions, jail choices), which makes automated non‑interactive execution impossible without modification.",
+      "Chance card effect \"-3\" moves the player back three spaces and immediately calls self.land(p); this could lead to recursive chance handling if the new space is also a chance square, though the probability is low."
+    ],
+    "summary": "The provided code implements all core Monopoly mechanics required by the benchmark: dice rolling, board movement, property purchase, rent collection, chance cards, money and ownership tracking, status display, jail handling, free‑parking pot, and game termination logic. The implementation is coherent and appears runnable as a console script, yielding a pass with high functional completeness and a strong likelihood of successful execution.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": true
+}

@@ -1,0 +1,38 @@
+{
+  "task_index": 9,
+  "project_name": "2048",
+  "description": "Design a standard 2048 game using a 4x4 grid. Players combine tiles by pressing arrow keys to slide them in one direction. Tiles with the same number merge into one, doubling the value. After each move, a new tile appears in a random empty cell. The game ends when no moves are possible. Track and display the current score and highest tile reached.",
+  "framework": "ChatDev1.0",
+  "model": "glm-5.3-flash:cloud",
+  "content_contracts_enabled": true,
+  "session_type_enabled": true,
+  "status": "failed",
+  "error": "exit code 1",
+  "failure_type": "content_contract",
+  "project_path": "data/runs/mpst_contract/r01/09_2048/artifact",
+  "elapsed_seconds": 236.407,
+  "contract_rejections": 1,
+  "violated_rules": [
+    "current_startup_passed"
+  ],
+  "last_diagnostic": "\n\n**[Seminar Conclusion]**:\n\n main.py\n```python\n\"\"\"Terminal 2048: arrow keys slide tiles; merge equal tiles to reach 2048.\"\"\"\nimport os\nimport sys\n\nfrom game import add_tile, can_move, highest_tile, move, new_board\n\nCLEAR = \"\\033[2J\\033[H\"\nBORDER = \"+\" + \"-----+\" * 4\nDIRECTIONS = ('up', 'down', 'left', 'right')\nWASD = {'w': 'up', 's': 'down', 'a': 'left', 'd': 'right'}\n\nif sys.platform == 'win32':\n    try:\n        os.system(\"\")  # Enable ANSI escape processing on Windows consoles.\n    except OSError:\n        pass\n\n\ndef read_key():\n    \"\"\"Return 'up'/'down'/'left'/'right', 'quit', or '' for ignored keys.\"\"\"\n    try:\n        import msvcrt\n        ch = msvcrt.getwch()\n        if ch in ('\\x00', '\\xe0'):\n            ch = msvcrt.getwch()\n            return {'H': 'up', 'P': 'down', 'K': 'left', 'M': 'right'}.get(ch, '')\n        return WASD.get(ch.lower(), 'quit' if ch.lower() == 'q' else '')\n    except ImportError:\n        import select\n        import termios\n        import tty\n        fd = sys.stdin.fileno()\n        old = termios.tcgetattr(fd)\n        try:\n            tty.setraw(fd)\n            ch = sys.stdin.read(1)\n            if ch == '\\x1b':\n                ready, _, _ = select.select([sys.stdin], [], [], 0.1)\n                if ready:\n                    seq = sys.stdin.read(2)\n                    if len(seq) == 2 and seq[0] == '[':\n                        return {'A': 'up', 'B': 'down',\n                                'C': 'right', 'D': 'left'}.get(seq[1], '')\n                return ''\n            if ch in WASD:\n                return WASD[ch]\n            return 'quit' if ch.lower() == 'q' else ''\n        finally:\n            termios.tcsetattr(fd, termios.TCSADRAIN, old)\n\n\ndef render(board, score, best):\n    print(CLEAR, end=\"\")\n    print(\"2048 | Score: {} | Highest tile: {}\".format(score, best))\n    print(BORDER)\n    for row in board:\n        cells = [\"{:>4} \".format(v) if v else \"  .  \" for v in row]\n        print(\"|\" + \"|\".join(cells) + \"|\")\n        print(BORDER)\n    print(\"Move: arrow keys (or WASD). Quit: q.\", flush=True)\n\n\ndef main():\n    board = new_board()\n    score = 0\n    best = highest_tile(board)\n    render(board, score, best)\n    while True:\n        key = read_key()\n        if key == 'quit':\n            print(\"Bye! Score: {} | Highest tile: {}\".format(score, best))\n            return\n        if key not in DIRECTIONS:\n            continue\n        moved, gained = move(board, key)\n        if not moved:\n            continue\n        score += gained\n        add_tile(board)\n        best = max(best, highest_tile(board))\n        render(board, score, best)\n        if not can_move(board):\n            print(\"Game over! Final score: {} | Highest tile: {}\".format(score, best))\n            return\n\n\nif __name__ == '__main__':\n    main()\n```\n\n**[Update Codes]**\n\nmain.py updated.\n\n\n```\n'''\n\n'''\n--- Old\n+++ New\n@@ -1,4 +1,5 @@\n \"\"\"Terminal 2048: arrow keys slide tiles; merge equal tiles to reach 2048.\"\"\"\n+import os\n import sys\n \n from game import add_tile, can_move, highest_tile, move, new_board\n@@ -7,6 +8,12 @@\n BORDER = \"+\" + \"-----+\" * 4\n DIRECTIONS = ('up', 'down', 'left', 'right')\n WASD = {'w': 'up', 's': 'down', 'a': 'left', 'd': 'right'}\n+\n+if sys.platform == 'win32':\n+    try:\n+        os.system(\"\")  # Enable ANSI escape processing on Windows consoles.\n+    except OSError:\n+        pass\n \n \n def read_key():\n@@ -50,7 +57,7 @@\n         cells = [\"{:>4} \".format(v) if v else \"  .  \" for v in row]\n         print(\"|\" + \"|\".join(cells) + \"|\")\n         print(BORDER)\n-    print(\"Move: arrow keys (or WASD). Quit: q.\")\n+    print(\"Move: arrow keys (or WASD). Quit: q.\", flush=True)\n \n \n def main():\n```\n\ndir: data/runs/mpst_contract/r01/09_2048/artifact\n**[Software Info]**:\n\n \n\n💰**cost**=unknown\n\n🔨**version_updates**=-1\n\n📃**num_code_files**=2\n\n🏞**num_png_files**=0\n\n📚**num_doc_files**=5\n\n📃**code_lines**=151\n\n📋**env_lines**=-1\n\n📒**manual_lines**=-1\n\n🗣**num_utterances**=14\n\n🤔**num_self_reflections**=0\n\n❓**num_prompt_tokens**=10445\n\n❗**num_completion_tokens**=17854\n\n🌟**num_total_tokens**=28299\n\nTraceback (most recent call last):\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\run.py\", line 136, in <module>\n    chat_chain.execute_chain()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\chat_chain.py\", line 183, in execute_chain\n    content_guard.finish()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\content_guard.py\", line 134, in finish\n    raise ContentViolation(\"chatdev.stage_exit.v1\", findings)\ncontent_lab.chatdev_contracts.ContentViolation: {\"contract\": \"chatdev.stage_exit.v1\", \"violations\": [{\"layer\": \"A\", \"rule\": \"current_startup_passed\", \"path\": \"$\", \"message\": \"Current startup did not pass.\", \"repair\": \"Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior.\"}]}\n",
+  "artifact_pass": true,
+  "evaluation_error": null,
+  "result_path": "data/runs/mpst_contract/r01/09_2048\\run_result.json",
+  "model_decision_enabled": false,
+  "model_decision_calls": 0,
+  "terminal_contract": "chatdev.stage_exit.v1",
+  "terminal_rules": [
+    "current_startup_passed"
+  ],
+  "audit_checks": 18,
+  "delivered_phases": [
+    "DemandAnalysis",
+    "LanguageChoose",
+    "Coding",
+    "CodeReviewComment",
+    "CodeReviewModification",
+    "TestErrorSummary",
+    "TestModification"
+  ]
+}

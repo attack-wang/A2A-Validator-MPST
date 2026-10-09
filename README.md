@@ -1,5 +1,7 @@
 # MPST-A2A Validator
 
+ChatDev 的 MPST、内容契约实现与 960 次实验归档见 [research/chatdev-contracts](research/chatdev-contracts/README.md)，包含逐题数据、离线复核脚本和结果汇报。
+
 面向 A2A 多智能体通信的多方会话类型（MPST）协议投影与运行时验证框架。
 框架从全局协议生成各角色的局部协议，并在 Host 与 Remote Agent 的通信边界
 验证消息顺序、通信方向、通信对象、标签、数据类型、会话状态及未完成的工具调用。

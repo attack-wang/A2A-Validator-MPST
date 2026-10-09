@@ -1,0 +1,45 @@
+{
+  "task_index": 10,
+  "project_name": "Tiny Rouge",
+  "description": "Design a roguelike game inspired by Tower of the Sorcerer. Use a fixed 80x80 grid map. The player character is controlled using W/A/S/D keys for movement (up, left, down, right). The character can move only on floor tiles and cannot pass through walls. The goal is to reach the door to proceed to the next level. The player encounters monsters; combat is resolved by subtracting the monster’s HP from the player's HP. HP is restored by 20–30 points when the player touches a treasure chest. Ensure there is always at least one valid path from the starting position to the door. Include a minimal UI to display the player's current HP and encountered monster stats.",
+  "framework": "ChatDev1.0",
+  "model": "glm-5.3-flash:cloud",
+  "content_contracts_enabled": true,
+  "session_type_enabled": true,
+  "status": "failed",
+  "error": "exit code 1",
+  "failure_type": "content_contract",
+  "project_path": "data/runs/mpst_contract/r05/10_Tiny Rouge/artifact",
+  "elapsed_seconds": 276.0,
+  "contract_rejections": 5,
+  "violated_rules": [
+    "output_truncated",
+    "missing_source_files",
+    "output_truncated",
+    "output_truncated",
+    "current_startup_passed"
+  ],
+  "last_diagnostic": "        if g[y][x] == FLOOR and (y, x) != start and (y, x) != door]\n     random.shuffle(floors)\n     nm = min(len(floors), 8 + 2 * level)\n     for y, x in floors[:nm]:\n@@ -61,40 +88,27 @@\n     return g, start, door, monsters, chests\n \n \n-def draw(stdscr, grid, pos, hp, level, last, mstat, monsters, chests):\n-    stdscr.erase()\n-    H, W = stdscr.getmaxyx()\n-    vh = max(1, min(SIZE, H - 5))\n-    vw = max(1, min(SIZE, W - 1))\n+def draw(grid, pos, hp, level, last, mstat, monsters, chests):\n     py, px = pos\n-    y0 = max(0, min(SIZE - vh, py - vh // 2))\n-    x0 = max(0, min(SIZE - vw, px - vw // 2))\n-    for vy in range(vh):\n+    y0 = max(0, min(SIZE - VIEW, py - VIEW // 2))\n+    x0 = max(0, min(SIZE - VIEW, px - VIEW // 2))\n+    lines = ['\\033[H\\033[2J']\n+    for vy in range(VIEW):\n         row = []\n-        for vx in range(vw):\n+        for vx in range(VIEW):\n             y, x = y0 + vy, x0 + vx\n-            c = ('@' if (y, x) == pos else 'M' if (y, x) in monsters\n-                 else 'C' if (y, x) in chests else grid[y][x])\n-            row.append(c)\n-        try:\n-            stdscr.addstr(vy + 2, 0, ''.join(row))\n-        except curses.error:\n-            pass\n-    try:\n-        stdscr.addstr(0, 0, f\"HP: {hp}/{MAXHP}  Floor: {level}  [W/A/S/D move  Q quit]\"[:W - 1])\n-        stdscr.addstr(1, 0, last[:W - 1])\n-        stdscr.addstr(vh + 3, 0, \"@ you  M monster  C chest  D door  # wall\"[:W - 1])\n-        if mstat:\n-            stdscr.addstr(vh + 4, 0,\n-                          f\"Last monster: {mstat.name}  HP {mstat.hp}  ATK {mstat.atk}\"[:W - 1])\n-    except curses.error:\n-        pass\n-    stdscr.refresh()\n+            row.append('@' if (y, x) == pos else 'M' if (y, x) in monsters\n+                       else 'C' if (y, x) in chests else grid[y][x])\n+        lines.append(''.join(row))\n+    lines.append(f\"HP: {hp}/{MAXHP}  Floor: {level}  [W/A/S/D move  Q quit]\")\n+    lines.append(last)\n+    lines.append(\"@ you  M monster  C chest  D door  # wall\")\n+    if mstat:\n+        lines.append(f\"Last monster: {mstat.name}  HP {mstat.hp}  ATK {mstat.atk}\")\n+    print('\\n'.join(lines), flush=True)\n \n \n-def main(stdscr):\n-    curses.curs_set(0)\n-    stdscr.keypad(True)\n+def main():\n     level, hp = 1, MAXHP\n     last = \"Welcome! Reach the door (D). WASD to move, Q to quit.\"\n     mstat = None\n@@ -103,9 +117,9 @@\n         last = f\"-- Floor {level} --\"\n         dead = False\n         while True:\n-            draw(stdscr, grid, pos, hp, level, last, mstat, monsters, chests)\n-            key = stdscr.getch()\n-            if key in (ord('q'), ord('Q')):\n+            draw(grid, pos, hp, level, last, mstat, monsters, chests)\n+            key = read_key()\n+            if key in ('q', 'Q', '\\x03'):\n                 return\n             if key not in DIRS:\n                 continue\n@@ -132,18 +146,13 @@\n                 level += 1\n                 break\n         if dead:\n-            draw(stdscr, grid, pos, 0, level, last, mstat, monsters, chests)\n-            H, W = stdscr.getmaxyx()\n-            try:\n-                stdscr.addstr(0, 0, f\"YOU DIED on floor {level}.  [R] restart  [Q] quit \"[:max(0, W - 1)])\n-            except curses.error:\n-                pass\n-            stdscr.refresh()\n-            if stdscr.getch() in (ord('r'), ord('R')):\n+            draw(grid, pos, 0, level, last, mstat, monsters, chests)\n+            print(f\"YOU DIED on floor {level}.  [R] restart  [Q] quit\", flush=True)\n+            if read_key() in ('r', 'R'):\n                 level, hp, mstat = 1, MAXHP, None\n                 continue\n             return\n \n \n if __name__ == \"__main__\":\n-    curses.wrapper(main)\n+    main()\n```\n\ndir: data/runs/mpst_contract/r05/10_Tiny Rouge/artifact\n**[Software Info]**:\n\n \n\n💰**cost**=unknown\n\n🔨**version_updates**=-1\n\n📃**num_code_files**=1\n\n🏞**num_png_files**=0\n\n📚**num_doc_files**=5\n\n📃**code_lines**=141\n\n📋**env_lines**=-1\n\n📒**manual_lines**=-1\n\n🗣**num_utterances**=20\n\n🤔**num_self_reflections**=0\n\n❓**num_prompt_tokens**=27492\n\n❗**num_completion_tokens**=56928\n\n🌟**num_total_tokens**=84420\n\nTraceback (most recent call last):\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\run.py\", line 136, in <module>\n    chat_chain.execute_chain()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\chat_chain.py\", line 183, in execute_chain\n    content_guard.finish()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\content_guard.py\", line 134, in finish\n    raise ContentViolation(\"chatdev.stage_exit.v1\", findings)\ncontent_lab.chatdev_contracts.ContentViolation: {\"contract\": \"chatdev.stage_exit.v1\", \"violations\": [{\"layer\": \"A\", \"rule\": \"current_startup_passed\", \"path\": \"$\", \"message\": \"Current startup did not pass.\", \"repair\": \"Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior.\"}]}\n",
+  "artifact_pass": true,
+  "evaluation_error": null,
+  "result_path": "data/runs/mpst_contract/r05/10_Tiny Rouge\\run_result.json",
+  "model_decision_enabled": false,
+  "model_decision_calls": 0,
+  "terminal_contract": "chatdev.stage_exit.v1",
+  "terminal_rules": [
+    "current_startup_passed"
+  ],
+  "audit_checks": 28,
+  "delivered_phases": [
+    "DemandAnalysis",
+    "LanguageChoose",
+    "Coding",
+    "CodeComplete",
+    "CodeComplete",
+    "CodeComplete",
+    "CodeReviewComment",
+    "CodeReviewModification",
+    "TestErrorSummary",
+    "TestModification"
+  ]
+}

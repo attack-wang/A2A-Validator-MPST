@@ -1,0 +1,1 @@
+red blue green yellow   → exact 4 → win

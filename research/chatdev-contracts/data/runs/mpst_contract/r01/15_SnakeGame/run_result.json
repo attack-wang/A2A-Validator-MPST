@@ -1,0 +1,39 @@
+{
+  "task_index": 15,
+  "project_name": "SnakeGame",
+  "description": "Design a classic Snake game. The player controls a snake using directional inputs to move around the board and eat 'food' items. Each time the snake eats, it grows in length. The game ends if the snake collides with itself or the boundary. The board updates after each move. Show the current score based on food eaten, and consider offering multiple difficulty levels.",
+  "framework": "ChatDev1.0",
+  "model": "glm-5.3-flash:cloud",
+  "content_contracts_enabled": true,
+  "session_type_enabled": true,
+  "status": "failed",
+  "error": "exit code 1",
+  "failure_type": "content_contract",
+  "project_path": "data/runs/mpst_contract/r01/15_SnakeGame/artifact",
+  "elapsed_seconds": 289.547,
+  "contract_rejections": 3,
+  "violated_rules": [
+    "output_truncated",
+    "missing_source_files",
+    "missing_source_files"
+  ],
+  "last_diagnostic": ") < 2:\n                    self.pending.append(nd)\n            elif k == \"escape\":\n                self.root.destroy()\n        elif self.state == \"over\":\n            if k == \"r\":\n                self.show_menu()\n            elif k in (\"q\", \"escape\"):\n                self.root.destroy()\n\n    def start(self, diff):\n        self.name, self.delay = diff\n        self.snake = [(COLS // 2, ROWS // 2)]\n        self.dir = (1, 0)\n        self.pending = []\n        self.score = 0\n        self.food = self.spawn_food()\n        self.state = \"play\"\n        self.draw()\n        self.job = self.root.after(self.delay, self.step)\n\n    def spawn_food(self):\n        while True:\n            p = (random.randrange(COLS), random.randrange(ROWS))\n            if p not in self.snake:\n                return p\n\n    def step(self):\n        if self.state != \"play\":\n            return\n        if self.pending:\n            self.dir = self.pending.pop(0)\n        hx, hy = self.snake[0]\n        head = (hx + self.dir[0], hy + self.dir[1])\n        if head[0] < 0 or head[0] >= COLS or head[1] < 0 or head[1] >= ROWS or head in self.snake:\n            self.game_over()\n            return\n        self.snake.insert(0, head)\n        if head == self.food:\n            self.score += 1\n            if len(self.snake) >= COLS * ROWS:\n                self.game_over(win=True)\n                return\n            self.food = self.spawn_food()\n        else:\n            self.snake.pop()\n        self.draw()\n        self.job = self.root.after(self.delay, self.step)\n\n    def game_over(self, win=False):\n        self.state = \"over\"\n        self.job = None\n        self.draw()\n        msg = \"You Win!\" if win else \"Game Over!\"\n        self.canvas.create_rectangle(BOARD_W // 2 - 190, BOARD_H // 2 - 60,\n                                     BOARD_W // 2 + 190, BOARD_H // 2 + 60,\n                                     fill=BLACK, outline=RED, width=2)\n        self.text(msg + \"  Score: %d\" % self.score, 24, RED, BOARD_W // 2, BOARD_H // 2 - 20)\n        self.text(\"R: restart   Q: quit\", 15, WHITE, BOARD_W // 2, BOARD_H // 2 + 20)\n\n    def draw(self):\n        self.canvas.delete(\"all\")\n        self.canvas.create_rectangle(1, 1, BOARD_W - 1, BOARD_H - 1, outline=GRAY, width=2)\n        fx, fy = self.food\n        self.canvas.create_rectangle(fx * CELL + 1, fy * CELL + 1,\n                                     (fx + 1) * CELL - 1, (fy + 1) * CELL - 1,\n                                     fill=RED, outline=RED)\n        for sx, sy in self.snake:\n            self.canvas.create_rectangle(sx * CELL + 1, sy * CELL + 1,\n                                         (sx + 1) * CELL - 1, (sy + 1) * CELL - 1,\n                                         fill=GREEN, outline=GREEN)\n        self.text(\"Score: %d   Difficulty: %s\" % (self.score, self.name),\n                  14, WHITE, BOARD_W // 2, BOARD_H + 17)\n\n\ndef main():\n    root = tk.Tk()\n    SnakeGame(root)\n    root.mainloop()\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nTraceback (most recent call last):\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\run.py\", line 136, in <module>\n    chat_chain.execute_chain()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\chat_chain.py\", line 178, in execute_chain\n    self.execute_step(phase_item)\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\chat_chain.py\", line 167, in execute_step\n    self.chat_env = compose_phase_instance.execute(self.chat_env)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\composed_phase.py\", line 154, in execute\n    chat_env = self.phases[phase].execute(chat_env,\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\phase.py\", line 352, in execute\n    return content_guard.execute(self, chat_turn_limit, need_reflect)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\content_guard.py\", line 90, in execute\n    self.validate_candidate(phase.phase_name, phase.phase_env, phase.seminar_conclusion)\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\content_guard.py\", line 41, in validate_candidate\n    self.contracts.validate(phase, text, self.context(phase, phase_env), generation)\n  File \"source/pure-contract\\content_lab\\chatdev_contracts.py\", line 346, in validate\n    raise ContentViolation(item[\"contract\"], findings)\ncontent_lab.chatdev_contracts.ContentViolation: {\"contract\": \"chatdev.test_fix.v1\", \"violations\": [{\"layer\": \"C1\", \"rule\": \"missing_source_files\", \"path\": \"$\", \"message\": \"No explicitly declared Python source files were delivered.\", \"repair\": \"Stop analysis. Start with main.py on its own line followed by a fenced Python code block. Return compact complete executable files only.\"}]}\n",
+  "artifact_pass": false,
+  "evaluation_error": null,
+  "result_path": "data/runs/mpst_contract/r01/15_SnakeGame\\run_result.json",
+  "model_decision_enabled": false,
+  "model_decision_calls": 0,
+  "terminal_contract": "chatdev.test_fix.v1",
+  "terminal_rules": [
+    "missing_source_files"
+  ],
+  "audit_checks": 18,
+  "delivered_phases": [
+    "DemandAnalysis",
+    "LanguageChoose",
+    "Coding",
+    "CodeReviewComment",
+    "CodeReviewModification",
+    "TestErrorSummary"
+  ]
+}

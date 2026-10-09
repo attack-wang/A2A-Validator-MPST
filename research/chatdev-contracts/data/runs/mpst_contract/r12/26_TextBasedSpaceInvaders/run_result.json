@@ -1,0 +1,40 @@
+{
+  "task_index": 26,
+  "project_name": "TextBasedSpaceInvaders",
+  "description": "Program a simplified Space Invaders game. The player controls a ship at the bottom of the screen and can move horizontally and fire shots to destroy descending alien rows. The game ends if aliens reach the bottom or the player defeats all aliens. Add multiple alien rows, a limited number of lives, and score tracking.",
+  "framework": "ChatDev1.0",
+  "model": "glm-5.3-flash:cloud",
+  "content_contracts_enabled": true,
+  "session_type_enabled": true,
+  "status": "failed",
+  "error": "exit code 1",
+  "failure_type": "content_contract",
+  "project_path": "data/runs/mpst_contract/r12/26_TextBasedSpaceInvaders/artifact",
+  "elapsed_seconds": 192.969,
+  "contract_rejections": 3,
+  "violated_rules": [
+    "output_truncated",
+    "python_compile",
+    "current_startup_passed"
+  ],
+  "last_diagnostic": ".bottom >= self.player.rect.top:\n                self.state = \"over\"\n                self.message = \"GAME OVER - INVASION!\"\n                break\n\n        # All aliens destroyed: victory\n        if self.state == \"play\" and not self.aliens:\n            self.state = \"win\"\n            self.message = \"YOU WIN!\"\n\n    def draw(self, screen, font, big):\n        screen.fill((8, 10, 28))\n        for x, y, s in self.stars:\n            screen.fill((200, 200, 220), (x, y, s, s))\n        pygame.draw.rect(screen, (0, 190, 255), self.player.rect)\n        pygame.draw.rect(screen, (0, 190, 255),\n                         (self.player.rect.centerx - 4,\n                          self.player.rect.top - 8, 8, 8))\n        colors = [(255, 90, 90), (255, 170, 60), (120, 230, 120), (190, 130, 255)]\n        for a in self.aliens:\n            c = colors[a.row % len(colors)]\n            pygame.draw.rect(screen, c, a.rect)\n            pygame.draw.rect(screen, (8, 10, 28),\n                             (a.rect.x + 8, a.rect.y + 7, 7, 7))\n            pygame.draw.rect(screen, (8, 10, 28),\n                             (a.rect.right - 15, a.rect.y + 7, 7, 7))\n        for b in self.pbullets:\n            pygame.draw.rect(screen, b.color, b.rect)\n        for b in self.abullets:\n            pygame.draw.rect(screen, b.color, b.rect)\n        hud = font.render(\"Score: %d   Lives: %d   Aliens: %d\" %\n                          (self.score, self.player.lives, len(self.aliens)),\n                          True, (255, 255, 255))\n        screen.blit(hud, (12, 10))\n        if self.state != \"play\":\n            t = big.render(self.message, True, (255, 230, 80))\n            screen.blit(t, t.get_rect(center=(W // 2, H // 2 - 20)))\n            s = font.render(\"Press R to restart - Q to quit\", True, (255, 255, 255))\n            screen.blit(s, s.get_rect(center=(W // 2, H // 2 + 30)))\n        pygame.display.flip()\n\n\ndef main():\n    pygame.init()\n    screen = pygame.display.set_mode((W, H))\n    pygame.display.set_caption(\"Space Invaders\")\n    clock = pygame.time.Clock()\n    font = pygame.font.SysFont(None, 28)\n    big = pygame.font.SysFont(None, 56)\n    game = Game()\n    while True:\n        for e in pygame.event.get():\n            if e.type == pygame.QUIT:\n                pygame.quit()\n                sys.exit()\n            if e.type == pygame.KEYDOWN:\n                if e.key in (pygame.K_q, pygame.K_ESCAPE):\n                    pygame.quit()\n                    sys.exit()\n                elif e.key == pygame.K_r:\n                    game.reset()\n        game.update()\n        game.draw(screen, font, big)\n        clock.tick(FPS)\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\n**[Update Codes]**\n\nmain.py updated.\n\n\n```\n'''\n\n'''\n--- Old\n+++ New\n@@ -1,6 +1,11 @@\n-import pygame\n import random\n import sys\n+\n+try:\n+    import pygame\n+except ImportError:\n+    print(\"pygame is required. Install it with: pip install pygame\")\n+    sys.exit(1)\n \n W, H = 800, 600\n FPS = 60\n@@ -153,8 +158,10 @@\n         for a in self.aliens:\n             c = colors[a.row % len(colors)]\n             pygame.draw.rect(screen, c, a.rect)\n-            pygame.draw.rect(screen, (8, 10, 28), (a.rect.x + 8, a.rect.y + 7, 7, 7))\n-            pygame.draw.rect(screen, (8, 10, 28), (a.rect.right - 15, a.rect.y + 7, 7, 7))\n+            pygame.draw.rect(screen, (8, 10, 28),\n+                             (a.rect.x + 8, a.rect.y + 7, 7, 7))\n+            pygame.draw.rect(screen, (8, 10, 28),\n+                             (a.rect.right - 15, a.rect.y + 7, 7, 7))\n         for b in self.pbullets:\n             pygame.draw.rect(screen, b.color, b.rect)\n         for b in self.abullets:\n```\n\ndir: data/runs/mpst_contract/r12/26_TextBasedSpaceInvaders/artifact\n**[Software Info]**:\n\n \n\n💰**cost**=unknown\n\n🔨**version_updates**=-1\n\n📃**num_code_files**=1\n\n🏞**num_png_files**=0\n\n📚**num_doc_files**=5\n\n📃**code_lines**=180\n\n📋**env_lines**=-1\n\n📒**manual_lines**=-1\n\n🗣**num_utterances**=14\n\n🤔**num_self_reflections**=0\n\n❓**num_prompt_tokens**=17384\n\n❗**num_completion_tokens**=26619\n\n🌟**num_total_tokens**=44003\n\nTraceback (most recent call last):\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\run.py\", line 136, in <module>\n    chat_chain.execute_chain()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\chat_chain.py\", line 183, in execute_chain\n    content_guard.finish()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\content_guard.py\", line 134, in finish\n    raise ContentViolation(\"chatdev.stage_exit.v1\", findings)\ncontent_lab.chatdev_contracts.ContentViolation: {\"contract\": \"chatdev.stage_exit.v1\", \"violations\": [{\"layer\": \"A\", \"rule\": \"current_startup_passed\", \"path\": \"$\", \"message\": \"Current startup did not pass.\", \"repair\": \"Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior.\"}]}\n",
+  "artifact_pass": false,
+  "evaluation_error": null,
+  "result_path": "data/runs/mpst_contract/r12/26_TextBasedSpaceInvaders\\run_result.json",
+  "model_decision_enabled": false,
+  "model_decision_calls": 0,
+  "terminal_contract": "chatdev.stage_exit.v1",
+  "terminal_rules": [
+    "current_startup_passed"
+  ],
+  "audit_checks": 20,
+  "delivered_phases": [
+    "DemandAnalysis",
+    "LanguageChoose",
+    "Coding",
+    "CodeReviewComment",
+    "CodeReviewModification",
+    "TestErrorSummary",
+    "TestModification"
+  ]
+}

@@ -1,0 +1,3 @@
+def build_deck():
+    from card import Card  # deferred to avoid circular import
+    ...

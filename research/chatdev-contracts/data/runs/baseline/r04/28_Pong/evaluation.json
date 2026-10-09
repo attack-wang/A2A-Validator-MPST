@@ -1,0 +1,76 @@
+{
+  "task_index": 28,
+  "project_name": "Pong",
+  "framework": "ChatDev",
+  "workflow_status": "completed",
+  "workspace": "data/runs/baseline/r04/28_Pong/artifact",
+  "source_file_count": 6,
+  "python_compile": {
+    "checked": 6,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-03T00:33:07+0800",
+  "judge": {
+    "verdict": "pass",
+    "functional_completeness": 0.96,
+    "executable_likelihood": 0.95,
+    "implemented_requirements": [
+      {
+        "requirement": "Two-player control with separate keys (W/S for left, Up/Down for right)",
+        "fulfilled": true,
+        "evidence": "settings.py defines CONTROLS with pygame.K_w, pygame.K_s, pygame.K_UP, pygame.K_DOWN; Game.__init__ creates two Paddle instances using these controls."
+      },
+      {
+        "requirement": "Vertical paddles that move up and down and are clamped to the playfield",
+        "fulfilled": true,
+        "evidence": "paddle.py: Paddle.update(dt, keys) adjusts self.y based on pressed keys and clamps between 0 and WINDOW_HEIGHT - self.height."
+      },
+      {
+        "requirement": "Ball entity with position, velocity, and bouncing off top and bottom edges",
+        "fulfilled": true,
+        "evidence": "ball.py: Ball.update(dt) updates self.x/self.y and reverses self.vy when self.y - radius <= 0 or self.y + radius >= WINDOW_HEIGHT."
+      },
+      {
+        "requirement": "Ball bounces off paddles with angle variation and speed increase",
+        "fulfilled": true,
+        "evidence": "game.py: _handle_paddle_collisions detects overlap and calls Ball.bounce_off_paddle(paddle, direction); ball.py: bounce_off_paddle computes angle from hit offset, applies speedup, and sets new vx/vy."
+      },
+      {
+        "requirement": "Scoring when the opponent misses the ball (ball exits left/right)",
+        "fulfilled": true,
+        "evidence": "game.py: _handle_scoring checks ball.right < 0 or ball.left > WINDOW_WIDTH and calls Scoreboard.score_point(scorer)."
+      },
+      {
+        "requirement": "Winning score threshold and game‑over state",
+        "fulfilled": true,
+        "evidence": "settings.py defines WINNING_SCORE = 5; scoreboard.py: get_winner() returns player index when score >= WINNING_SCORE; Game._handle_scoring sets state to STATE_GAME_OVER when a winner is detected."
+      },
+      {
+        "requirement": "Reset ball after each point (and after game over) with correct serve direction",
+        "fulfilled": true,
+        "evidence": "game.py: after scoring, ball.reset(serve_direction) is called; after a win, ball.reset(serve_direction=1) is called; Ball.reset re‑centers the ball and clears the served flag."
+      },
+      {
+        "requirement": "Serve the ball with SPACE key and restart match after game over",
+        "fulfilled": true,
+        "evidence": "game.py: _handle_events() sets ball.serve() and changes state to STATE_PLAYING on SPACE during serving; on STATE_GAME_OVER it calls _restart() to start a new match."
+      },
+      {
+        "requirement": "Render paddles, ball, scores, center line and messages",
+        "fulfilled": true,
+        "evidence": "game.py: draw() fills background, draws dashed center line, calls paddle.draw(), ball.draw(), scoreboard.draw(), and renders messages for serving and game‑over states."
+      }
+    ],
+    "critical_issues": [],
+    "summary": "The provided source files implement a complete two‑player Pong game meeting all core requirements: separate controls, vertical paddles, a ball that bounces off walls and paddles, scoring, a configurable winning score, ball reset after each point, a serve mechanic, and full rendering. The code is syntactically correct, uses pygame correctly, and appears ready to run, so the submission passes with high functional completeness and a strong likelihood of successful execution.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": true
+}

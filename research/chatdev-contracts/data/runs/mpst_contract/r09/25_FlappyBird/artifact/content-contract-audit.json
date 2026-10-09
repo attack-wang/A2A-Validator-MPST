@@ -1,0 +1,342 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "As the Chief Product Officer, I've analyzed the customer's requirements for this task. The customer wants a **Flappy Bird clone** — an interactive game featuring:\n\n1. **Real-time keyboard input** (flap mechanic to keep the bird airborne)\n2. **Dynamic gameplay elements** (randomly generated pipes with vertical gaps)\n3. **Collision detection** (game over on pipe/ground collision)\n4. **Progressive difficulty scaling** (varying gap sizes and pipe speeds)\n5. **Score tracking** (incrementing on each successful pipe pass)\n\nGiven these requirements, let me share my assessment of the candidate modalities:\n\n- **Application**: Explicitly designed for implementing visualized games via Python. It supports real-time rendering, keyboard event handling, physics simulation (gravity, flap impulse), sprite-based graphics, and frame-by-frame game loops — all essential for a Flappy Bird clone. Python libraries like Pygame are well-suited for this.\n- **Website**: Could technically host an HTML/JS game, but the customer's request is for a standalone game experience, and our Application modality is purpose-built for this.\n- **Other modalities** (Image, Document, PowerPoint, Excel, PDF, Dashboard, Mind Map): These are static or informational formats and cannot deliver the interactive, real-time gameplay the customer demands.\n\n**My recommendation: Application.** It is the only modality that fully satisfies the interactive game requirements — real-time input, animation, collision physics, and dynamic difficulty adjustment — while remaining fully realizable within our development pipeline.\n\nI'd like to hear your thoughts on this. Do you agree that **Application** is the right product modality for this Flappy Bird clone task?"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "The user wants a Flappy Bird clone in Python. I need to output only final source files, starting with main.py, each file with a filename line followed by a closed ```python code block. Compact complete implementation.\n\nI'll use pygame. Keep it compact but complete. Maybe split into two files: main.py and game.py? The instruction says \"Start with main.py, followed by every other required Python file.\" A single main.py could suffice, but maybe splitting into main.py and flappy.py is fine. To keep it compact and safe within budget, I could do main.py plus a small game.py. Actually a single main.py is simplest and satisfies \"Start with main.py, followed by every other required Python file\" — if there are no other files, that's fine. But the phrasing suggests multiple files might be expected. I'll do main.py and game.py to be safe, keeping both compact.\n\nRequirements:\n- Player presses a key to 'flap'\n- Randomly generated vertical gaps in pipes\n- Each successful pass increases score\n- Game ends on collision with pipe or ground\n- Gradually adjust difficulty by varying gap sizes and pipe speeds\n\nImplementation plan:\n- pygame, 400x600 window\n- Bird: x fixed, y, velocity, gravity, flap impulse\n- Pipes: list of dicts with x, gap_y, gap_height, passed flag\n- Spawn pipes at intervals; gap height decreases with score (min limit); pipe speed increases with score (max limit)\n- Collision: bird rect vs pipe rects (top and bottom), ground collision, ceiling clamp\n- Score when pipe passes bird x\n- Game over screen with restart (press R or SPACE)\n- Draw simple shapes: bird as circle/rect, pipes as rects, ground\n\nLet me write compact code.\n\nmain.py:\n\n```python\nimport pygame\nfrom game import Game\n\ndef main():\n    pygame.init()\n    screen = pygame.display.set_mode((400, 600))\n    pygame.display.set_caption(\"Flappy Bird\")\n    clock = pygame.time.Clock()\n    game = Game(screen)\n    game.run(clock)\n    pygame.quit()\n\nif __name__ == \"__main__\":\n    main()\n```\n\ngame.py: contains Game class with all logic.\n\n```python\nimport pygame\nimport random\nimport sys\n\nWIDTH, HEIGHT = 400, 600\nGROUND_Y = HEIGHT - 60\nGRAVITY = 0.45\nFLAP = -8.5\nPIPE_W = 60\nSPAWN_X = WIDTH + 40\n\nWHITE = (255, 255, 255)\nSKY = (113, 197, 207)\nGREEN = (76, 175, 80)\nDARK = (55, 120, 55)\nYELLOW = (255, 200, 40)\nORANGE = (230, 126, 34)\nBLACK = (0, 0, 0)\nRED = (200, 60, 60)\n\nclass Bird:\n    def __init__(self):\n        self.x = 90\n        self.y = HEIGHT // 2\n        self.vel = 0\n        self.r = 14\n\n    def flap(self):\n        self.vel = FLAP\n\n    def update(self):\n        self.vel += GRAVITY\n        self.vel = min(self.vel, 12)\n        self.y += self.vel\n\n    def rect(self):\n        return pygame.Rect(self.x - self.r, self.y - self.r, self.r * 2, self.r * 2)\n\nclass Pipe:\n    def __init__(self, gap_h):\n        self.x = SPAWN_X\n        self.gap_h = gap_h\n        self.gap_y = random.randint(80, GROUND_Y - 80 - gap_h)\n        self.passed = False\n\n    def rects(self):\n        top = pygame.Rect(self.x, 0, PIPE_W, self.gap_y)\n        bottom = pygame.Rect(self.x, self.gap_y + self.gap_h, PIPE_W, GROUND_Y - (self.gap_y + self.gap_h))\n        return top, bottom\n\n    def update(self, speed):\n        self.x -= speed\n\nclass Game:\n    def __init__(self, screen):\n        self.screen = screen\n        self.font = pygame.font.SysFont(\"arial\", 32, bold=True)\n        self.small = pygame.font.SysFont(\"arial\", 20)\n        self.reset()\n\n    def reset(self):\n        self.bird = Bird()\n        self.pipes = []\n        self.score = 0\n        self.speed = 3.0\n        self.gap_h = 170\n        self.spawn_timer = 0\n        self.spawn_interval = 90  # frames\n        self.over = False\n        self.started = False\n\n    def difficulty(self):\n        # gradually harder: faster pipes, smaller gaps\n        self.speed = min(3.0 + self.score * 0.06, 7.0)\n        self.gap_h = max(170 - self.score * 2.5, 110)\n        self.spawn_interval = max(90 - self.score, 55)\n\n    def spawn(self):\n        jitter = random.randint(-15, 15)  # vary gap size slightly\n        self.pipes.append(Pipe(max(100, self.gap_h + jitter)))\n\n    def update(self):\n        if not self.started:\n            return\n        self.difficulty()\n        self.bird.update()\n        self.spawn_timer += 1\n        if self.spawn_timer >= self.spawn_interval:\n            self.spawn_timer = 0\n            self.spawn()\n        for p in self.pipes:\n            p.update(self.speed)\n            if not p.passed and p.x + PIPE_W < self.bird.x - self.bird.r:\n                p.passed = True\n                self.score += 1\n        self.pipes = [p for p in self.pipes if p.x + PIPE_W > 0]\n        # collisions\n        if self.bird.y + self.bird.r >= GROUND_Y:\n            self.over = True\n            self.bird.y = GROUND_Y - self.bird.r\n        if self.bird.y - self.bird.r < 0:\n            self.bird.y = self.bird.r\n            self.bird.vel = 0\n        for p in self.pipes:\n            top, bottom = p.rects()\n            if self.bird.rect().colliderect(top) or self.bird.rect().colliderect(bottom):\n                self.over = True\n                break\n\n    def draw(self):\n        self.screen.fill(SKY)\n        pygame.draw.rect(self.screen, (222, 216, 149), (0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y))\n        for p in self.pipes:\n            top, bottom = p.rects()\n            pygame.draw.rect(self.screen, GREEN, top)\n            pygame.draw.rect(self.screen, GREEN, bottom)\n            pygame.draw.rect(self.screen, DARK, top, 3)\n            pygame.draw.rect(self.screen, DARK, bottom, 3)\n        b = self.bird\n        pygame.draw.circle(self.screen, YELLOW, (b.x, int(b.y)), b.r)\n        pygame.draw.circle(self.screen, ORANGE, (b.x + 8, int(b.y)), 4)  # beak\n        pygame.draw.circle(self.screen, BLACK, (b.x + 5, int(b.y) - 4), 2)  # eye\n        score_s = self.font.render(str(self.score), True, WHITE)\n        self.screen.blit(score_s, (WIDTH // 2 - score_s.get_width() // 2, 20))\n        if not self.started:\n            msg = self.small.render(\"Press SPACE to flap and start\", True, BLACK)\n            self.screen.blit(msg, (WIDTH // 2 - msg.get_width() // 2, HEIGHT // 2 - 60))\n        if self.over:\n            go = self.font.render(\"Game Over!\", True, RED)\n            rs = self.small.render(\"Press R to restart, ESC to quit\", True, BLACK)\n            self.screen.blit(go, (WIDTH // 2 - go.get_width() // 2, HEIGHT // 2 - 50))\n            self.screen.blit(rs, (WIDTH // 2 - rs.get_width() // 2, HEIGHT // 2 - 10))\n        pygame.display.flip()\n\n    def run(self, clock):\n        while True:\n            clock.tick(60)\n            for e in pygame.event.get():\n                if e.type == pygame.QUIT:\n                    pygame.quit()\n                    sys.exit()\n                if e.type == pygame.KEYDOWN:\n                    if e.key in (pygame.K_SPACE, pygame.K_UP):\n                        if self.over:\n                            continue\n                        self.started = True\n                        self.bird.flap()\n                    elif e.key == pygame.K_r and self.over:\n                        self.reset()\n                    elif e.key == pygame.K_ESCAPE:\n                        pygame.quit()\n                        sys.exit()\n            if not self.over:\n                self.update()\n            self.draw()\n```\n\nWait — when game over, bird should maybe still fall? Keep simple: freeze on over. Fine.\n\nAlso gap_y random range: random.randint(80, GROUND_Y - 80 - gap_h). GROUND_Y = 540. With gap_h up to 185 (170+15), 540-80-185 = 275, so range 80..275 valid. With gap_h min 110-15=95... wait jitter can be negative: max(100, gap_h + jitter) so min gap 100. 540-80-100=360. Fine. But need to ensure the randint low <= high: gap_h max = 170+15=185, high = 540-80-185=275 >= 80. OK.\n\nDifficulty: gap shrinks with score, speed increases. Also spawn interval decreases. Good — \"Gradually adjust difficulty by varying gap sizes and pipe speeds.\" Gap sizes also vary randomly via jitter. Good.\n\nCheck pipe pass detection: p.x + PIPE_W < bird.x - r → passed. Good.\n\nCeiling: clamp, no death (typical flappy allows going above? Actually original kills you off-screen; clamping is fine).\n\nOne issue: in run(), when over and pressing space, `continue` — fine.\n\nAlso need `self.started` gate so bird doesn't fall before first flap. Good.\n\nFont: pygame.font.SysFont(\"arial\", ...) — fine.\n\nmain.py imports Game from game. Filename \"game.py\". Output format: filename line then fenced python block.\n\nKeep it compact. Output only files, no analysis. Let me finalize.main.py\n```python\nimport pygame\nfrom game import Game\n\n\ndef main():\n    pygame.init()\n    screen = pygame.display.set_mode((400, 600))\n    pygame.display.set_caption(\"Flappy Bird\")\n    clock = pygame.time.Clock()\n    Game(screen).run(clock)\n    pygame.quit()\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\ngame.py\n```python\nimport pygame\nimport random\nimport sys\n\nWIDTH, HEIGHT = 400, 600\nGROUND_Y = HEIGHT - 60\nGRAVITY = 0.45\nFLAP = -8.5\nPIPE_W = 60\n\nSKY = (113, 197, 207)\nGREEN = (76, 175, 80)\nDARK = (55, 120, 55)\nSAND = (222, 216, 149)\nYELLOW = (255, 200, 40)\nORANGE = (230, 126, 34)\nWHITE = (255, 255, 255)\nBLACK = (0, 0, 0)\nRED = (200, 60, 60)\n\n\nclass Bird:\n    def __init__(self):\n        self.x = 90\n        self.y = HEIGHT // 2\n        self.vel = 0\n        self.r = 14\n\n    def flap(self):\n        self.vel = FLAP\n\n    def update(self):\n        self.vel = min(self.vel + GRAVITY, 12)\n        self.y += self.vel\n\n    def rect(self):\n        return pygame.Rect(self.x - self.r, self.y - self.r, self.r * 2, self.r * 2)\n\n\nclass Pipe:\n    def __init__(self, gap_h):\n        self.x = WIDTH + 40\n        self.gap_h = gap_h\n        self.gap_y = random.randint(80, GROUND_Y - 80 - gap_h)\n        self.passed = False\n\n    def rects(self):\n        top = pygame.Rect(self.x, 0, PIPE_W, self.gap_y)\n        bottom = pygame.Rect(self.x, self.gap_y + self.gap_h, PIPE_W,\n                             GROUND_Y - (self.gap_y + self.gap_h))\n        return top, bottom\n\n\nclass Game:\n    def __init__(self, screen):\n        self.screen = screen\n        self.font = pygame.font.SysFont(\"arial\", 32, bold=True)\n        self.small = pygame.font.SysFont(\"arial\", 20)\n        self.reset()\n\n    def reset(self):\n        self.bird = Bird()\n        self.pipes = []\n        self.score = 0\n        self.speed = 3.0\n        self.gap_h = 170\n        self.spawn_timer = 0\n        self.spawn_interval = 90\n        self.over = False\n        self.started = False\n\n    def adjust_difficulty(self):\n        self.speed = min(3.0 + self.score * 0.06, 7.0)\n        self.gap_h = max(170 - self.score * 2.5, 110)\n        self.spawn_interval = max(90 - self.score, 55)\n\n    def spawn_pipe(self):\n        jitter = random.randint(-15, 15)\n        self.pipes.append(Pipe(max(100, self.gap_h + jitter)))\n\n    def update(self):\n        if not self.started:\n            return\n        self.adjust_difficulty()\n        self.bird.update()\n        self.spawn_timer += 1\n        if self.spawn_timer >= self.spawn_interval:\n            self.spawn_timer = 0\n            self.spawn_pipe()\n        for p in self.pipes:\n            p.x -= self.speed\n            if not p.passed and p.x + PIPE_W < self.bird.x - self.bird.r:\n                p.passed = True\n                self.score += 1\n        self.pipes = [p for p in self.pipes if p.x + PIPE_W > 0]\n        if self.bird.y + self.bird.r >= GROUND_Y:\n            self.bird.y = GROUND_Y - self.bird.r\n            self.over = True\n        if self.bird.y - self.bird.r < 0:\n            self.bird.y = self.bird.r\n            self.bird.vel = 0\n        for p in self.pipes:\n            top, bottom = p.rects()\n            if self.bird.rect().colliderect(top) or self.bird.rect().colliderect(bottom):\n                self.over = True\n                break\n\n    def draw(self):\n        self.screen.fill(SKY)\n        pygame.draw.rect(self.screen, SAND, (0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y))\n        for p in self.pipes:\n            top, bottom = p.rects()\n            pygame.draw.rect(self.screen, GREEN, top)\n            pygame.draw.rect(self.screen, GREEN, bottom)\n            pygame.draw.rect(self.screen, DARK, top, 3)\n            pygame.draw.rect(self.screen, DARK, bottom, 3)\n        b = self.bird\n        pygame.draw.circle(self.screen, YELLOW, (b.x, int(b.y)), b.r)\n        pygame.draw.circle(self.screen, ORANGE, (b.x + 10, int(b.y)), 4)\n        pygame.draw.circle(self.screen, BLACK, (b.x + 5, int(b.y) - 4), 2)\n        s = self.font.render(str(self.score), True, WHITE)\n        self.screen.blit(s, (WIDTH // 2 - s.get_width() // 2, 20))\n        if not self.started:\n            m = self.small.render(\"Press SPACE to flap and start\", True, BLACK)\n            self.screen.blit(m, (WIDTH // 2 - m.get_width() // 2, HEIGHT // 2 - 60))\n        if self.over:\n            go = self.font.render(\"Game Over!\", True, RED)\n            rs = self.small.render(\"Press R to restart, ESC to quit\", True, BLACK)\n            self.screen.blit(go, (WIDTH // 2 - go.get_width() // 2, HEIGHT // 2 - 50))\n            self.screen.blit(rs, (WIDTH // 2 - rs.get_width() // 2, HEIGHT // 2 - 10))\n        pygame.display.flip()\n\n    def run(self, clock):\n        while True:\n            clock.tick(60)\n            for e in pygame.event.get():\n                if e.type == pygame.QUIT:\n                    pygame.quit()\n                    sys.exit()\n                if e.type == pygame.KEYDOWN:\n                    if e.key in (pygame.K_SPACE, pygame.K_UP) and not self.over:\n                        self.started = True\n                        self.bird.flap()\n                    elif e.key == pygame.K_r and self.over:\n                        self.reset()\n                    elif e.key == pygame.K_ESCAPE:\n                        pygame.quit()\n                        sys.exit()\n            if not self.over:\n                self.update()\n            self.draw()\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "f4bc760823e12b36305e99909533b473720d43f171c67629a6dcac1fe15ae48f",
+      "result": "{\"verdict\": \"finished\", \"issues\": []}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "f4bc760823e12b36305e99909533b473720d43f171c67629a6dcac1fe15ae48f",
+      "result": " Finished"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "f4bc760823e12b36305e99909533b473720d43f171c67629a6dcac1fe15ae48f",
+      "result": "{\"status\": \"failed\", \"test_run_id\": \"48eba0cfb6f50eabcf712e5e3c0cca305aa43559fe3a6610237ac8f903d3abcc\", \"summary\": \"Startup smoke failed with exit code 1 due to ModuleNotFoundError: No module named 'pygame' raised at main.py line 1. This is a missing dependency in the host environment, not a source code error: the provided main.py and game.py are syntactically valid and correctly import pygame. Installing pygame into the executing interpreter (e.g., pip install pygame) should allow the Flappy Bird clone to launch; no code changes are indicated by this evidence.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "f4bc760823e12b36305e99909533b473720d43f171c67629a6dcac1fe15ae48f",
+      "result": "main.py\n```python\nimport pygame\nfrom game import Game\n\ndef main():\n    pygame.init()\n    screen = pygame.display.set_mode((400, 600))\n    pygame.display.set_caption(\"Flappy Bird\")\n    clock = pygame.time.Clock()\n    game = Game(screen)\n    game.run(clock)\n    pygame.quit()\n\nif __name__ == \"__main__\":\n    main()\n```\n\ngame.py\n```python\nimport pygame\nimport random\nimport sys\n\nWIDTH, HEIGHT = 400, 600\nGROUND_Y = HEIGHT - 60\nGRAVITY = 0.45\nFLAP = -8.5\nPIPE_W = 60\n\nSKY = (113, 197, 207)\nGREEN = (76, 175, 80)\nDARK = (55, 120, 55)\nSAND = (222, 216, 149)\nYELLOW = (255, 200, 40)\nORANGE = (230, 126, 34)\nWHITE = (255, 255, 255)\nBLACK = (0, 0, 0)\nRED = (200, 60, 60)\n\n\nclass Bird:\n    def __init__(self):\n        self.x = 90\n        self.y = HEIGHT // 2\n        self.vel = 0\n        self.r = 14\n\n    def flap(self):\n        self.vel = FLAP\n\n    def update(self):\n        self.vel = min(self.vel + GRAVITY, 12)\n        self.y += self.vel\n\n    def rect(self):\n        return pygame.Rect(self.x - self.r, self.y - self.r, self.r * 2, self.r * 2)\n\n\nclass Pipe:\n    def __init__(self, gap_h):\n        self.x = WIDTH + 40\n        self.gap_h = gap_h\n        self.gap_y = random.randint(80, GROUND_Y - 80 - gap_h)\n        self.passed = False\n\n    def rects(self):\n        top = pygame.Rect(self.x, 0, PIPE_W, self.gap_y)\n        bottom = pygame.Rect(self.x, self.gap_y + self.gap_h, PIPE_W,\n                             GROUND_Y - (self.gap_y + self.gap_h))\n        return top, bottom\n\n\nclass Game:\n    def __init__(self, screen):\n        self.screen = screen\n        self.font = pygame.font.SysFont(\"arial\", 32, bold=True)\n        self.small = pygame.font.SysFont(\"arial\", 20)\n        self.reset()\n\n    def reset(self):\n        self.bird = Bird()\n        self.pipes = []\n        self.score = 0\n        self.speed = 3.0\n        self.gap_h = 170\n        self.spawn_timer = 0\n        self.spawn_interval = 90\n        self.over = False\n        self.started = False\n\n    def adjust_difficulty(self):\n        self.speed = min(3.0 + self.score * 0.06, 7.0)\n        self.gap_h = max(170 - self.score * 2.5, 110)\n        self.spawn_interval = max(90 - self.score, 55)\n\n    def spawn_pipe(self):\n        jitter = random.randint(-15, 15)\n        self.pipes.append(Pipe(max(100, self.gap_h + jitter)))\n\n    def update(self):\n        if not self.started:\n            return\n        self.adjust_difficulty()\n        self.bird.update()\n        self.spawn_timer += 1\n        if self.spawn_timer >= self.spawn_interval:\n            self.spawn_timer = 0\n            self.spawn_pipe()\n        for p in self.pipes:\n            p.x -= self.speed\n            if not p.passed and p.x + PIPE_W < self.bird.x - self.bird.r:\n                p.passed = True\n                self.score += 1\n        self.pipes = [p for p in self.pipes if p.x + PIPE_W > 0]\n        if self.bird.y + self.bird.r >= GROUND_Y:\n            self.bird.y = GROUND_Y - self.bird.r\n            self.over = True\n        if self.bird.y - self.bird.r < 0:\n            self.bird.y = self.bird.r\n            self.bird.vel = 0\n        for p in self.pipes:\n            top, bottom = p.rects()\n            if self.bird.rect().colliderect(top) or self.bird.rect().colliderect(bottom):\n                self.over = True\n                break\n\n    def draw(self):\n        self.screen.fill(SKY)\n        pygame.draw.rect(self.screen, SAND, (0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y))\n        for p in self.pipes:\n            top, bottom = p.rects()\n            pygame.draw.rect(self.screen, GREEN, top)\n            pygame.draw.rect(self.screen, GREEN, bottom)\n            pygame.draw.rect(self.screen, DARK, top, 3)\n            pygame.draw.rect(self.screen, DARK, bottom, 3)\n        b = self.bird\n        pygame.draw.circle(self.screen, YELLOW, (b.x, int(b.y)), b.r)\n        pygame.draw.circle(self.screen, ORANGE, (b.x + 10, int(b.y)), 4)\n        pygame.draw.circle(self.screen, BLACK, (b.x + 5, int(b.y) - 4), 2)\n        s = self.font.render(str(self.score), True, WHITE)\n        self.screen.blit(s, (WIDTH // 2 - s.get_width() // 2, 20))\n        if not self.started:\n            m = self.small.render(\"Press SPACE to flap and start\", True, BLACK)\n            self.screen.blit(m, (WIDTH // 2 - m.get_width() // 2, HEIGHT // 2 - 60))\n        if self.over:\n            go = self.font.render(\"Game Over!\", True, RED)\n            rs = self.small.render(\"Press R to restart, ESC to quit\", True, BLACK)\n            self.screen.blit(go, (WIDTH // 2 - go.get_width() // 2, HEIGHT // 2 - 50))\n            self.screen.blit(rs, (WIDTH // 2 - rs.get_width() // 2, HEIGHT // 2 - 10))\n        pygame.display.flip()\n\n    def run(self, clock):\n        while True:\n            clock.tick(60)\n            for e in pygame.event.get():\n                if e.type == pygame.QUIT:\n                    pygame.quit()\n                    sys.exit()\n                if e.type == pygame.KEYDOWN:\n                    if e.key in (pygame.K_SPACE, pygame.K_UP) and not self.over:\n                        self.started = True\n                        self.bird.flap()\n                    elif e.key == pygame.K_r and self.over:\n                        self.reset()\n                    elif e.key == pygame.K_ESCAPE:\n                        pygame.quit()\n                        sys.exit()\n            if not self.over:\n                self.update()\n            self.draw()\n```\n\nrequirements.txt\n```python\npygame>=2.0\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "f4bc760823e12b36305e99909533b473720d43f171c67629a6dcac1fe15ae48f",
+    "source_digests": {
+      "game.py": "6a00c87aaea661b239de22f8567529739b78b14a4de4efe89a046349901b63f2",
+      "main.py": "c7ee8344472da92e74353d02f470d00017be8688e620af7b3fcc52e7bc986850"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "main.py"
+    ],
+    "timeout_seconds": 3,
+    "status": "failed",
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r09/25_FlappyBird/artifact\\main.py\", line 1, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+    "profile": "process_exit",
+    "id": "48eba0cfb6f50eabcf712e5e3c0cca305aa43559fe3a6610237ac8f903d3abcc"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "705350dc1c23f2e440c23d3df1a182152dbb5291d565510e0aa4705d0946aadc",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "705350dc1c23f2e440c23d3df1a182152dbb5291d565510e0aa4705d0946aadc",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "dc9a98c7c84c3ca3a3fd4d4920117df9c74f9b199c0d1af1cb9357fd871a38eb",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "output_truncated",
+          "path": "$",
+          "message": "Model output reached its generation/context limit.",
+          "repair": "Output budget was exhausted. Omit analysis, architecture descriptions and drafts. Return a smaller complete implementation satisfying the task, with explicit filenames and closed code fences."
+        }
+      ],
+      "candidate_sha256": "b19969946ad089288e991bc4ad3baeac50d95eab460b66c32a82a9f4abc66ee5",
+      "termination_reasons": [
+        "length"
+      ],
+      "rejected_candidate": "main.py\n```python\nfrom game import Game\n\n\ndef main():\n    Game().run()\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\ngame.py\n```python\nimport random\nimport pygame\nfrom bird import Bird\nfrom pipe import Pipe\n\nWIDTH, HEIGHT = 400, 600\nGROUND_H = 80\nFPS = 60\nSKY = (113, 197, 207)\nGROUND_C = (222, 184, 100)\nGROUND_D = (196, 156, 76)\n\n\nclass Game:\n    def __init__(self):\n        pygame.init()\n        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))\n        pygame.display.set_caption(\"Flappy Bird\")\n        self.clock = pygame.time.Clock()\n        self.font = pygame.font.SysFont(\"arial\", 36, bold=True)\n        self.small = pygame.font.SysFont(\"arial\", 22)\n        self.state = \"menu\"\n        self.reset()\n\n    def reset(self):\n        self.bird = Bird(90, (HEIGHT - GROUND_H) // 2)\n        self.pipes = []\n        self.score = 0\n        self.best = getattr(self, \"best\", 0)\n        self.speed = 2.5\n        self.t = 0\n        self.ground_x = 0.0\n\n    def difficulty(self):\n        speed = min(2.5 + self.score * 0.06, 6.0)\n        base_gap = max(140, 230 - self.score * 2)\n        return speed, base_gap\n\n    def spawn_pipe(self):\n        _, base_gap = self.difficulty()\n        gap_h = int(max(110, base_gap + random.uniform(-25, 25)))\n        margin = 50\n        lo = margin\n        hi = HEIGHT - GROUND_H - margin - gap_h\n        self.pipes.append(Pipe(WIDTH + 30, random.randint(lo, max(lo, hi)), gap_h))\n\n    def flap_action(self):\n        if self.state == \"menu\":\n            self.state = \"play\"\n            self.bird.flap()\n        elif self.state == \"play\":\n            self.bird.flap()\n        else:\n            self.reset()\n            self.state = \"play\"\n            self.bird.flap()\n\n    def handle_event(self, e):\n        if e.type == pygame.QUIT:\n            pygame.quit()"
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "output_truncated",
+          "path": "$",
+          "message": "Model output reached its generation/context limit.",
+          "repair": "Output budget was exhausted. Omit analysis, architecture descriptions and drafts. Return a smaller complete implementation satisfying the task, with explicit filenames and closed code fences."
+        }
+      ],
+      "candidate_sha256": "977d4ac5cd30a45cf021753656eb615f7a9949fd84245225466dd31b1f01248a",
+      "termination_reasons": [
+        "length"
+      ],
+      "rejected_candidate": "The user wants a Flappy Bird clone in Python. I need to output only final source files, starting with main.py, each file with a filename line followed by a closed ```python code block. Keep it compact but complete. No analysis or descriptions.\n\nI'll use pygame. Let me write a compact implementation:\n\n- main.py: entry point\n- Maybe a single file is enough, but the instruction says \"Start with main.py, followed by every other required Python file.\" I could do main.py plus maybe game.py. To keep it compact, I could do just main.py, but perhaps splitting into a couple of files is fine. Actually a single main.py is acceptable — \"every other required Python file\" — if there are none, just main.py. But to be safe, maybe two files: main.py and flappy.py? Compact is prioritized. I'll do main.py only, complete.\n\nActually, let me consider: the contract says \"Start with main.py, followed by every other required Python file.\" A single-file implementation satisfies this. Let me write a compact but complete pygame Flappy Bird.\n\nFeatures:\n- Bird with gravity, flap on space/up/click\n- Pipes with random gap positions, gap sizes vary, speed increases gradually\n- Score increments on passing pipes\n- Collision with pipe or ground ends game\n- Game over screen, restart\n\nLet me write it:\n\n```python\n# main.py\nimport pygame\nimport random\nimport sys\n\npygame.init()\n\nWIDTH, HEIGHT = 480, 640\nGROUND_H = 80\nscreen = pygame.display.set_mode((WIDTH, HEIGHT))\npygame.display.set_caption(\"Flappy Bird\")\nclock = pygame.time.Clock()\nFONT = pygame.font.SysFont(\"arial\", 32, bold=True)\nSMALL = pygame.font.SysFont(\"arial\", 20)\n\nGRAVITY = 0.45\nFLAP = -8.5\nPIPE_W = 70\nBASE_SPEED = 3.0\nMAX_SPEED = 6.5\nBASE_GAP = 190\nMIN_GAP = 120\nPIPE_INTERVAL = 110  # frames\n\ndef difficulty(score):\n    t = min(score / 25.0, 1.0)\n    speed = BASE_SPEED + (MAX_SPEED - BASE_SPEED) * t\n    gap = BASE_GAP - (BASE_GAP - MIN_GAP) * t\n    return speed, gap\n\nclass Bird:\n    def __init__(self):\n        self.x = 100\n        self.y = HEIGHT // 2\n        self.vel = 0\n        self.r = 14\n        self.angle = 0\n\n    def flap(self):\n        self.vel = FLAP\n\n    def update(self):\n        self.vel += GRAVITY\n        self.vel = min(self.vel, 12)\n        self.y += self.vel\n        self.angle = max(-90, min(30, -self.vel * 6))\n\n    def rect(self):\n        return pygame.Rect(self.x - self.r, self.y - self.r, self.r*2, self.r*2)\n\n    def draw(self, surf):\n        body = pygame.Surface((self.r*2, self.r*2), pygame.SRCALPHA)\n        pygame.draw.circle(body, (255, 220, 60), (self.r, self.r), self.r)\n        pygame.draw.circle(body, (255, 255, 255), (self.r+5, self.r-4), 4)\n        pygame.draw.circle(body, (0,0,0), (self.r+6, self.r-4), 2)\n        pygame.draw.polygon(body, (255, 140, 0), [(self.r-2, self.r+2), (self.r+8, self.r+4), (self.r-2, self.r+8)])\n        rot = pygame.transform.rotate(body, self.angle)\n        surf.blit(rot, rot.get_rect(center=(self.x, self.y)).topleft)\n\nclass Pipe:\n    def __init__(self, x, gap, speed):\n        self.x = x\n        self.gap = gap\n        self.speed = speed\n        self.gap_y = random.randint(gap//2 + 40, HEIGHT - GROUND_H - gap//2 - 40)\n        self.passed = False\n        self.w = PIPE_W\n\n    def update(self, speed):\n        self.x -= speed\n\n    def rects(self):\n        top = pygame.Rect(self.x, 0, self.w, self.gap_y - self.gap//2)\n        bottom_y = self.gap_y + self.gap//2\n        bottom = pygame.Rect(self.x, bottom_y, self.w, HEIGHT - GROUND_H - bottom_y)\n        return top, bottom\n\n    def draw(self, surf):\n        top, bottom = self.rects()\n        for r in (top, bottom):\n            pygame.draw.rect(surf, (80, 200, 80), r)\n            pygame.draw.rect(surf, (40, 140, 40), r, 3)\n            lip = pygame.Rect(r.x - 4, r.bottom - 24 if r.y == 0 else r.y, r.w + 8, 24)\n            # hmm, lip placement: for top pipe lip at bottom, for bottom pipe lip at top\n```\n\nLet me simplify lip drawing: for top pipe, lip rect at (x-4, top.bottom-24, w+8, 24); for bottom pipe, lip at (x-4, bottom.y, w+8, 24).\n\nGame states: MENU? Keep simple: PLAYING, GAME_OVER. Start on flap.\n\nCollision: bird rect vs pipe rects, or bird bottom >= ground, or bird top <= 0 (ceiling — maybe clamp instead of death; classic flappy dies on pipe/ground only; ceiling just clamps). Task says game ends if collides with pipe or ground. So ceiling clamp.\n\nScore: when pipe.x + w < bird.x and not passed: score += 1.\n\nPipes spawn every PIPE_INTERVAL frames or based on distance. Use distance-based: spawn when last pipe x < WIDTH - spacing. Spacing maybe 220.\n\nGame over screen: show score, press R/space to restart.\n\nLet me write the full code compactly.\n\n```python\nimport pygame, random, sys\n\npygame.init()\nWIDTH, HEIGHT, GROUND_H = 480, 640, 80\nscreen = pygame.display.set_mode((WIDTH, HEIGHT))\npygame.display.set_caption(\"Flappy Bird Clone\")\nclock = pygame.time.Clock()\nFONT = pygame.font.SysFont(\"arial\", 36, bold=True)\nSMALL = pygame.font.SysFont(\"arial\", 20)\n\nGRAVITY, FLAP_V, PIPE_W = 0.45, -8.5, 70\nBASE_SPEED, MAX_SPEED = 3.0, 6.5\nBASE_GAP, MIN_GAP = 190, 125\nSPACING = 230\n\ndef difficulty(score):\n    t = min(score / 25.0, 1.0)\n    return BASE_SPEED + (MAX_SPEED - BASE_SPEED) * t, BASE_GAP - (BASE_GAP - MIN_GAP) * t\n\nclass Bird:\n    def __init__(self):\n        self.x, self.y, self.vel, self.r, self.angle = 110, HEIGHT // 2, 0.0, 14, 0.0\n\n    def flap(self):\n        self.vel = FLAP_V\n\n    def update(self):\n        self.vel = min(self.vel + GRAVITY, 12.0)\n        self.y += self.vel\n        self.angle = max(-90.0, min(30.0, -self.vel * 6))\n        if self.y < self.r:\n            self.y, self.vel = self.r, 0.0\n\n    def rect(self):\n        return pygame.Rect(int(self.x - self.r), int(self.y - self.r), self.r * 2, self.r * 2)\n\n    def draw(self, surf):\n        s = pygame.Surface((self.r * 2, self.r * 2), pygame.SRCALPHA)\n        pygame.draw.circle(s, (255, 214, 64), (self.r, self.r), self.r)\n        pygame.draw.circle(s, (255, 255, 255), (self.r + 5, self.r - 5), 5)\n        pygame.draw.circle(s, (20, 20, 20), (self.r + 6, self.r - 5), 2)\n        pygame.draw.polygon(s, (255, 140, 0), [(self.r - 3, self.r + 2), (self.r + 9, self.r + 5), (self.r - 3, self.r + 9)])\n        rot = pygame.transform.rotate(s, self.angle)\n        surf.blit(rot, rot.get_rect(center=(self.x, self.y)).topleft)\n\nclass Pipe:\n    def __init__(self, x, gap, speed):\n        self.x, self.w, self.gap, self.speed, self.passed = float(x), PIPE_W, gap, speed, False\n        margin = 40\n        self.gap_y = random.randint(gap // 2 + margin, HEIGHT - GROUND_H - gap // 2 - margin)\n\n    def update(self, speed):\n        self.x -= speed\n\n    def rects(self):\n        top_h = self.gap_y - self.gap // 2\n        bot_y = self.gap_y + self.gap // 2\n        return (pygame.Rect(int(self.x), 0, self.w, top_h),\n                pygame.Rect(int(self.x), bot_y, self.w, HEIGHT - GROUND_H - bot_y))\n\n    def draw(self, surf):\n        top, bot = self.rects()\n        for r in (top, bot):\n            pygame.draw.rect(surf, (86, 190, 86), r)\n            pygame.draw.rect(surf, (40, 130, 40), r, 3)\n        pygame.draw.rect(surf, (60, 160, 60), (top.x - 4, top.bottom - 26, self.w + 8, 26), border_radius=4)\n        pygame.draw.rect(surf, (60, 160, 60), (bot.x - 4, bot.y, self.w + 8, 26), border_radius=4)\n\ndef draw_ground(surf, offset):\n    pygame.draw.rect(surf, (222, 184, 100), (0, HEIGHT - GROUND_H, WIDTH, GROUND_H))\n    pygame.draw.rect(surf, (160, 120, 60), (0, HEIGHT - GROUND_H, WIDTH, 8))\n    for x in range(-offset % 48, WIDTH, 48):\n        pygame.draw.rect(surf, (200, 160, 80), (x, HEIGHT - GROUND_H + 12, 24, 10))\n\ndef reset():\n    return Bird(), [], 0, 0.0, 0\n\ndef main():\n    bird, pipes, score, ground_off, spawn_x = reset()\n    state = \"ready\"\n    frame = 0\n    best = 0\n    while True:\n        for e in pygame.event.get():\n            if e.type == pygame.QUIT:\n                pygame.quit(); sys.exit()\n            if e.type == pygame.KEYDOWN:\n                if e.key in (pygame.K_SPACE, pygame.K_UP):\n                    if state == \"ready\":\n                        state = \"play\"\n                        bird.flap()\n                    elif state == \"play\":\n                        bird.flap()\n                    elif state == \"over\":\n                        bird, pipes, score, ground_off, spawn_x = reset()\n                        state = \"ready\"\n                if e.key == pygame.K_r and state == \"over\":\n                    bird, pipes, score, ground_off, spawn_x = reset()\n                    state = \"ready\"\n            if e.type == pygame.MOUSEBUTTONDOWN and state in (\"ready\", \"play\"):\n                if state == \"ready\": state = \"play\"\n                bird.flap()\n\n        speed, gap = difficulty(score)\n        if state == \"play\":\n            bird.update()\n            ground_off = (ground_off + speed) % 48\n            if not pipes or pipes[-1].x < WIDTH - SPACING:\n                pipes.append(Pipe(WIDTH + 20, gap, speed))\n            for p in pipes:\n                p.update(speed)\n                top, bot = p.rects()\n                if bird.rect().colliderect(top) or bird.rect().colliderect(bot):\n                    state = \"over\"\n                if not p.passed and p.x + p.w < bird.x:\n                    p.passed = True\n                    score += 1\n            if bird.y + bird.r >= HEIGHT - GROUND_H:\n                state = \"over\"\n            pipes = [p for p in pipes if p.x + p.w > -10]\n            if state == \"over\":\n                best = max(best, score)\n        elif state == \"ready\":\n            bird.y = HEIGHT // 2 + 6 * (1 if frame % 60 < 30 else -1)  # gentle bob\n            ground_off = (ground_off + speed) % 48\n\n        screen.fill((113, 197, 207))\n        # clouds maybe skip\n        for p in pipes:\n            p.draw(screen)\n        draw_ground(screen, int(ground_off))\n        bird.draw(screen)\n        if state == \"play\":\n            screen.blit(FONT.render(str(score), True, (255, 255, 255)), (WIDTH // 2 - 10, 40))\n        elif state == \"ready\":\n            t1 = FONT.render(\"Flappy Bird\", True, (255, 255, 255))\n            t2 = SMALL.render(\"Press SPACE / UP / click to flap\", True, (255, 255, 255))\n            screen.blit(t1, t1.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 60)))\n            screen.blit(t2, t2.get_rect(center=(WIDTH // 2, HEIGHT // 2)))\n        else:\n            t1 = FONT.render(\"Game Over\", True, (220, 60, 60))\n            t2 = SMALL.render(f\"Score: {score}   Best: {best}\", True, (255, 255, 255))\n            t3 = SMALL.render(\"Press SPACE or R to restart\", True, (255, 255, 255))\n            screen.blit(t1, t1.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 70)))\n            screen.blit(t2, t2.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 20)))\n            screen.blit(t3, t3.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 20)))\n        pygame.display.flip()\n        frame += 1\n        clock.tick(60)\n\nif __name__ == \"__main__\":\n    main()\n```\n\nWait — in \"ready\" state, bird bob: `bird.y = HEIGHT // 2 + 6 * (1 if frame % 60 < 30 else -1)` — that's a jumpy bob; fine, or use sine. Keep simple: `bird.y = HEIGHT // 2 + int(6 * math.sin(frame * 0.1))`. Need math import. Fine.\n\nAlso in ready state, bird.vel should be reset when transitioning to play — flap sets vel = FLAP_V, so fine.\n\nOne issue: in \"over\" state, bird should fall to ground maybe. Keep simple: freeze. Or let bird keep falling for effect. Compact: freeze is fine, but a small touch: on over, let bird drop until ground. Let's add: in over state, if bird.y + bird.r < HEIGHT - GROUND_H: bird.update(). That's nice and cheap.\n\nAlso collision check when bird hits pipe — game over immediately; fine.\n\nCheck spawn logic: `if not pipes or pipes[-1].x < WIDTH - SPACING` — pipes[-1].x < WIDTH - SPACING means last pipe has moved left enough; spawn new at WIDTH + 20. With SPACING 230 and speed 3, that's fine. Gap sizes vary per pipe via difficulty(score) at spawn time — gap shrinks as score grows. Also could randomize gap slightly: gap = int(gap * random.uniform(0.9, 1.1))? Task says \"varying gap sizes\" — difficulty-based shrink plus slight random variance is good. Let me add random variance: `gap = max(MIN_GAP - 10, int(gap + random.uniform(-20, 20)))`. Hmm, careful not to go below min. Let me do: `gap = int(gap * random.uniform(0.85, 1.1))` clamped to [MIN_GAP - 15, BASE_GAP]. Actually simpler: in main spawn: `g = max(110, int(gap + random.randint(-25, 15)))`. That varies sizes and trends smaller with score. Good.\n\nAlso pipe speed could vary slightly per pipe: speed passed at spawn but update uses current global speed. I'll just use global speed for all pipes (uniform movement looks right). The \"pipe speeds\" difficulty is handled by global speed increase. Fine.\n\nEdge: bird.rect() uses circle bounding box slightly larger than circle — acceptable.\n\nCeiling: clamp, not death — matches spec (death only on pipe/ground).\n\nScore display during over also shows in the panel. Good.\n\nLet me also handle KEYDOWN K_ESCAPE quit? Optional. Add `if e.key == pygame.K_ESCAPE: pygame.quit(); sys.exit()`.\n\nDouble-check the lip drawing for top pipe: top rect has y=0, bottom = top_h. Lip at (top.x-4, top.bottom-26, w+8, 26) — sits at bottom edge of top pipe. Good. Bottom pipe lip at (bot.x-4, bot.y, w+8, 26) — top edge. Good.\n\ndraw_ground offset: `for x in range(-int(offset % 48), WIDTH, 48)` — wait I wrote `range(-offset % 48, ...)` — operator precedence: `-offset % 48` = `(-offset) % 48` which is positive in Python. That works for scrolling left as offset increases. Actually ground moves left as offset increases; stripes at x = -((offset) % 48) + k*48. `(-offset) % 48` equals `-(offset % 48)` mod 48... For offset=10: (-10)%48 = 38. Stripes at 38, 86,... As offset increases 10→11: (-11)%48=37, stripes shift left by 1. Correct scrolling. Good.\n\nIn ready state I update ground_off with speed — fine.\n\nThe `spawn_x` variable in reset is unused; remove it. reset returns (bird, pipes, score, ground_off). Let me clean.\n\nAlso `Pipe.speed` unused since update takes speed param — remove attribute.\n\nLet me also make sure `frame` increments and ready bob uses math.sin — import math.\n\nFinal code, single file main.py. The instruction: \"Start with main.py, followed by every other required Python file.\" Single file is fine and most compact. But maybe they expect at least the structure; single main.py satisfies \"no other required files.\"\n\nHmm, but ChatDev coding phase often expects multiple files. The contract says compact complete implementation. One file is safest for budget. I'll deliver main.py only.\n\nLet me finalize the code carefully, checking syntax.\n\n```python\nimport math\nimport random\nimport sys\n\nimport pygame\n\npygame.init()\n\nWIDTH, HEIGHT, GROUND_H = 480, 640, 80\nPIPE_W, SPACING = 70, 230\nGRAVITY, FLAP_V, MAX_FALL = 0.45, -8.5, 12.0\nBASE_SPEED, MAX_SPEED = 3.0, 6.5\nBASE_GAP, MIN_GAP = 190, 125\n\nscreen = pygame.display.set_mode((WIDTH, HEIGHT))\npygame.display.set_caption(\"Flappy Bird Clone\")\nclock = pygame.time.Clock()\nFONT = pygame.font.SysFont(\"arial\", 36, bold=True)\nSMALL = pygame.font.SysFont(\"arial\", 20)\n\n\ndef difficulty(score):\n    t = min(score / 25.0, 1.0)\n    return BASE_SPEED + (MAX_SPEED - BASE_SPEED) * t, BASE_GAP - (BASE_GAP - MIN_GAP) * t\n\n\nclass Bird:\n    def __init__(self):\n        self.x, self.y, self.vel, self.r, self.angle = 110.0, HEIGHT / 2, 0.0, 14, 0.0\n\n    def flap(self):\n        self.vel = FLAP_V\n\n    def update(self):\n        self.vel = min(self.vel + GRAVITY, MAX_FALL)\n        self.y += self.vel\n        self.angle = max(-90.0, min(30.0, -self.vel * 6))\n        if self.y < self.r:\n            self.y, self.vel = self.r, 0.0\n\n    def rect(self):\n        return pygame.Rect(int(self.x - self.r), int(self.y - self.r), self.r * 2, self.r * 2)\n\n    def draw(self, surf):\n        s = pygame.Surface((self.r * 2, self.r * 2), pygame.SRCALPHA)\n        pygame.draw.circle(s, (255, 214, 64), (self.r, self.r), self.r)\n        pygame.draw.circle(s, (255, 255, 255), (self.r + 5, self.r - 5), 5)\n        pygame.draw.circle(s, (20, 20, 20), (self.r + 6, self.r - 5), 2)\n        pygame.draw.polygon(s, (255, 140, 0),\n                            [(self.r - 3, self.r + 2), (self.r + 9, self.r + 5), (self.r - 3, self.r + 9)])\n        rot = pygame.transform.rotate(s, self.angle)\n        surf.blit(rot, rot.get_rect(center=(self.x, self.y)).topleft)\n\n\nclass Pipe:\n    def __init__(self, x, gap):\n        self.x, self.w, self.gap, self.passed = float(x), PIPE_W, int(gap), False\n        margin = 40\n        lo = self.gap // 2 + margin\n        hi = HEIGHT - GROUND_H - self.gap // 2 - margin\n        self.gap_y = random.randint(lo, max(lo, hi))\n\n    def update(self, speed):\n        self.x -= speed\n\n    def rects(self):\n        top_h = self.gap_y - self.gap // 2\n        bot_y = self.gap_y + self.gap // 2\n        return (pygame.Rect(int(self.x), 0, self.w, top_h),\n                pygame.Rect(int(self.x), bot_y, self.w, HEIGHT - GROUND_H - bot_y))\n\n    def draw(self, surf):\n        top, bot = self.rects()\n        for r in (top, bot):\n            pygame.draw.rect(surf, (86, 190, 86), r)\n            pygame.draw.rect(surf, (40, 130, 40), r, 3)\n        pygame.draw.rect(surf, (60, 160, 60), (top.x - 4, top.bottom - 26, self.w + 8, 26), border_radius=4)\n        pygame.draw.rect(surf, (60, 160, 60), (bot.x - 4, bot.y, self.w + 8, 26), border_radius=4)\n\n\ndef draw_ground(surf, offset):\n    pygame.draw.rect(surf, (222, 184, 100), (0, HEIGHT - GROUND_H, WIDTH, GROUND_H))\n    pygame.draw.rect(surf, (160, 120, 60), (0, HEIGHT - GROUND_H, WIDTH, 8))\n    for x in range(-int(offset) % 48, WIDTH, 48):\n        pygame.draw.rect(surf, (200, 160, 80), (x, HEIGHT - GROUND_H + 14, 24, 10))\n\n\ndef reset():\n    return Bird(), [], 0, 0.0\n\n\ndef main():\n    bird, pipes, score, ground_off = reset()\n    state, frame, best = \"ready\", 0, 0\n    while True:\n        for e in pygame.event.get():\n            if e.type == pygame.QUIT:\n                pygame.quit()\n                sys.exit()\n            if e.type == pygame.KEYDOWN:\n                if e.key == pygame.K_ESCAPE:\n                    pygame.quit()\n                    sys.exit()\n                if e.key in (pygame.K_SPACE, pygame.K_UP):\n                    if state == \"ready\":\n                        state = \"play\"\n                        bird.flap()\n                    elif state == \"play\":\n                        bird.flap()\n                    else:\n                        bird, pipes, score, ground_off = reset()\n                        state = \"ready\"\n            if e.type == pygame.MOUSEBUTTONDOWN and state in (\"ready\", \"play\"):\n                if state == \"ready\":\n                    state = \"play\"\n                bird.flap()\n\n        speed, gap = difficulty(score)\n        if state == \"play\":\n            bird.update()\n            ground_off = (ground_off + speed) % 48\n            if not pipes or pipes[-1].x < WIDTH - SPACING:\n                pipes.append(Pipe(WIDTH + 20, max(MIN_GAP - 15, gap + random.randint(-25, 15))))\n            br = bird.rect()\n            for p in pipes:\n                p.update(speed)\n                top, bot = p.rects()\n                if br.colliderect(top) or br.colliderect(bot):\n                    state = \"over\"\n                if not p.passed and p.x + p.w < bird.x:\n                    p.passed = True\n                    score += 1\n            if bird.y + bird.r >= HEIGHT - GROUND_H:\n                bird.y = HEIGHT - GROUND_H - bird.r\n                state = \"over\"\n            pipes = [p for p in pipes if p.x + p.w > -10]\n            if state == \"over\":\n                best = max(best, score)\n        elif state == \"ready\":\n            bird.y = HEIGHT / 2 + 6 * math.sin(frame * 0.1)\n            ground_off = (ground_off + speed) % 48\n        else:\n            if bird.y + bird.r < HEIGHT - GROUND_H:\n                bird.update()\n\n        screen.fill((113, 197, 207))\n        for p in pipes:\n            p.draw(screen)\n        draw_ground(screen, ground_off)\n        bird.draw(screen)\n        if state == \"play\":\n            sc = FONT.render(str(score), True, (255, 255, 255))\n            screen.blit(sc, sc.get_rect(center=(WIDTH // 2, 50)))\n        elif state == \"ready\":\n            t1 = FONT.render(\"Flappy Bird\", True, (255, 255, 255))\n            t2 = SMALL.render(\"Press SPACE / UP / click to flap\", True, (255, 255, 255))\n            screen.blit(t1, t1.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 60)))\n            screen.blit(t2, t2.get_rect(center=(WIDTH // 2, HEIGHT // 2)))\n        else:\n            t1 = FONT.render(\"Game Over\", True, (220, 60, 60))\n            t2 = SMALL.render(\"Score: %d   Best: %d\" % (score, best), True, (255, 255, 255))\n            t3 = SMALL.render(\"Press SPACE or R to restart\", True, (255, 255, 255))\n            screen.blit(t1, t1.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 70)))\n            screen.blit(t2, t2.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 20)))\n            screen.blit(t3, t3.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 20)))\n        pygame.display.flip()\n        frame += 1\n        clock.tick(60)\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nWait: in \"over\" state, pressing SPACE restarts (the else branch of KEYDOWN handles state \"over\"). I also mention R key — add `if e.key == pygame.K_r and state == \"over\": restart`. Let me add that.\n\nAlso note: in over state, bird.update() keeps applying gravity until ground — but bird.update clamps at ceiling only; ground check not in update. In over branch: `if bird.y + bird.r < HEIGHT - GROUND_H: bird.update()` — bird falls; when it reaches ground it stops (condition false). But bird.y could overshoot past ground; add clamp: after update, `self.y = min(self.y, HEIGHT - GROUND_H - self.r)`? Simpler: in over branch:\n\n```python\nelse:\n    if bird.y + bird.r < HEIGHT - GROUND_H:\n        bird.update()\n        if bird.y + bird.r > HEIGHT - GROUND_H:\n            bird.y = HEIGHT - GROUND_H - bird.r\n```\n\nFine.\n\nOne more check: `random.randint(lo, max(lo, hi))` — if hi < lo (gap too big for screen), use lo. With gap max ~205, hi = 640-80-102-40 = 418, lo = 102+40=142. Fine.\n\nScore font center at (WIDTH//2, 50) — good.\n\nCheck pipe spawn: first pipe spawns immediately when state becomes play (pipes empty). Bird at x=110, pipe at x=500, moves left at 3 px/frame → reaches bird after ~130 frames ≈ 2s. Good.\n\nPassing detection: `p.x + p.w < bird.x` — bird.x = 110, so when pipe right edge passes 110. Good.\n\nDifficulty: score 25 → max speed 6.5, min gap 125. Plus random variance ±. Good.\n\nThe `br = bird.rect()` computed before pipe updates — bird doesn't move during pipe loop, fine.\n\nAlso, when state transitions to \"over\" mid-loop, remaining pipes still update — fine.\n\nEdge: MOUSEBUTTONDOWN in over state does nothing (restart via keyboard). Could allow click restart too; keep keyboard only, message says SPACE or R.\n\nAdd R key handling:\n\n```python\nif e.key == pygame.K_r and state == \"over\":\n    bird, pipes, score, ground_off = reset()\n    state = \"ready\"\n```\n\nAlso in ready state, bird.vel is 0 and angle 0 — after reset, fine.\n\n`bird.y = HEIGHT / 2 + 6 * math.sin(frame * 0.1)` — float, draw uses center=(self.x, self.y) — pygame accepts floats in Rect center? `rot.get_rect(center=(self.x, self.y))` — pygame Rect center accepts floats (it truncates). Yes, pygame accepts float values for rect attributes in recent versions; older versions too (they convert to int). Safe.\n\n`draw_ground(screen, ground_off)` — offset float; `-int(offset) % 48` fine.\n\nI think the code is complete and correct. Output format: filename line \"main.py\" then fenced python block. Only that. No analysis.\n\nThe instruction says \"Return FINAL SOURCE FILES ONLY\" — so my response should be just:\n\nmain.py\n```python\n...\n```\n\nGood. Let me write final.main.py\n\n```python\nimport math\nimport random\nimport sys\n\nimport pygame\n\npygame.init()\n\nWIDTH, HEIGHT, GROUND_H = 480, 640, 80\nPIPE_W, SPACING = 70, 230\nGRAVITY, FLAP_V, MAX_FALL = 0.45, -8.5, 12.0\nBASE_SPEED, MAX_SPEED = 3.0, 6.5\nBASE_GAP, MIN_GAP = 190, 125\n\nscreen = pygame.display.set_mode((WIDTH, HEIGHT))\npygame.display.set_caption(\"Flappy Bird Clone\")\nclock = pygame.time.Clock()\nFONT = pygame.font.SysFont(\"arial\", 36, bold=True)\nSMALL = pygame.font.SysFont(\"arial\", 20)\n\n\ndef difficulty(score):\n    t = min(score / 25.0, 1.0)\n    return BASE_SPEED + (MAX_SPEED - BASE_SPEED) * t, BASE_GAP - (BASE_GAP - MIN_GAP) * t\n\n\nclass Bird:\n    def __init__(self):\n        self.x, self.y, self.vel, self.r, self.angle = 110.0, HEIGHT / 2, 0.0, 14, 0.0\n\n    def flap(self):\n        self.vel = FLAP_V\n\n    def update(self):\n        self.vel = min(self.vel + GRAVITY, MAX_FALL)\n        self.y += self.vel\n        self.angle = max(-90.0, min(30.0, -self.vel * 6))\n        if self.y < self.r:\n            self.y, self.vel = self.r, 0.0\n\n    def rect(self):\n        return pygame.Rect(int(self.x - self.r), int(self.y - self.r), self.r * 2, self.r * 2)\n\n    def draw(self, surf):\n        s = pygame.Surface((self.r * 2, self.r * 2), pygame.SRCALPHA)\n        pygame.draw.circle(s, (255, 214, 64), (self.r, self.r), self.r)\n        pygame.draw.circle(s, (255, 255, 255), (self.r + 5, self.r - 5), 5)\n        pygame.draw.circle(s, (20, 20, 20), (self.r + 6, self.r - 5), 2)\n        pygame.draw.polygon(s, (255, 140, 0),\n                            [(self.r - 3, self.r + 2), (self.r + 9, self.r + 5), (self.r - 3, self.r + 9)])\n        rot = pygame.transform.rotate(s, self.angle)\n        surf.blit(rot, rot.get_rect(center=(self.x, self.y)).topleft)\n\n\nclass Pipe:\n    def __init__(self, x, gap):\n        self.x, self.w, self.gap, self.passed = float(x), PIPE_W, int(gap), False\n        margin = 40\n        lo = self.gap // 2 + margin\n        hi = HEIGHT - GROUND_H - self.gap // 2 - margin\n        self.gap_y = random.randint(lo, max(lo, hi))\n\n    def update(self, speed):\n        self.x -= speed\n\n    def rects(self):\n        top_h = self.gap_y - self.gap // 2\n        bot_y = self.gap_y + self.gap // 2\n        return (pygame.Rect(int(self.x), 0, self.w, top_h),\n                pygame.Rect(int(self.x), bot_y, self.w, HEIGHT - GROUND_H - bot_y))\n\n    def draw(self, surf):\n        top, bot = self.rects()\n        for r in (top, bot):\n            pygame.draw.rect(surf, (86, 190, 86), r)\n            pygame.draw.rect(surf, (40, 130, 40), r, 3)\n        pygame.draw.rect(surf, (60, 160, 60), (top.x - 4, top.bottom - 26, self.w + 8, 26), border_radius=4)\n        pygame.draw.rect(surf, (60, 160, 60), (bot.x - 4, bot.y, self.w + 8, 26), border_radius=4)\n\n\ndef draw_ground(surf, offset):\n    pygame.draw.rect(surf, (222, 184, 100), (0, HEIGHT - GROUND_H, WIDTH, GROUND_H))\n    pygame.draw.rect(surf, (160, 120, 60), (0, HEIGHT - GROUND_H, WIDTH, 8))\n    for x in range(-int(offset) % 48, WIDTH, 48):\n        pygame.draw.rect(surf, (200, 160, 80), (x, HEIGHT - GROUND_H + 14, 24, 10))\n\n\ndef reset():\n    return Bird(), [], 0, 0.0\n\n\ndef main():\n    bird, pipes, score, ground_off = reset()\n    state, frame, best = \"ready\", 0, 0\n    while True:\n        for e in pygame.event.get():\n            if e.type == pygame.QUIT:\n                pygame.quit()\n                sys.exit()\n            if e.type == pygame.KEYDOWN:\n                if e.key == pygame.K_ESCAPE:\n                    pygame.quit()\n                    sys.exit()\n                if e.key in (pygame.K_SPACE, pygame.K_UP):\n                    if state == \"ready\":\n                        state = \"play\"\n                        bird.flap()\n                    elif state == \"play\":\n                        bird.flap()\n                    else:\n                        bird, pipes, score, ground_off = reset()\n                        state = \"ready\"\n                if e.key == pygame.K_r and state == \"over\":\n                    bird, pipes, score, ground_off = reset()\n                    state = \"ready\"\n            if e.type == pygame.MOUSEBUTTONDOWN and state in (\"ready\", \"play\"):\n                if state == \"ready\":\n                    state = \"play\"\n                bird.flap()\n\n        speed, gap = difficulty(score)\n        if state == \"play\":\n            bird.update()\n            ground_off = (ground_off + speed) % 48\n            if not pipes or pipes[-1].x < WIDTH - SPACING:\n                pipes.append(Pipe(WIDTH + 20, max(MIN_GAP - 15, gap + random.randint(-25, 15))))\n            br = bird.rect()\n            for p in pipes:\n                p.update(speed)\n                top, bot = p.rects()\n                if br.colliderect(top) or br.colliderect(bot):\n                    state = \"over\"\n                if not p.passed and p.x + p.w < bird.x:\n                    p.passed = True\n                    score += 1\n            if bird.y + bird.r >= HEIGHT - GROUND_H:\n                bird.y = HEIGHT - GROUND_H - bird.r\n                state = \"over\"\n            pipes = [p for p in pipes if p.x"
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "fd95041a0948693b7ae9bd3687637cb53c34e2c9cd27ef334c026f0d2e8811d8",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "fd95041a0948693b7ae9bd3687637cb53c34e2c9cd27ef334c026f0d2e8811d8",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "f4bc760823e12b36305e99909533b473720d43f171c67629a6dcac1fe15ae48f",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "c3ca534c6c3f1e9d476edd268cd7b9df7522d7eeb74939133b3451d04120bca6",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "f4bc760823e12b36305e99909533b473720d43f171c67629a6dcac1fe15ae48f",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2e268ff0cef63580c64233b07e8fd026c494a543f47a7717f2245832819f24fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "f4bc760823e12b36305e99909533b473720d43f171c67629a6dcac1fe15ae48f",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8700fb183943e095d13134cd4e69d7c20578218ffc78582ca4a8388a666754b",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "f4bc760823e12b36305e99909533b473720d43f171c67629a6dcac1fe15ae48f",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3713dc9d1785c47081ef36c7e993dd51ecf9c4913bd8e04500b2a4717fc9a3a0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "f4bc760823e12b36305e99909533b473720d43f171c67629a6dcac1fe15ae48f",
+        "source_digests": {
+          "game.py": "6a00c87aaea661b239de22f8567529739b78b14a4de4efe89a046349901b63f2",
+          "main.py": "c7ee8344472da92e74353d02f470d00017be8688e620af7b3fcc52e7bc986850"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r09/25_FlappyBird/artifact\\main.py\", line 1, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+        "profile": "process_exit",
+        "id": "48eba0cfb6f50eabcf712e5e3c0cca305aa43559fe3a6610237ac8f903d3abcc"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "f4bc760823e12b36305e99909533b473720d43f171c67629a6dcac1fe15ae48f",
+        "source_digests": {
+          "game.py": "6a00c87aaea661b239de22f8567529739b78b14a4de4efe89a046349901b63f2",
+          "main.py": "c7ee8344472da92e74353d02f470d00017be8688e620af7b3fcc52e7bc986850"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r09/25_FlappyBird/artifact\\main.py\", line 1, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+        "profile": "process_exit",
+        "id": "48eba0cfb6f50eabcf712e5e3c0cca305aa43559fe3a6610237ac8f903d3abcc"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "f4bc760823e12b36305e99909533b473720d43f171c67629a6dcac1fe15ae48f",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "0a979d427869bdb10cc103e5e1ba6aaf9973f6691492a5f703f1f30706ceddb0",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "f4bc760823e12b36305e99909533b473720d43f171c67629a6dcac1fe15ae48f",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "0a979d427869bdb10cc103e5e1ba6aaf9973f6691492a5f703f1f30706ceddb0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "f4bc760823e12b36305e99909533b473720d43f171c67629a6dcac1fe15ae48f",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "e3452d21f0934ca57aa377f428520e00b79e31a672a6a19a8b0fe7182723e3c0",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "f4bc760823e12b36305e99909533b473720d43f171c67629a6dcac1fe15ae48f",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "e3452d21f0934ca57aa377f428520e00b79e31a672a6a19a8b0fe7182723e3c0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "f4bc760823e12b36305e99909533b473720d43f171c67629a6dcac1fe15ae48f",
+        "source_digests": {
+          "game.py": "6a00c87aaea661b239de22f8567529739b78b14a4de4efe89a046349901b63f2",
+          "main.py": "c7ee8344472da92e74353d02f470d00017be8688e620af7b3fcc52e7bc986850"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r09/25_FlappyBird/artifact\\main.py\", line 1, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+        "profile": "process_exit",
+        "id": "48eba0cfb6f50eabcf712e5e3c0cca305aa43559fe3a6610237ac8f903d3abcc"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": false,
+      "evidence_id": "48eba0cfb6f50eabcf712e5e3c0cca305aa43559fe3a6610237ac8f903d3abcc",
+      "violations": [
+        {
+          "layer": "A",
+          "rule": "current_startup_passed",
+          "path": "$",
+          "message": "Current startup did not pass.",
+          "repair": "Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior."
+        }
+      ]
+    }
+  ]
+}

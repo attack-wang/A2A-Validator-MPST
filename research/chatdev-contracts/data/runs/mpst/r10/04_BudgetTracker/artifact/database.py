@@ -1,0 +1,6 @@
+'''
+Database layer for the Budget Tracker application.
+...
+'''
+import sqlite3
+...

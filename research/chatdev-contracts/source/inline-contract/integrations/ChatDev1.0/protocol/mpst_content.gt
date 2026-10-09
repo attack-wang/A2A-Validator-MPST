@@ -1,0 +1,42 @@
+// Inline references are projected onto local FSM transitions.
+Coordinator -> ChiefProductOfficer : demand.
+ChiefProductOfficer -> Coordinator : demandResult(Text) @contract("chatdev.demand.v1").
+Coordinator -> ChiefTechnologyOfficer : language.
+ChiefTechnologyOfficer -> Coordinator : languageResult(PythonLanguage) @contract("chatdev.language.v1").
+Coordinator -> Programmer : coding.
+Programmer -> Coordinator : codingResult(SourceFiles) @contract("chatdev.coding.v1").
+mu t.
+(
+  Coordinator -> Programmer : codeComplete.
+  Programmer -> Coordinator : codeCompleteResult(SourceFiles) @contract("chatdev.completion.v1").
+  t
+  +
+  Coordinator -> CodeReviewer : review.
+  CodeReviewer -> Coordinator : reviewResult(ReviewReport) @contract("chatdev.review.v1").
+  Coordinator -> Programmer : reviewFix.
+  Programmer -> Coordinator : reviewFixResult(SourceModification) @contract("chatdev.review_fix.v1").
+  mu tests.
+  (
+    Coordinator -> SoftwareTestEngineer : test.
+    SoftwareTestEngineer -> Coordinator : testReport(StartupRecord) @contract("chatdev.startup_evidence.v1").
+    (
+      Coordinator -> Programmer : testSummary.
+      Programmer -> Coordinator : testSummaryResult(TestSummary) @contract("chatdev.test_summary.v1").
+      (
+        Coordinator -> Programmer : testFix.
+        Programmer -> Coordinator : testFixResult(SourceModification) @contract("chatdev.test_fix.v1").
+        tests
+        +
+        Coordinator -> SoftwareTestEngineer : test.
+        SoftwareTestEngineer -> Coordinator : testReport(StartupRecord) @contract("chatdev.startup_evidence.v1").
+        Coordinator -> WorkflowEnd : done(WorkflowCompletion) @contract("chatdev.stage_exit.v1").
+        WorkflowEnd -> Coordinator : doneAck.
+        0
+      )
+      +
+      Coordinator -> WorkflowEnd : done(WorkflowCompletion) @contract("chatdev.stage_exit.v1").
+      WorkflowEnd -> Coordinator : doneAck.
+      0
+    )
+  )
+)

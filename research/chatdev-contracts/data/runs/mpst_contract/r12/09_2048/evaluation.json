@@ -1,0 +1,69 @@
+{
+  "task_index": 9,
+  "project_name": "2048",
+  "framework": "ChatDev1.0",
+  "workflow_status": "failed",
+  "workspace": "data/runs/mpst_contract/r12/09_2048/artifact",
+  "source_file_count": 1,
+  "python_compile": {
+    "checked": 1,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-07T06:49:08+0800",
+  "judge": {
+    "verdict": "pass",
+    "functional_completeness": 0.93,
+    "executable_likelihood": 0.9,
+    "implemented_requirements": [
+      {
+        "requirement": "Use a 4x4 grid for the board",
+        "fulfilled": true,
+        "evidence": "SIZE = 4\nself.grid = [[0] * SIZE for _ in range(SIZE)]"
+      },
+      {
+        "requirement": "Allow player to slide tiles with arrow keys (UP/DOWN/LEFT/RIGHT)",
+        "fulfilled": true,
+        "evidence": "def read_key(): ... return {'H': 'UP', 'P': 'DOWN', 'K': 'LEFT', 'M': 'RIGHT', ...}.get(key)\nif key == 'QUIT': ...\nif key is None or not game.move(key): continue"
+      },
+      {
+        "requirement": "Combine tiles of equal value into one tile with doubled value",
+        "fulfilled": true,
+        "evidence": "def slide(row): ... if i + 1 < len(tiles) and tiles[i] == tiles[i + 1]: value = tiles[i] * 2 ..."
+      },
+      {
+        "requirement": "After each successful move, spawn a new tile (2 with 90% chance, 4 with 10%) in a random empty cell",
+        "fulfilled": true,
+        "evidence": "def spawn(self): ... self.grid[r][c] = 2 if random.random() < 0.9 else 4"
+      },
+      {
+        "requirement": "Detect when no moves are possible and end the game",
+        "fulfilled": true,
+        "evidence": "def moves_available(self): ... return False\nif not game.moves_available(): print('Game over! ...')"
+      },
+      {
+        "requirement": "Track and display the current score",
+        "fulfilled": true,
+        "evidence": "self.score = 0 ... self.score += gained ... print(f\"Score: {self.score}    Highest tile: {highest}\")"
+      },
+      {
+        "requirement": "Track and display the highest tile reached",
+        "fulfilled": true,
+        "evidence": "self.best = max(self.best, max(v for row in self.grid for v in row))\nprint(f\"Score: {self.score}    Highest tile: {highest}\")"
+      }
+    ],
+    "critical_issues": [
+      "The variable `self.best` (used for the final \"highest tile\" message on quit) is only updated after a move, not after the automatic spawn that follows a move. If the spawned tile is the new highest value, the quit summary may report a lower tile than actually present.",
+      "Key‑reading code relies on low‑level console APIs (msvcrt, termios/tty). It works in a real terminal but may fail in environments without a TTY (e.g., some IDE consoles)."
+    ],
+    "summary": "The provided `main.py` implements a functional 2048 game on a 4x4 board, handling arrow‑key input, tile sliding and merging, random tile spawning, score and highest‑tile tracking, and game‑over detection. The code is self‑contained and would run in a standard terminal, giving a high functional completeness (~0.93) and a strong likelihood of execution (~0.9). Minor issues exist with the final highest‑tile reporting and platform‑specific key handling, but they do not prevent the core gameplay from working.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": true
+}

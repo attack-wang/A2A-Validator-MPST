@@ -1,0 +1,1 @@
+BUILT_IN_PUZZLES = [Puzzle(...), Puzzle(...), ...]

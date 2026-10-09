@@ -1,0 +1,301 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "As the Chief Product Officer, I've analyzed the customer's requirements carefully. The key constraints are:\n\n1. The game must be playable directly from the Linux Terminal\n2. No dedicated UX or GUI platform should be required\n3. Results must be printed on the terminal at each stage with text-based input\n\nGiven these requirements, let me share my thoughts on the product modality:\n\n- **Website** would require a browser, which directly contradicts the customer's explicit request to avoid GUI platforms.\n- **Document, PowerPoint, PDF, Image, Mind Map** are static presentation formats and cannot support interactive gameplay.\n- **Dashboard** is designed for real-time information visualization, not turn-based interactive games.\n- **Application** implemented via Python is the ideal fit — Python scripts run natively in the Linux Terminal, can handle text input/output interactively, and can render the colored feedback (green/yellow/grey) using ANSI escape codes directly in the terminal.\n\nTherefore, I strongly recommend we develop this as a **Python Application** — a terminal-based Wordle game. This fully satisfies the customer's need for a self-contained, terminal-playable experience without any external platform dependency.\n\nDo you agree with this choice? If so, let's finalize it."
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\nimport sys\n\nfrom game import play\n\nif __name__ == \"__main__\":\n    play(random_mode=\"--random\" in sys.argv)\n```\n\ngame.py\n```python\nimport datetime\nimport random\n\nfrom colors import BOLD, GREEN, GREY, RESET, YELLOW\nfrom words import ANSWERS, VALID_GUESSES\n\nMAX_TURNS = 6\nWORD_LEN = 5\n\n\ndef daily_word():\n    \"\"\"Deterministic word of the day based on the calendar date.\"\"\"\n    return ANSWERS[datetime.date.today().toordinal() % len(ANSWERS)]\n\n\ndef feedback(guess, answer):\n    \"\"\"Return per-position colors: green (right spot), yellow (wrong spot), grey (absent).\"\"\"\n    result = [GREY] * WORD_LEN\n    remaining = {}\n    for i, ch in enumerate(answer):\n        if guess[i] == ch:\n            result[i] = GREEN\n        else:\n            remaining[ch] = remaining.get(ch, 0) + 1\n    for i, ch in enumerate(guess):\n        if result[i] != GREEN and remaining.get(ch, 0) > 0:\n            result[i] = YELLOW\n            remaining[ch] -= 1\n    return result\n\n\ndef render(guess, result):\n    return \" \".join(f\"{color}{BOLD}{ch.upper()}{RESET}\" for ch, color in zip(guess, result))\n\n\ndef read_guess(turn):\n    \"\"\"Prompt until a valid 5-letter dictionary word is entered; invalid input costs no turn.\"\"\"\n    while True:\n        raw = input(f\"Turn {turn}/{MAX_TURNS} - Enter a 5-letter word: \").strip().lower()\n        if len(raw) != WORD_LEN:\n            print(f\"Invalid guess: must be exactly {WORD_LEN} letters.\")\n        elif not raw.isalpha():\n            print(\"Invalid guess: letters only.\")\n        elif raw not in VALID_GUESSES:\n            print(\"Invalid guess: not in the word list.\")\n        else:\n            return raw\n\n\ndef play(random_mode=False):\n    answer = random.choice(ANSWERS) if random_mode else daily_word()\n    print(\"=== ChatDev Terminal Wordle ===\")\n    print(\"Guess the 5-letter word.\")\n    print(\"Green = correct letter, correct spot | Yellow = correct letter, wrong spot | Grey = letter not in word.\")\n    print(f\"You have {MAX_TURNS} attempts.\" + (\"\" if random_mode else \" A new word is chosen each day.\"))\n    print()\n    board = []\n    for turn in range(1, MAX_TURNS + 1):\n        guess = read_guess(turn)\n        board.append(render(guess, feedback(guess, answer)))\n        print(\"\\n\".join(board))\n        print()\n        if guess == answer:\n            print(f\"{GREEN}{BOLD}You win! You guessed it in {turn} {'try' if turn == 1 else 'tries'}.{RESET}\")\n            return\n    print(f\"{GREY}Out of attempts. The word was {BOLD}{answer.upper()}{RESET}.\")\n```\n\nwords.py\n```python\n_WORDS = \"\"\"about above actor acute admit adopt adult after again agent agree ahead alarm album alert\nalike alive allow alone along alter among anger angle angry ankle apart apple apply arena argue arise\narmor array arrow aside asset audio audit avoid award aware badly baker basic beach began begin being\nbelow bench birth black blade blame blank blast blaze bleed blend bless blind block bloom board boost\nbooth bound brain brand bread break brick brief bring broad broke brown brush build built bunch burst\nbuyer cabin cable candy canoe cargo carry catch cause chain chair chalk charm chart chase cheap check\ncheek cheer chess chest chief child chill chose civil claim class clean clear clerk click cliff climb\nclock close cloth cloud coach coast color comic coral couch could count court cover crack craft crash\ncream crisp cross crowd crown curve cycle daily dance dealt death debut decay delay dense depth diary\ndirty dodge donor doubt dozen draft drain drama drank dream dress drift drink drive drove eager eagle\nearly earth eight elbow elder elect elite email empty enemy enjoy enter entry equal error event every\nexact exist extra faith false fault favor feast fence ferry fetch fever fewer fiber field fifth fifty\nfight final first flame flash fleet flesh float flood floor flour fluid flush focus force forge forth\nforty forum found frame fraud fresh front frost fruit fully funny gauge ghost giant given glass globe\nglory glove going grace grade grain grand grant grape graph grass grave great green greet grief grill\ngrind group grove grown guard guess guest guide habit happy harsh heart heavy hedge hello hence hobby\nhoney honor horse hotel house human humor hurry ideal image imply index inner input irony issue ivory\njelly jewel joint judge juice kneel knife knock known label labor large laser later laugh layer learn\nlemon level light limit linen liver lobby local lodge logic loose lower loyal lucky lunar lunch macro\nmagic major maker maple march match maybe mayor meant medal media melon mercy merge merit metal meter\nmidst might minor minus mixed model money month moral motor mount mouse mouth movie music naive nasty\nnaval nerve never newly night noble noise north noted novel nurse ocean offer often olive onion onset\nopera orbit order organ other otter ought ounce outer owner paint panel panic paper party pasta patch\npause peace peach pearl pedal penny perch phase phone photo piano piece pilot pinch pitch pixel pizza\nplace plain plane plant plate plaza plead point polar porch pound power press price pride prime print\nprize probe prone proof proud prove pulse punch pupil puppy purse queen query quest queue quick quiet\nquilt quite quota radar radio raise rally ranch range rapid ratio reach ready realm rebel refer reign\nrelax relay renew reply reset resin retro rhyme rider ridge rifle right rigid rinse risky rival river\nroast robin robot rocky rough round route royal rugby ruler rumor rural sadly salad salon sauce scale\nscarf scene scent scope score scout scrap screw sense serve seven shade shaft shake shall shame shape\nshare shark sharp sheep sheet shelf shell shift shine shirt shock shoot shore short shout shown sight\nsilly since sixth sixty skill skirt slate sleep slice slide slope small smart smell smile smoke snack\nsnake sneak solar solid solve sorry sound south space spare spark speak speed spell spend spice spike\nspine split spoke spoon sport spray squad stack staff stage stain stair stake stale stall stamp stand\nstare start state steam steel steep steer stern stick stiff still sting stock stone stood stool store\nstorm story stove strap straw strip study stuff style sugar suite sunny super surge swamp swarm swear\nsweat sweep sweet swept swift swing sword table taken tally taste teach teeth tempo tenth thank theft\ntheir theme there these thick thief thigh thing think third those three threw throw thumb tiger tight\ntimer tired title toast today token tooth topic torch total touch tough towel tower toxic trace track\ntrade trail train trait treat trend trial tribe trick tried tries troop trout truck truly trunk trust\ntruth tulip tumor tutor twice twist ultra uncle under union unite unity until upper upset urban usage\nusual vague valid value valve vapor vault venue verse video vigor villa vinyl viral virus visit vital\nvivid vocal voice voter wagon waist waste watch water weary wheat wheel where which while white whole\nwhose widow width witch woman world worry worse worst worth would wound wrist write wrong wrote yacht\nyield young youth zebra\"\"\".split()\n\nANSWERS = _WORDS\nVALID_GUESSES = set(_WORDS)\n```\n\ncolors.py\n```python\nRESET = \"\\033[0m\"\nBOLD = \"\\033[1m\"\nGREEN = \"\\033[92m\"\nYELLOW = \"\\033[93m\"\nGREY = \"\\033[90m\"\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "e70225ff8bde9bceebd3f2ffadeb82fb2b008ee8db8b6065b1f35d30210ef25a",
+      "result": "{\"verdict\": \"finished\", \"issues\": []}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "e70225ff8bde9bceebd3f2ffadeb82fb2b008ee8db8b6065b1f35d30210ef25a",
+      "result": " Finished"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "e70225ff8bde9bceebd3f2ffadeb82fb2b008ee8db8b6065b1f35d30210ef25a",
+      "result": "{\"status\": \"failed\", \"test_run_id\": \"75d8b86b484126951f5f475139df6f383ecb49f94bd3b4c764d50c9d6543ea96\", \"summary\": \"Startup smoke run exited 1 with EOFError at game.py read_guess input(). All modules imported cleanly and the banner plus Turn 1/6 prompt printed to stdout, so there are no syntax errors or missing dependencies. The failure is an unsupported invocation, not a source defect: the harness ran the interactive game with no stdin attached (timeout_seconds=3, no piped input), so input() raised EOFError. The game requires an interactive terminal to supply guesses; a smoke test must either pipe a guess (e.g. echo 'crane' | python main.py) or stub stdin to validate startup.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "e70225ff8bde9bceebd3f2ffadeb82fb2b008ee8db8b6065b1f35d30210ef25a",
+      "result": "game.py\n```python\nimport datetime\nimport random\nimport sys\n\nfrom colors import BOLD, GREEN, GREY, RESET, YELLOW\nfrom words import ANSWERS, VALID_GUESSES\n\nMAX_TURNS = 6\nWORD_LEN = 5\n\n\ndef daily_word():\n    \"\"\"Deterministic word of the day based on the calendar date.\"\"\"\n    return ANSWERS[datetime.date.today().toordinal() % len(ANSWERS)]\n\n\ndef feedback(guess, answer):\n    \"\"\"Return per-position colors: green (right spot), yellow (wrong spot), grey (absent).\"\"\"\n    result = [GREY] * WORD_LEN\n    remaining = {}\n    for i, ch in enumerate(answer):\n        if guess[i] == ch:\n            result[i] = GREEN\n        else:\n            remaining[ch] = remaining.get(ch, 0) + 1\n    for i, ch in enumerate(guess):\n        if result[i] != GREEN and remaining.get(ch, 0) > 0:\n            result[i] = YELLOW\n            remaining[ch] -= 1\n    return result\n\n\ndef render(guess, result):\n    return \" \".join(f\"{color}{BOLD}{ch.upper()}{RESET}\" for ch, color in zip(guess, result))\n\n\ndef read_guess(turn):\n    \"\"\"Prompt until a valid 5-letter dictionary word is entered; invalid input costs no turn.\"\"\"\n    while True:\n        try:\n            raw = input(f\"Turn {turn}/{MAX_TURNS} - Enter a 5-letter word: \").strip().lower()\n        except EOFError:\n            print(\"\\nInput stream closed. Goodbye.\")\n            sys.exit(0)\n        except KeyboardInterrupt:\n            print(\"\\nInterrupted. Goodbye.\")\n            sys.exit(0)\n        if len(raw) != WORD_LEN:\n            print(f\"Invalid guess: must be exactly {WORD_LEN} letters.\")\n        elif not raw.isalpha():\n            print(\"Invalid guess: letters only.\")\n        elif raw not in VALID_GUESSES:\n            print(\"Invalid guess: not in the word list.\")\n        else:\n            return raw\n\n\ndef play(random_mode=False):\n    answer = random.choice(ANSWERS) if random_mode else daily_word()\n    print(\"=== ChatDev Terminal Wordle ===\")\n    print(\"Guess the 5-letter word.\")\n    print(\"Green = correct letter, correct spot | Yellow = correct letter, wrong spot | Grey = letter not in word.\")\n    print(f\"You have {MAX_TURNS} attempts.\" + (\"\" if random_mode else \" A new word is chosen each day.\"))\n    print()\n    board = []\n    for turn in range(1, MAX_TURNS + 1):\n        guess = read_guess(turn)\n        board.append(render(guess, feedback(guess, answer)))\n        print(\"\\n\".join(board))\n        print()\n        if guess == answer:\n            print(f\"{GREEN}{BOLD}You win! You guessed it in {turn} {'try' if turn == 1 else 'tries'}.{RESET}\")\n            return\n    print(f\"{GREY}Out of attempts. The word was {BOLD}{answer.upper()}{RESET}.\")\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "8af9ae84893f1bc400f4c7760e4dcc094ea86eff32ef42e62c8729592fd6879d",
+    "source_digests": {
+      "colors.py": "79f95ffc0099d3292bc6fe17cc63c710e390b3f20526542249a3e783b018d78b",
+      "game.py": "ebd5051c85f5945a6734d4d393907d98a0a279ef2e5dccc86980c3c10f473cd5",
+      "main.py": "dfe388f772a8fd2e8e37558d15e0062ec1fe2e4f6e78ecf5f0f7f45a54e69ea3",
+      "words.py": "9395971292116e939c2e71c3b16c56a3634a9909c81c424e9c2f8b891d36459c"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "main.py"
+    ],
+    "timeout_seconds": 3,
+    "status": "passed",
+    "exit_code": 0,
+    "stdout": "=== ChatDev Terminal Wordle ===\nGuess the 5-letter word.\nGreen = correct letter, correct spot | Yellow = correct letter, wrong spot | Grey = letter not in word.\nYou have 6 attempts. A new word is chosen each day.\n\nTurn 1/6 - Enter a 5-letter word: \nInput stream closed. Goodbye.\n",
+    "stderr": "",
+    "profile": "process_exit",
+    "id": "88e51d03891196f1afa99fb88320e91d1db63369c00053375a64b81ba1cf8b19"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "e8060dffc86d76c0b45b781a93f33231eaf18997e9087fba701c3820d4ab5894",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "e8060dffc86d76c0b45b781a93f33231eaf18997e9087fba701c3820d4ab5894",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "c0487a13b46ac6f24462d8714c9422efea390f08902cd37e91d889a46f663cb9",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "c884940fb32bef497a7c3d11b6177a12d7a4cc7a0a6d474cdc413e12c46c75c2",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "c884940fb32bef497a7c3d11b6177a12d7a4cc7a0a6d474cdc413e12c46c75c2",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "e70225ff8bde9bceebd3f2ffadeb82fb2b008ee8db8b6065b1f35d30210ef25a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "41a4b7cba60fe48a82dea68df25c150b1c1a538a99dbfb89714d4f298e56bd57",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "e70225ff8bde9bceebd3f2ffadeb82fb2b008ee8db8b6065b1f35d30210ef25a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2e268ff0cef63580c64233b07e8fd026c494a543f47a7717f2245832819f24fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "e70225ff8bde9bceebd3f2ffadeb82fb2b008ee8db8b6065b1f35d30210ef25a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8700fb183943e095d13134cd4e69d7c20578218ffc78582ca4a8388a666754b",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "e70225ff8bde9bceebd3f2ffadeb82fb2b008ee8db8b6065b1f35d30210ef25a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3713dc9d1785c47081ef36c7e993dd51ecf9c4913bd8e04500b2a4717fc9a3a0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "e70225ff8bde9bceebd3f2ffadeb82fb2b008ee8db8b6065b1f35d30210ef25a",
+        "source_digests": {
+          "colors.py": "79f95ffc0099d3292bc6fe17cc63c710e390b3f20526542249a3e783b018d78b",
+          "game.py": "38e8551d2a5ad097d0db1bb80464103152f826fecc1242eb5c8031bfed8974ef",
+          "main.py": "dfe388f772a8fd2e8e37558d15e0062ec1fe2e4f6e78ecf5f0f7f45a54e69ea3",
+          "words.py": "9395971292116e939c2e71c3b16c56a3634a9909c81c424e9c2f8b891d36459c"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "=== ChatDev Terminal Wordle ===\nGuess the 5-letter word.\nGreen = correct letter, correct spot | Yellow = correct letter, wrong spot | Grey = letter not in word.\nYou have 6 attempts. A new word is chosen each day.\n\nTurn 1/6 - Enter a 5-letter word: ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r04/11_Wordle/artifact\\main.py\", line 6, in <module>\n    play(random_mode=\"--random\" in sys.argv)\n  File \"data/runs/mpst_contract/r04/11_Wordle/artifact\\game.py\", line 59, in play\n    guess = read_guess(turn)\n            ^^^^^^^^^^^^^^^^\n  File \"data/runs/mpst_contract/r04/11_Wordle/artifact\\game.py\", line 39, in read_guess\n    raw = input(f\"Turn {turn}/{MAX_TURNS} - Enter a 5-letter word: \").strip().lower()\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "75d8b86b484126951f5f475139df6f383ecb49f94bd3b4c764d50c9d6543ea96"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "e70225ff8bde9bceebd3f2ffadeb82fb2b008ee8db8b6065b1f35d30210ef25a",
+        "source_digests": {
+          "colors.py": "79f95ffc0099d3292bc6fe17cc63c710e390b3f20526542249a3e783b018d78b",
+          "game.py": "38e8551d2a5ad097d0db1bb80464103152f826fecc1242eb5c8031bfed8974ef",
+          "main.py": "dfe388f772a8fd2e8e37558d15e0062ec1fe2e4f6e78ecf5f0f7f45a54e69ea3",
+          "words.py": "9395971292116e939c2e71c3b16c56a3634a9909c81c424e9c2f8b891d36459c"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "=== ChatDev Terminal Wordle ===\nGuess the 5-letter word.\nGreen = correct letter, correct spot | Yellow = correct letter, wrong spot | Grey = letter not in word.\nYou have 6 attempts. A new word is chosen each day.\n\nTurn 1/6 - Enter a 5-letter word: ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r04/11_Wordle/artifact\\main.py\", line 6, in <module>\n    play(random_mode=\"--random\" in sys.argv)\n  File \"data/runs/mpst_contract/r04/11_Wordle/artifact\\game.py\", line 59, in play\n    guess = read_guess(turn)\n            ^^^^^^^^^^^^^^^^\n  File \"data/runs/mpst_contract/r04/11_Wordle/artifact\\game.py\", line 39, in read_guess\n    raw = input(f\"Turn {turn}/{MAX_TURNS} - Enter a 5-letter word: \").strip().lower()\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "75d8b86b484126951f5f475139df6f383ecb49f94bd3b4c764d50c9d6543ea96"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "e70225ff8bde9bceebd3f2ffadeb82fb2b008ee8db8b6065b1f35d30210ef25a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "4f202a05e523bb14428278a204ffd81107a15b8fe9f468cefc1c66f020eb004d",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "e70225ff8bde9bceebd3f2ffadeb82fb2b008ee8db8b6065b1f35d30210ef25a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "13894c8331956b22a05410c8465e6dd7c039f82fd1b0e7905b05bc49a3ba0581",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "e70225ff8bde9bceebd3f2ffadeb82fb2b008ee8db8b6065b1f35d30210ef25a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "44b4788e55c4e46ce05bdf9fa1a73c5278be0ec577b0ba5a19eafa1113912dbc",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "e70225ff8bde9bceebd3f2ffadeb82fb2b008ee8db8b6065b1f35d30210ef25a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "44b4788e55c4e46ce05bdf9fa1a73c5278be0ec577b0ba5a19eafa1113912dbc",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "8af9ae84893f1bc400f4c7760e4dcc094ea86eff32ef42e62c8729592fd6879d",
+        "source_digests": {
+          "colors.py": "79f95ffc0099d3292bc6fe17cc63c710e390b3f20526542249a3e783b018d78b",
+          "game.py": "ebd5051c85f5945a6734d4d393907d98a0a279ef2e5dccc86980c3c10f473cd5",
+          "main.py": "dfe388f772a8fd2e8e37558d15e0062ec1fe2e4f6e78ecf5f0f7f45a54e69ea3",
+          "words.py": "9395971292116e939c2e71c3b16c56a3634a9909c81c424e9c2f8b891d36459c"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "=== ChatDev Terminal Wordle ===\nGuess the 5-letter word.\nGreen = correct letter, correct spot | Yellow = correct letter, wrong spot | Grey = letter not in word.\nYou have 6 attempts. A new word is chosen each day.\n\nTurn 1/6 - Enter a 5-letter word: \nInput stream closed. Goodbye.\n",
+        "stderr": "",
+        "profile": "process_exit",
+        "id": "88e51d03891196f1afa99fb88320e91d1db63369c00053375a64b81ba1cf8b19"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": true,
+      "evidence_id": "88e51d03891196f1afa99fb88320e91d1db63369c00053375a64b81ba1cf8b19"
+    }
+  ]
+}

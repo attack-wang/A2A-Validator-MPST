@@ -1,0 +1,39 @@
+{
+  "task_index": 7,
+  "project_name": "Gomoku",
+  "description": "Develop a standard Gomoku game. Implement it on a typical 15x15 board, where two players alternate placing black or white stones. A player wins by forming an unbroken row of five stones horizontally, vertically, or diagonally.",
+  "framework": "ChatDev1.0",
+  "model": "glm-5.3-flash:cloud",
+  "content_contracts_enabled": true,
+  "session_type_enabled": true,
+  "status": "failed",
+  "error": "exit code 1",
+  "failure_type": "content_contract",
+  "project_path": "data/runs/mpst_contract/r10/07_Gomoku/artifact",
+  "elapsed_seconds": 78.422,
+  "contract_rejections": 2,
+  "violated_rules": [
+    "review_schema",
+    "current_startup_passed"
+  ],
+  "last_diagnostic": "rd is full.\")\n```\n\n**[Seminar Conclusion]**:\n\n gomoku.py\n```python\n\"\"\"Gomoku game logic: 15x15 board, two players, five-in-a-row wins.\"\"\"\n\nBOARD_SIZE = 15\nEMPTY = 0\nBLACK = 1\nWHITE = 2\nWIN_LENGTH = 5\n\nDIRECTIONS = ((0, 1), (1, 0), (1, 1), (1, -1))\n\nPLAYER_NAMES = {BLACK: \"Black\", WHITE: \"White\"}\nPLAYER_SYMBOLS = {BLACK: \"X\", WHITE: \"O\"}\n\n\nclass GomokuGame:\n    def __init__(self, size=BOARD_SIZE):\n        self.size = size\n        self.board = [[EMPTY for _ in range(size)] for _ in range(size)]\n        self.current = BLACK\n        self.winner = None\n        self.moves = 0\n\n    def in_bounds(self, row, col):\n        return 0 <= row < self.size and 0 <= col < self.size\n\n    def is_full(self):\n        return self.moves >= self.size * self.size\n\n    def place_stone(self, row, col):\n        \"\"\"Place a stone for the current player. Returns True if the move wins.\"\"\"\n        if not self.in_bounds(row, col) or self.board[row][col] != EMPTY:\n            raise ValueError(\"Invalid move: cell out of bounds or occupied.\")\n        self.board[row][col] = self.current\n        self.moves += 1\n        if self.check_win(row, col):\n            self.winner = self.current\n            return True\n        self.current = WHITE if self.current == BLACK else BLACK\n        return False\n\n    def check_win(self, row, col):\n        \"\"\"Check whether the stone at (row, col) completes five in a row.\"\"\"\n        player = self.board[row][col]\n        for dr, dc in DIRECTIONS:\n            count = 1\n            for sign in (1, -1):\n                r, c = row + sign * dr, col + sign * dc\n                while self.in_bounds(r, c) and self.board[r][c] == player:\n                    count += 1\n                    r += sign * dr\n                    c += sign * dc\n            if count >= WIN_LENGTH:\n                return True\n        return False\n\n    def render(self):\n        header = \"   \" + \" \".join(str(c % 10) for c in range(self.size))\n        lines = [header]\n        for r in range(self.size):\n            cells = \" \".join(\n                PLAYER_SYMBOLS.get(self.board[r][c], \".\") for c in range(self.size)\n            )\n            lines.append(f\"{r:2d} {cells}\")\n        return \"\\n\".join(lines)\n\n    def play(self):\n        print(\"Gomoku - first to five in a row wins. Enter moves as 'row col'.\")\n        while self.winner is None and not self.is_full():\n            print()\n            print(self.render())\n            name = PLAYER_NAMES[self.current]\n            raw = input(f\"{name}'s move (row col): \").strip()\n            try:\n                parts = raw.replace(\",\", \" \").split()\n                row, col = int(parts[0]), int(parts[1])\n                self.place_stone(row, col)\n            except (ValueError, IndexError):\n                print(\"Invalid input. Enter two numbers 0-14, e.g. '7 7'.\")\n        print()\n        print(self.render())\n        if self.winner is not None:\n            print(f\"{PLAYER_NAMES[self.winner]} wins!\")\n        else:\n            print(\"Draw - the board is full.\")\n```\n\n**[Update Codes]**\n\ngomoku.py updated.\n\n\n```\n'''\n\n'''\n--- Old\n+++ New\n@@ -64,7 +64,7 @@\n         return \"\\n\".join(lines)\n \n     def play(self):\n-        print(\"Gomoku — first to five in a row wins. Enter moves as 'row col'.\")\n+        print(\"Gomoku - first to five in a row wins. Enter moves as 'row col'.\")\n         while self.winner is None and not self.is_full():\n             print()\n             print(self.render())\n@@ -81,4 +81,4 @@\n         if self.winner is not None:\n             print(f\"{PLAYER_NAMES[self.winner]} wins!\")\n         else:\n-            print(\"Draw — the board is full.\")\n+            print(\"Draw - the board is full.\")\n```\n\ndir: data/runs/mpst_contract/r10/07_Gomoku/artifact\n**[Software Info]**:\n\n \n\n💰**cost**=unknown\n\n🔨**version_updates**=-1\n\n📃**num_code_files**=3\n\n🏞**num_png_files**=0\n\n📚**num_doc_files**=5\n\n📃**code_lines**=127\n\n📋**env_lines**=-1\n\n📒**manual_lines**=-1\n\n🗣**num_utterances**=14\n\n🤔**num_self_reflections**=0\n\n❓**num_prompt_tokens**=12762\n\n❗**num_completion_tokens**=11903\n\n🌟**num_total_tokens**=24665\n\nTraceback (most recent call last):\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\run.py\", line 136, in <module>\n    chat_chain.execute_chain()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\chat_chain.py\", line 183, in execute_chain\n    content_guard.finish()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\content_guard.py\", line 134, in finish\n    raise ContentViolation(\"chatdev.stage_exit.v1\", findings)\ncontent_lab.chatdev_contracts.ContentViolation: {\"contract\": \"chatdev.stage_exit.v1\", \"violations\": [{\"layer\": \"A\", \"rule\": \"current_startup_passed\", \"path\": \"$\", \"message\": \"Current startup did not pass.\", \"repair\": \"Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior.\"}]}\n",
+  "artifact_pass": false,
+  "evaluation_error": null,
+  "result_path": "data/runs/mpst_contract/r10/07_Gomoku\\run_result.json",
+  "model_decision_enabled": false,
+  "model_decision_calls": 0,
+  "terminal_contract": "chatdev.stage_exit.v1",
+  "terminal_rules": [
+    "current_startup_passed"
+  ],
+  "audit_checks": 19,
+  "delivered_phases": [
+    "DemandAnalysis",
+    "LanguageChoose",
+    "Coding",
+    "CodeReviewComment",
+    "CodeReviewModification",
+    "TestErrorSummary",
+    "TestModification"
+  ]
+}

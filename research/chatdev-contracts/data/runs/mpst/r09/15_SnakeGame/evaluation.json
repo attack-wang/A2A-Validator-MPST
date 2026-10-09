@@ -1,0 +1,84 @@
+{
+  "task_index": 15,
+  "project_name": "SnakeGame",
+  "framework": "ChatDev",
+  "workflow_status": "completed",
+  "workspace": "data/runs/mpst/r09/15_SnakeGame/artifact",
+  "source_file_count": 6,
+  "python_compile": {
+    "checked": 6,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-04T20:32:48+0800",
+  "judge": {
+    "verdict": "pass",
+    "functional_completeness": 0.96,
+    "executable_likelihood": 0.94,
+    "implemented_requirements": [
+      {
+        "requirement": "Directional movement via player input",
+        "fulfilled": true,
+        "evidence": "Game._on_keydown maps arrow/WASD keys to settings.UP/DOWN/LEFT/RIGHT and calls snake.change_direction; Snake.peek_direction returns the next queued direction."
+      },
+      {
+        "requirement": "Food spawning on free cells and consumption",
+        "fulfilled": true,
+        "evidence": "Food.respawn builds a list of free cells (excluding snake.occupies) and picks a random one; Game.step checks if next_head equals food.position, grows the snake and later respawns food."
+      },
+      {
+        "requirement": "Snake grows when food is eaten",
+        "fulfilled": true,
+        "evidence": "Game.step calls self.snake.grow() before moving; Snake.grow increments grow_pending; Snake.move keeps the tail when grow_pending > 0, effectively lengthening the snake."
+      },
+      {
+        "requirement": "Collision with self ends the game",
+        "fulfilled": true,
+        "evidence": "After moving, Game.step calls self.snake.hits_self(); if true, it calls self._end_round(won=False)."
+      },
+      {
+        "requirement": "Collision with board boundaries ends the game",
+        "fulfilled": true,
+        "evidence": "Game._out_of_bounds checks coordinates against BOARD_WIDTH/HEIGHT; Game.step ends the round when this returns true."
+      },
+      {
+        "requirement": "Score is displayed and updated",
+        "fulfilled": true,
+        "evidence": "When food is eaten, Game.step adds SCORE_PER_FOOD to self.score; Game._render_play_field draws the score with draw_text."
+      },
+      {
+        "requirement": "Multiple difficulty levels",
+        "fulfilled": true,
+        "evidence": "settings.DIFFICULTIES defines three presets; Game._render_menu shows them; Game.start receives a difficulty_key and sets speed accordingly; speed increases with each food."
+      },
+      {
+        "requirement": "Board updates after each move",
+        "fulfilled": true,
+        "evidence": "Game.step updates snake position, food, score and speed; Game._render_play_field redraws the board, grid, snake and food each frame."
+      },
+      {
+        "requirement": "Game‑over (and win) overlay",
+        "fulfilled": true,
+        "evidence": "Game._render_game_over calls draw_overlay with lines indicating win/lose, final score and instructions."
+      },
+      {
+        "requirement": "Win condition when board is completely filled",
+        "fulfilled": true,
+        "evidence": "Food.respawn sets self.position = None when no free cells remain; Game.step detects this and calls _end_round(won=True)."
+      }
+    ],
+    "critical_issues": [
+      "Snake.hits_self() ignores the tail segment based on grow_pending after the move; this could miss a self‑collision in the exact tick the snake grows, though it does not affect normal gameplay.",
+      "The code assumes pygame is installed; in an environment without pygame the program would fail to start."
+    ],
+    "summary": "The repository contains a complete, runnable implementation of a classic Snake game. All core features—directional control, food spawning, growth, self‑ and boundary‑collision detection, scoring, difficulty selection, board rendering, and win/lose screens—are present and backed by concrete code. Minor logic nuances in self‑collision detection exist but do not prevent the game from functioning as specified, and the overall likelihood of successful execution is high given a standard Python environment with pygame installed.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": true
+}

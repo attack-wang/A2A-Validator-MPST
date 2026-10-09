@@ -1,0 +1,391 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "As the Chief Product Officer, I'd like to share my analysis of the customer's needs and my initial recommendation for the product modality.\n\n**Customer Needs Analysis:**\nThe customer wants a budget tracker to monitor expenses and savings. This implies three core requirements:\n1. **Data entry** — the ability to record expenses and savings transactions\n2. **Tracking/monitoring** — ongoing observation of financial status over time\n3. **Insight** — understanding spending patterns and savings progress\n\n**My Recommendation: Application**\n\nHere's my reasoning:\n\n1. **Interactivity**: A tracker fundamentally requires users to input, edit, and delete records. An Application (Python-based) provides full CRUD (Create, Read, Update, Delete) capabilities, which static formats cannot offer.\n2. **Functionality**: We can implement expense categorization, monthly budget limits, savings goals, and automatic summary calculations — delivering real product value.\n3. **Visualization**: The application can integrate charts (e.g., pie charts for expense breakdown, line charts for savings trends), satisfying the \"monitor\" aspect.\n4. **Realizability**: Python offers mature libraries (tkinter/PyQt for GUI, matplotlib for charts), making this fully realizable within our capabilities.\n\n**Alternative considerations:**\n- **Dashboard**: Strong for real-time visualization, but weaker on data entry and record management.\n- **Excel**: Practical, but feels more like a template than a finished product; limited interactivity.\n- **Website**: Viable, but a local application better suits the privacy nature of personal financial data.\n\nI'd like to hear your thoughts — do you agree with the Application modality, or would you prefer another option?"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\n\"\"\"Budget Tracker - monitor expenses and savings.\"\"\"\nimport datetime\n\nfrom tracker import BudgetTracker\n\n\ndef fmt(x):\n    return f\"${x:,.2f}\"\n\n\ndef read_float(prompt):\n    while True:\n        try:\n            value = float(input(prompt).strip())\n            if value <= 0:\n                print(\"Amount must be positive.\")\n                continue\n            return value\n        except ValueError:\n            print(\"Enter a valid number.\")\n\n\ndef read_date(prompt):\n    raw = input(prompt).strip()\n    if not raw:\n        return None\n    try:\n        return datetime.date.fromisoformat(raw).isoformat()\n    except ValueError:\n        print(\"Invalid date; using today.\")\n        return None\n\n\ndef show_transactions(txns):\n    if not txns:\n        print(\"No transactions recorded.\")\n        return\n    print(f\"\\n{'ID':>4} {'Date':<12} {'Type':<8} {'Category':<15} \"\n          f\"{'Description':<25} {'Amount':>10}\")\n    print(\"-\" * 78)\n    for t in txns:\n        print(f\"{t.id:>4} {t.date:<12} {t.ttype:<8} {t.category:<15} \"\n              f\"{t.description[:25]:<25} {fmt(t.amount):>10}\")\n\n\ndef main():\n    app = BudgetTracker()\n    menu = (\n        \"\\n=== Budget Tracker ===\\n\"\n        \"1) Add expense\\n\"\n        \"2) Add income\\n\"\n        \"3) List transactions\\n\"\n        \"4) Delete transaction\\n\"\n        \"5) Monthly summary\\n\"\n        \"6) Category breakdown\\n\"\n        \"7) Add savings goal\\n\"\n        \"8) View savings goals\\n\"\n        \"9) Contribute to goal\\n\"\n        \"10) Exit\"\n    )\n    while True:\n        print(menu)\n        choice = input(\"Select option: \").strip()\n        try:\n            if choice == \"1\":\n                date = read_date(\"Date (YYYY-MM-DD, blank=today): \")\n                t = app.add_transaction(\n                    \"expense\", read_float(\"Amount: \"),\n                    input(\"Category: \").strip() or \"Uncategorized\",\n                    input(\"Description: \").strip(), date)\n                print(f\"Expense #{t.id} recorded.\")\n            elif choice == \"2\":\n                date = read_date(\"Date (YYYY-MM-DD, blank=today): \")\n                t = app.add_transaction(\n                    \"income\", read_float(\"Amount: \"),\n                    input(\"Source: \").strip() or \"Income\",\n                    input(\"Description: \").strip(), date)\n                print(f\"Income #{t.id} recorded.\")\n            elif choice == \"3\":\n                month = input(\"Filter month YYYY-MM (blank=all): \").strip() or None\n                show_transactions(app.transactions(month))\n            elif choice == \"4\":\n                txn_id = int(input(\"Transaction ID to delete: \").strip())\n                print(\"Deleted.\" if app.delete_transaction(txn_id) else \"ID not found.\")\n            elif choice == \"5\":\n                month = input(\"Month YYYY-MM (blank=all): \").strip() or None\n                income, expenses, net = app.summary(month)\n                print(f\"\\nSummary ({month or 'All time'}): \"\n                      f\"Income {fmt(income)} | Expenses {fmt(expenses)} | Net {fmt(net)}\")\n            elif choice == \"6\":\n                month = input(\"Month YYYY-MM (blank=all): \").strip() or None\n                breakdown = app.category_breakdown(month)\n                if not breakdown:\n                    print(\"No expenses recorded.\")\n                else:\n                    total = sum(breakdown.values())\n                    print(f\"\\n{'Category':<20}{'Amount':>12}{'Share':>10}\")\n                    for cat, amt in breakdown.items():\n                        print(f\"{cat:<20}{fmt(amt):>12}{amt / total * 100:>9.1f}%\")\n            elif choice == \"7\":\n                name = input(\"Goal name: \").strip()\n                target = read_float(\"Target amount: \")\n                g = app.add_goal(name, target)\n                print(f\"Goal '{g.name}' created with target {fmt(g.target)}.\")\n            elif choice == \"8\":\n                goals = app.goals()\n                if not goals:\n                    print(\"No savings goals yet.\")\n                else:\n                    for g in goals:\n                        pct = g.saved / g.target * 100 if g.target else 0\n                        print(f\"{g.name}: {fmt(g.saved)} / {fmt(g.target)} ({pct:.1f}%)\")\n                    print(f\"Total saved: {fmt(app.total_saved())}\")\n            elif choice == \"9\":\n                name = input(\"Goal name: \").strip()\n                amount = read_float(\"Amount to add: \")\n                g = app.contribute(name, amount)\n                pct = g.saved / g.target * 100 if g.target else 0\n                print(f\"{g.name}: {fmt(g.saved)} / {fmt(g.target)} ({pct:.1f}%)\")\n            elif choice == \"10\":\n                print(\"Goodbye!\")\n                break\n            else:\n                print(\"Invalid option.\")\n        except ValueError as exc:\n            print(f\"Error: {exc}\")\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\ntracker.py\n```python\nimport datetime\nfrom collections import defaultdict\n\nimport storage\nfrom models import SavingsGoal, Transaction\n\n\nclass BudgetTracker:\n    def __init__(self):\n        self.data = storage.load()\n\n    def _save(self):\n        storage.save(self.data)\n\n    def add_transaction(self, ttype, amount, category, description, date=None):\n        if ttype not in (\"expense\", \"income\"):\n            raise ValueError(\"Type must be 'expense' or 'income'.\")\n        amount = float(amount)\n        if amount <= 0:\n            raise ValueError(\"Amount must be positive.\")\n        date = date or datetime.date.today().isoformat()\n        datetime.date.fromisoformat(date)\n        txn = Transaction(self.data[\"next_id\"], date, ttype,\n                          category or \"Uncategorized\", description or \"\", amount)\n        self.data[\"next_id\"] += 1\n        self.data[\"transactions\"].append(txn.to_dict())\n        self._save()\n        return txn\n\n    def delete_transaction(self, txn_id):\n        before = len(self.data[\"transactions\"])\n        self.data[\"transactions\"] = [t for t in self.data[\"transactions\"]\n                                     if t[\"id\"] != txn_id]\n        removed = len(self.data[\"transactions\"]) < before\n        if removed:\n            self._save()\n        return removed\n\n    def transactions(self, month=None):\n        txns = [Transaction.from_dict(t) for t in self.data[\"transactions\"]]\n        if month:\n            txns = [t for t in txns if t.date.startswith(month)]\n        return sorted(txns, key=lambda t: (t.date, t.id))\n\n    def summary(self, month=None):\n        txns = self.transactions(month)\n        income = sum(t.amount for t in txns if t.ttype == \"income\")\n        expenses = sum(t.amount for t in txns if t.ttype == \"expense\")\n        return income, expenses, income - expenses\n\n    def category_breakdown(self, month=None):\n        totals = defaultdict(float)\n        for t in self.transactions(month):\n            if t.ttype == \"expense\":\n                totals[t.category] += t.amount\n        return dict(sorted(totals.items(), key=lambda kv: kv[1], reverse=True))\n\n    def add_goal(self, name, target):\n        name = (name or \"\").strip()\n        if not name:\n            raise ValueError(\"Goal name is required.\")\n        target = float(target)\n        if target <= 0:\n            raise ValueError(\"Target must be positive.\")\n        if any(g[\"name\"].lower() == name.lower() for g in self.data[\"goals\"]):\n            raise ValueError(\"A goal with that name already exists.\")\n        goal = SavingsGoal(name, target)\n        self.data[\"goals\"].append(goal.to_dict())\n        self._save()\n        return goal\n\n    def contribute(self, name, amount):\n        amount = float(amount)\n        if amount <= 0:\n            raise ValueError(\"Amount must be positive.\")\n        for g in self.data[\"goals\"]:\n            if g[\"name\"].lower() == (name or \"\").strip().lower():\n                g[\"saved\"] = round(min(g[\"saved\"] + amount, g[\"target\"]), 2)\n                self._save()\n                return SavingsGoal.from_dict(g)\n        raise ValueError(\"Goal not found.\")\n\n    def goals(self):\n        return [SavingsGoal.from_dict(g) for g in self.data[\"goals\"]]\n\n    def total_saved(self):\n        return sum(g[\"saved\"] for g in self.data[\"goals\"])\n```\n\nmodels.py\n```python\nfrom dataclasses import dataclass, asdict\n\n\n@dataclass\nclass Transaction:\n    id: int\n    date: str\n    ttype: str\n    category: str\n    description: str\n    amount: float\n\n    def to_dict(self):\n        return asdict(self)\n\n    @classmethod\n    def from_dict(cls, d):\n        return cls(**d)\n\n\n@dataclass\nclass SavingsGoal:\n    name: str\n    target: float\n    saved: float = 0.0\n\n    def to_dict(self):\n        return asdict(self)\n\n    @classmethod\n    def from_dict(cls, d):\n        return cls(**d)\n```\n\nstorage.py\n```python\nimport json\nimport os\n\nDATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), \"budget_data.json\")\n\n\ndef load():\n    if os.path.exists(DATA_FILE):\n        try:\n            with open(DATA_FILE, \"r\", encoding=\"utf-8\") as fh:\n                data = json.load(fh)\n            data.setdefault(\"transactions\", [])\n            data.setdefault(\"goals\", [])\n            data.setdefault(\"next_id\", 1)\n            return data\n        except (json.JSONDecodeError, OSError):\n            pass\n    return {\"transactions\": [], \"goals\": [], \"next_id\": 1}\n\n\ndef save(data):\n    with open(DATA_FILE, \"w\", encoding=\"utf-8\") as fh:\n        json.dump(data, fh, indent=2)\n```"
+    },
+    {
+      "phase": "CodeComplete",
+      "source_snapshot": "680832688c02cc697314043f4315a3f02b8d07bdcc735a5e28ec2817a8ea51bd",
+      "result": "main.py\n```python\n\"\"\"Budget Tracker - monitor expenses and savings.\"\"\"\nimport datetime\n\nfrom tracker import BudgetTracker\n\n\ndef fmt(x):\n    return f\"${x:,.2f}\"\n\n\ndef read_float(prompt):\n    while True:\n        try:\n            value = float(input(prompt).strip())\n            if value <= 0:\n                print(\"Amount must be positive.\")\n                continue\n            return value\n        except ValueError:\n            print(\"Enter a valid number.\")\n\n\ndef read_date(prompt):\n    raw = input(prompt).strip()\n    if not raw:\n        return None\n    try:\n        return datetime.date.fromisoformat(raw).isoformat()\n    except ValueError:\n        print(\"Invalid date; using today.\")\n        return None\n\n\ndef show_transactions(txns):\n    if not txns:\n        print(\"No transactions recorded.\")\n        return\n    print(f\"\\n{'ID':>4} {'Date':<12} {'Type':<8} {'Category':<15} \"\n          f\"{'Description':<25} {'Amount':>10}\")\n    print(\"-\" * 78)\n    for t in txns:\n        print(f\"{t.id:>4} {t.date:<12} {t.ttype:<8} {t.category:<15} \"\n              f\"{t.description[:25]:<25} {fmt(t.amount):>10}\")\n\n\ndef main():\n    app = BudgetTracker()\n    menu = (\n        \"\\n=== Budget Tracker ===\\n\"\n        \"1) Add expense\\n\"\n        \"2) Add income\\n\"\n        \"3) List transactions\\n\"\n        \"4) Delete transaction\\n\"\n        \"5) Monthly summary\\n\"\n        \"6) Category breakdown\\n\"\n        \"7) Add savings goal\\n\"\n        \"8) View savings goals\\n\"\n        \"9) Contribute to goal\\n\"\n        \"10) Exit\"\n    )\n    while True:\n        print(menu)\n        choice = input(\"Select option: \").strip()\n        try:\n            if choice == \"1\":\n                date = read_date(\"Date (YYYY-MM-DD, blank=today): \")\n                t = app.add_transaction(\n                    \"expense\", read_float(\"Amount: \"),\n                    input(\"Category: \").strip() or \"Uncategorized\",\n                    input(\"Description: \").strip(), date)\n                print(f\"Expense #{t.id} recorded.\")\n            elif choice == \"2\":\n                date = read_date(\"Date (YYYY-MM-DD, blank=today): \")\n                t = app.add_transaction(\n                    \"income\", read_float(\"Amount: \"),\n                    input(\"Source: \").strip() or \"Income\",\n                    input(\"Description: \").strip(), date)\n                print(f\"Income #{t.id} recorded.\")\n            elif choice == \"3\":\n                month = input(\"Filter month YYYY-MM (blank=all): \").strip() or None\n                show_transactions(app.transactions(month))\n            elif choice == \"4\":\n                txn_id = int(input(\"Transaction ID to delete: \").strip())\n                print(\"Deleted.\" if app.delete_transaction(txn_id) else \"ID not found.\")\n            elif choice == \"5\":\n                month = input(\"Month YYYY-MM (blank=all): \").strip() or None\n                income, expenses, net = app.summary(month)\n                print(f\"\\nSummary ({month or 'All time'}): \"\n                      f\"Income {fmt(income)} | Expenses {fmt(expenses)} | Net {fmt(net)}\")\n            elif choice == \"6\":\n                month = input(\"Month YYYY-MM (blank=all): \").strip() or None\n                breakdown = app.category_breakdown(month)\n                if not breakdown:\n                    print(\"No expenses recorded.\")\n                else:\n                    total = sum(breakdown.values())\n                    print(f\"\\n{'Category':<20}{'Amount':>12}{'Share':>10}\")\n                    for cat, amt in breakdown.items():\n                        print(f\"{cat:<20}{fmt(amt):>12}{amt / total * 100:>9.1f}%\")\n            elif choice == \"7\":\n                name = input(\"Goal name: \").strip()\n                target = read_float(\"Target amount: \")\n                g = app.add_goal(name, target)\n                print(f\"Goal '{g.name}' created with target {fmt(g.target)}.\")\n            elif choice == \"8\":\n                goals = app.goals()\n                if not goals:\n                    print(\"No savings goals yet.\")\n                else:\n                    for g in goals:\n                        pct = g.saved / g.target * 100 if g.target else 0\n                        print(f\"{g.name}: {fmt(g.saved)} / {fmt(g.target)} ({pct:.1f}%)\")\n                    print(f\"Total saved: {fmt(app.total_saved())}\")\n            elif choice == \"9\":\n                name = input(\"Goal name: \").strip()\n                amount = read_float(\"Amount to add: \")\n                g = app.contribute(name, amount)\n                pct = g.saved / g.target * 100 if g.target else 0\n                print(f\"{g.name}: {fmt(g.saved)} / {fmt(g.target)} ({pct:.1f}%)\")\n            elif choice == \"10\":\n                print(\"Goodbye!\")\n                break\n            else:\n                print(\"Invalid option.\")\n        except ValueError as exc:\n            print(f\"Error: {exc}\")\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\ntracker.py\n```python\nimport datetime\nfrom collections import defaultdict\n\nimport storage\nfrom models import SavingsGoal, Transaction\n\n\nclass BudgetTracker:\n    def __init__(self):\n        self.data = storage.load()\n\n    def _save(self):\n        storage.save(self.data)\n\n    def add_transaction(self, ttype, amount, category, description, date=None):\n        if ttype not in (\"expense\", \"income\"):\n            raise ValueError(\"Type must be 'expense' or 'income'.\")\n        amount = float(amount)\n        if amount <= 0:\n            raise ValueError(\"Amount must be positive.\")\n        date = date or datetime.date.today().isoformat()\n        datetime.date.fromisoformat(date)\n        txn = Transaction(self.data[\"next_id\"], date, ttype,\n                          category or \"Uncategorized\", description or \"\", amount)\n        self.data[\"next_id\"] += 1\n        self.data[\"transactions\"].append(txn.to_dict())\n        self._save()\n        return txn\n\n    def delete_transaction(self, txn_id):\n        before = len(self.data[\"transactions\"])\n        self.data[\"transactions\"] = [t for t in self.data[\"transactions\"]\n                                     if t[\"id\"] != txn_id]\n        removed = len(self.data[\"transactions\"]) < before\n        if removed:\n            self._save()\n        return removed\n\n    def transactions(self, month=None):\n        txns = [Transaction.from_dict(t) for t in self.data[\"transactions\"]]\n        if month:\n            txns = [t for t in txns if t.date.startswith(month)]\n        return sorted(txns, key=lambda t: (t.date, t.id))\n\n    def summary(self, month=None):\n        txns = self.transactions(month)\n        income = sum(t.amount for t in txns if t.ttype == \"income\")\n        expenses = sum(t.amount for t in txns if t.ttype == \"expense\")\n        return income, expenses, income - expenses\n\n    def category_breakdown(self, month=None):\n        totals = defaultdict(float)\n        for t in self.transactions(month):\n            if t.ttype == \"expense\":\n                totals[t.category] += t.amount\n        return dict(sorted(totals.items(), key=lambda kv: kv[1], reverse=True))\n\n    def add_goal(self, name, target):\n        name = (name or \"\").strip()\n        if not name:\n            raise ValueError(\"Goal name is required.\")\n        target = float(target)\n        if target <= 0:\n            raise ValueError(\"Target must be positive.\")\n        if any(g[\"name\"].lower() == name.lower() for g in self.data[\"goals\"]):\n            raise ValueError(\"A goal with that name already exists.\")\n        goal = SavingsGoal(name, target)\n        self.data[\"goals\"].append(goal.to_dict())\n        self._save()\n        return goal\n\n    def contribute(self, name, amount):\n        amount = float(amount)\n        if amount <= 0:\n            raise ValueError(\"Amount must be positive.\")\n        for g in self.data[\"goals\"]:\n            if g[\"name\"].lower() == (name or \"\").strip().lower():\n                g[\"saved\"] = round(min(g[\"saved\"] + amount, g[\"target\"]), 2)\n                self._save()\n                return SavingsGoal.from_dict(g)\n        raise ValueError(\"Goal not found.\")\n\n    def goals(self):\n        return [SavingsGoal.from_dict(g) for g in self.data[\"goals\"]]\n\n    def total_saved(self):\n        return sum(g[\"saved\"] for g in self.data[\"goals\"])\n```\n\nmodels.py\n```python\nfrom dataclasses import dataclass, asdict\n\n\n@dataclass\nclass Transaction:\n    id: int\n    date: str\n    ttype: str\n    category: str\n    description: str\n    amount: float\n\n    def to_dict(self):\n        return asdict(self)\n\n    @classmethod\n    def from_dict(cls, d):\n        return cls(**d)\n\n\n@dataclass\nclass SavingsGoal:\n    name: str\n    target: float\n    saved: float = 0.0\n\n    def to_dict(self):\n        return asdict(self)\n\n    @classmethod\n    def from_dict(cls, d):\n        return cls(**d)\n```\n\nstorage.py\n```python\nimport json\nimport os\n\nDATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), \"budget_data.json\")\n\n\ndef load():\n    if os.path.exists(DATA_FILE):\n        try:\n            with open(DATA_FILE, \"r\", encoding=\"utf-8\") as fh:\n                data = json.load(fh)\n            if not isinstance(data, dict):\n                raise ValueError(\"Corrupt data file.\")\n            data.setdefault(\"transactions\", [])\n            data.setdefault(\"goals\", [])\n            data.setdefault(\"next_id\", 1)\n            return data\n        except (json.JSONDecodeError, ValueError, OSError):\n            pass\n    return {\"transactions\": [], \"goals\": [], \"next_id\": 1}\n\n\ndef save(data):\n    with open(DATA_FILE, \"w\", encoding=\"utf-8\") as fh:\n        json.dump(data, fh, indent=2)\n```"
+    },
+    {
+      "phase": "CodeComplete",
+      "source_snapshot": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+      "result": "The user is asking me to complete a budget tracker task. They've provided current source files: main.py, tracker.py, models.py, storage.py. The \"Required completion file: storage.py\" — they want me to return the fully implemented requested file and any other changed files.\n\nLooking at the current source, everything seems already implemented. The task says \"Return FINAL SOURCE FILES ONLY\" and \"Start with main.py for initial coding.\" The required completion file is storage.py.\n\nThe existing code looks complete and functional. Let me review each file for issues:\n\n1. main.py - looks complete, handles menu, input validation, etc.\n2. tracker.py - looks complete.\n3. models.py - looks complete.\n4. storage.py - looks complete.\n\nSince the required completion file is storage.py, I should return storage.py (and possibly all files since they say \"Return the fully implemented requested file and any other changed files\"). The instruction says \"Return each final file once\" and \"Start with main.py for initial coding.\"\n\nHmm, the instruction says \"Start with main.py for initial coding\" — this suggests I should output main.py first, then the other files. But the required completion file is storage.py. Since the code appears complete already, maybe I just need to return storage.py as the final file, or return all files.\n\nGiven the ambiguity, the safest approach: return all files, starting with main.py, ensuring each is complete and correct. Actually, re-reading: \"Return the fully implemented requested file and any other changed files.\" The requested file is storage.py. If no other files changed, I return just storage.py. But \"Start with main.py for initial coding\" suggests the response should begin with main.py.\n\nGiven this is a ChatDev-style workflow where the programmer produces the full code, and the current source is already provided, I think the best response is to output all four files (main.py, tracker.py, models.py, storage.py) in order, each once, as final source files. That satisfies \"Start with main.py\" and includes the required storage.py.\n\nLet me double-check the code for any bugs:\n\nmain.py:\n- fmt: fine.\n- read_float: fine.\n- read_date: returns None on blank or invalid; tracker defaults to today. Fine.\n- show_transactions: fine.\n- main loop: handles choices 1-10. Fine.\n\ntracker.py:\n- add_transaction: validates type, amount, date. Fine.\n- delete_transaction: fine.\n- transactions: sorted. Fine.\n- summary: fine.\n- category_breakdown: fine.\n- add_goal: fine.\n- contribute: caps at target. Fine.\n- goals, total_saved: fine.\n\nmodels.py: fine.\n\nstorage.py: fine. Load with defaults, save with json dump.\n\nOne potential issue: in storage.load, if the JSON file contains valid JSON but not a dict, it raises ValueError which is caught, then falls through to return default. Good.\n\nEverything seems complete. I'll output the files. Since the required completion is storage.py and no changes are needed, but the instructions say to start with main.py, I'll include all files to present the complete final source.\n\nActually, wait — \"Return each final file once\" — if I return all four files, each appears once. That's fine. But \"Return the fully implemented requested file and any other changed files\" — if nothing changed, only storage.py is needed. However, to be safe and complete, returning all files ensures the full program is delivered. The instruction \"Start with main.py for initial coding\" strongly suggests outputting main.py first.\n\nI'll output all four files: main.py, tracker.py, models.py, storage.py. No analysis, no extra text. Just filename lines and code blocks.\n\nHmm, but should I add any text at all? \"Return FINAL SOURCE FILES ONLY. Do not output analysis...\" So I should output only the files. Maybe a minimal nothing else. I'll just output the files.\n\nLet me finalize the code as-is (it's already good). I'll keep them identical to the provided source since they're complete and correct.main.py\n```python\n\"\"\"Budget Tracker - monitor expenses and savings.\"\"\"\nimport datetime\n\nfrom tracker import BudgetTracker\n\n\ndef fmt(x):\n    return f\"${x:,.2f}\"\n\n\ndef read_float(prompt):\n    while True:\n        try:\n            value = float(input(prompt).strip())\n            if value <= 0:\n                print(\"Amount must be positive.\")\n                continue\n            return value\n        except ValueError:\n            print(\"Enter a valid number.\")\n\n\ndef read_date(prompt):\n    raw = input(prompt).strip()\n    if not raw:\n        return None\n    try:\n        return datetime.date.fromisoformat(raw).isoformat()\n    except ValueError:\n        print(\"Invalid date; using today.\")\n        return None\n\n\ndef show_transactions(txns):\n    if not txns:\n        print(\"No transactions recorded.\")\n        return\n    print(f\"\\n{'ID':>4} {'Date':<12} {'Type':<8} {'Category':<15} \"\n          f\"{'Description':<25} {'Amount':>10}\")\n    print(\"-\" * 78)\n    for t in txns:\n        print(f\"{t.id:>4} {t.date:<12} {t.ttype:<8} {t.category:<15} \"\n              f\"{t.description[:25]:<25} {fmt(t.amount):>10}\")\n\n\ndef main():\n    app = BudgetTracker()\n    menu = (\n        \"\\n=== Budget Tracker ===\\n\"\n        \"1) Add expense\\n\"\n        \"2) Add income\\n\"\n        \"3) List transactions\\n\"\n        \"4) Delete transaction\\n\"\n        \"5) Monthly summary\\n\"\n        \"6) Category breakdown\\n\"\n        \"7) Add savings goal\\n\"\n        \"8) View savings goals\\n\"\n        \"9) Contribute to goal\\n\"\n        \"10) Exit\"\n    )\n    while True:\n        print(menu)\n        choice = input(\"Select option: \").strip()\n        try:\n            if choice == \"1\":\n                date = read_date(\"Date (YYYY-MM-DD, blank=today): \")\n                t = app.add_transaction(\n                    \"expense\", read_float(\"Amount: \"),\n                    input(\"Category: \").strip() or \"Uncategorized\",\n                    input(\"Description: \").strip(), date)\n                print(f\"Expense #{t.id} recorded.\")\n            elif choice == \"2\":\n                date = read_date(\"Date (YYYY-MM-DD, blank=today): \")\n                t = app.add_transaction(\n                    \"income\", read_float(\"Amount: \"),\n                    input(\"Source: \").strip() or \"Income\",\n                    input(\"Description: \").strip(), date)\n                print(f\"Income #{t.id} recorded.\")\n            elif choice == \"3\":\n                month = input(\"Filter month YYYY-MM (blank=all): \").strip() or None\n                show_transactions(app.transactions(month))\n            elif choice == \"4\":\n                txn_id = int(input(\"Transaction ID to delete: \").strip())\n                print(\"Deleted.\" if app.delete_transaction(txn_id) else \"ID not found.\")\n            elif choice == \"5\":\n                month = input(\"Month YYYY-MM (blank=all): \").strip() or None\n                income, expenses, net = app.summary(month)\n                print(f\"\\nSummary ({month or 'All time'}): \"\n                      f\"Income {fmt(income)} | Expenses {fmt(expenses)} | Net {fmt(net)}\")\n            elif choice == \"6\":\n                month = input(\"Month YYYY-MM (blank=all): \").strip() or None\n                breakdown = app.category_breakdown(month)\n                if not breakdown:\n                    print(\"No expenses recorded.\")\n                else:\n                    total = sum(breakdown.values())\n                    print(f\"\\n{'Category':<20}{'Amount':>12}{'Share':>10}\")\n                    for cat, amt in breakdown.items():\n                        print(f\"{cat:<20}{fmt(amt):>12}{amt / total * 100:>9.1f}%\")\n            elif choice == \"7\":\n                name = input(\"Goal name: \").strip()\n                target = read_float(\"Target amount: \")\n                g = app.add_goal(name, target)\n                print(f\"Goal '{g.name}' created with target {fmt(g.target)}.\")\n            elif choice == \"8\":\n                goals = app.goals()\n                if not goals:\n                    print(\"No savings goals yet.\")\n                else:\n                    for g in goals:\n                        pct = g.saved / g.target * 100 if g.target else 0\n                        print(f\"{g.name}: {fmt(g.saved)} / {fmt(g.target)} ({pct:.1f}%)\")\n                    print(f\"Total saved: {fmt(app.total_saved())}\")\n            elif choice == \"9\":\n                name = input(\"Goal name: \").strip()\n                amount = read_float(\"Amount to add: \")\n                g = app.contribute(name, amount)\n                pct = g.saved / g.target * 100 if g.target else 0\n                print(f\"{g.name}: {fmt(g.saved)} / {fmt(g.target)} ({pct:.1f}%)\")\n            elif choice == \"10\":\n                print(\"Goodbye!\")\n                break\n            else:\n                print(\"Invalid option.\")\n        except ValueError as exc:\n            print(f\"Error: {exc}\")\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\ntracker.py\n```python\nimport datetime\nfrom collections import defaultdict\n\nimport storage\nfrom models import SavingsGoal, Transaction\n\n\nclass BudgetTracker:\n    def __init__(self):\n        self.data = storage.load()\n\n    def _save(self):\n        storage.save(self.data)\n\n    def add_transaction(self, ttype, amount, category, description, date=None):\n        if ttype not in (\"expense\", \"income\"):\n            raise ValueError(\"Type must be 'expense' or 'income'.\")\n        amount = float(amount)\n        if amount <= 0:\n            raise ValueError(\"Amount must be positive.\")\n        date = date or datetime.date.today().isoformat()\n        datetime.date.fromisoformat(date)\n        txn = Transaction(self.data[\"next_id\"], date, ttype,\n                          category or \"Uncategorized\", description or \"\", amount)\n        self.data[\"next_id\"] += 1\n        self.data[\"transactions\"].append(txn.to_dict())\n        self._save()\n        return txn\n\n    def delete_transaction(self, txn_id):\n        before = len(self.data[\"transactions\"])\n        self.data[\"transactions\"] = [t for t in self.data[\"transactions\"]\n                                     if t[\"id\"] != txn_id]\n        removed = len(self.data[\"transactions\"]) < before\n        if removed:\n            self._save()\n        return removed\n\n    def transactions(self, month=None):\n        txns = [Transaction.from_dict(t) for t in self.data[\"transactions\"]]\n        if month:\n            txns = [t for t in txns if t.date.startswith(month)]\n        return sorted(txns, key=lambda t: (t.date, t.id))\n\n    def summary(self, month=None):\n        txns = self.transactions(month)\n        income = sum(t.amount for t in txns if t.ttype == \"income\")\n        expenses = sum(t.amount for t in txns if t.ttype == \"expense\")\n        return income, expenses, income - expenses\n\n    def category_breakdown(self, month=None):\n        totals = defaultdict(float)\n        for t in self.transactions(month):\n            if t.ttype == \"expense\":\n                totals[t.category] += t.amount\n        return dict(sorted(totals.items(), key=lambda kv: kv[1], reverse=True))\n\n    def add_goal(self, name, target):\n        name = (name or \"\").strip()\n        if not name:\n            raise ValueError(\"Goal name is required.\")\n        target = float(target)\n        if target <= 0:\n            raise ValueError(\"Target must be positive.\")\n        if any(g[\"name\"].lower() == name.lower() for g in self.data[\"goals\"]):\n            raise ValueError(\"A goal with that name already exists.\")\n        goal = SavingsGoal(name, target)\n        self.data[\"goals\"].append(goal.to_dict())\n        self._save()\n        return goal\n\n    def contribute(self, name, amount):\n        amount = float(amount)\n        if amount <= 0:\n            raise ValueError(\"Amount must be positive.\")\n        for g in self.data[\"goals\"]:\n            if g[\"name\"].lower() == (name or \"\").strip().lower():\n                g[\"saved\"] = round(min(g[\"saved\"] + amount, g[\"target\"]), 2)\n                self._save()\n                return SavingsGoal.from_dict(g)\n        raise ValueError(\"Goal not found.\")\n\n    def goals(self):\n        return [SavingsGoal.from_dict(g) for g in self.data[\"goals\"]]\n\n    def total_saved(self):\n        return sum(g[\"saved\"] for g in self.data[\"goals\"])\n```\n\nmodels.py\n```python\nfrom dataclasses import dataclass, asdict\n\n\n@dataclass\nclass Transaction:\n    id: int\n    date: str\n    ttype: str\n    category: str\n    description: str\n    amount: float\n\n    def to_dict(self):\n        return asdict(self)\n\n    @classmethod\n    def from_dict(cls, d):\n        return cls(**d)\n\n\n@dataclass\nclass SavingsGoal:\n    name: str\n    target: float\n    saved: float = 0.0\n\n    def to_dict(self):\n        return asdict(self)\n\n    @classmethod\n    def from_dict(cls, d):\n        return cls(**d)\n```\n\nstorage.py\n```python\nimport json\nimport os\n\nDATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), \"budget_data.json\")\n\n\ndef load():\n    if os.path.exists(DATA_FILE):\n        try:\n            with open(DATA_FILE, \"r\", encoding=\"utf-8\") as fh:\n                data = json.load(fh)\n            if not isinstance(data, dict):\n                raise ValueError(\"Corrupt data file.\")\n            data.setdefault(\"transactions\", [])\n            data.setdefault(\"goals\", [])\n            data.setdefault(\"next_id\", 1)\n            return data\n        except (json.JSONDecodeError, ValueError, OSError):\n            pass\n    return {\"transactions\": [], \"goals\": [], \"next_id\": 1}\n\n\ndef save(data):\n    with open(DATA_FILE, \"w\", encoding=\"utf-8\") as fh:\n        json.dump(data, fh, indent=2)\n```"
+    },
+    {
+      "phase": "CodeComplete",
+      "source_snapshot": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+      "result": "main.py\n```python\n\"\"\"Budget Tracker - monitor expenses and savings.\"\"\"\nimport datetime\n\nfrom tracker import BudgetTracker\n\n\ndef fmt(x):\n    return f\"${x:,.2f}\"\n\n\ndef read_float(prompt):\n    while True:\n        try:\n            value = float(input(prompt).strip())\n            if value <= 0:\n                print(\"Amount must be positive.\")\n                continue\n            return value\n        except ValueError:\n            print(\"Enter a valid number.\")\n\n\ndef read_date(prompt):\n    raw = input(prompt).strip()\n    if not raw:\n        return None\n    try:\n        return datetime.date.fromisoformat(raw).isoformat()\n    except ValueError:\n        print(\"Invalid date; using today.\")\n        return None\n\n\ndef show_transactions(txns):\n    if not txns:\n        print(\"No transactions recorded.\")\n        return\n    print(f\"\\n{'ID':>4} {'Date':<12} {'Type':<8} {'Category':<15} \"\n          f\"{'Description':<25} {'Amount':>10}\")\n    print(\"-\" * 78)\n    for t in txns:\n        print(f\"{t.id:>4} {t.date:<12} {t.ttype:<8} {t.category:<15} \"\n              f\"{t.description[:25]:<25} {fmt(t.amount):>10}\")\n\n\ndef main():\n    app = BudgetTracker()\n    menu = (\n        \"\\n=== Budget Tracker ===\\n\"\n        \"1) Add expense\\n\"\n        \"2) Add income\\n\"\n        \"3) List transactions\\n\"\n        \"4) Delete transaction\\n\"\n        \"5) Monthly summary\\n\"\n        \"6) Category breakdown\\n\"\n        \"7) Add savings goal\\n\"\n        \"8) View savings goals\\n\"\n        \"9) Contribute to goal\\n\"\n        \"10) Exit\"\n    )\n    while True:\n        print(menu)\n        choice = input(\"Select option: \").strip()\n        try:\n            if choice == \"1\":\n                date = read_date(\"Date (YYYY-MM-DD, blank=today): \")\n                t = app.add_transaction(\n                    \"expense\", read_float(\"Amount: \"),\n                    input(\"Category: \").strip() or \"Uncategorized\",\n                    input(\"Description: \").strip(), date)\n                print(f\"Expense #{t.id} recorded.\")\n            elif choice == \"2\":\n                date = read_date(\"Date (YYYY-MM-DD, blank=today): \")\n                t = app.add_transaction(\n                    \"income\", read_float(\"Amount: \"),\n                    input(\"Source: \").strip() or \"Income\",\n                    input(\"Description: \").strip(), date)\n                print(f\"Income #{t.id} recorded.\")\n            elif choice == \"3\":\n                month = input(\"Filter month YYYY-MM (blank=all): \").strip() or None\n                show_transactions(app.transactions(month))\n            elif choice == \"4\":\n                txn_id = int(input(\"Transaction ID to delete: \").strip())\n                print(\"Deleted.\" if app.delete_transaction(txn_id) else \"ID not found.\")\n            elif choice == \"5\":\n                month = input(\"Month YYYY-MM (blank=all): \").strip() or None\n                income, expenses, net = app.summary(month)\n                print(f\"\\nSummary ({month or 'All time'}): \"\n                      f\"Income {fmt(income)} | Expenses {fmt(expenses)} | Net {fmt(net)}\")\n            elif choice == \"6\":\n                month = input(\"Month YYYY-MM (blank=all): \").strip() or None\n                breakdown = app.category_breakdown(month)\n                if not breakdown:\n                    print(\"No expenses recorded.\")\n                else:\n                    total = sum(breakdown.values())\n                    print(f\"\\n{'Category':<20}{'Amount':>12}{'Share':>10}\")\n                    for cat, amt in breakdown.items():\n                        print(f\"{cat:<20}{fmt(amt):>12}{amt / total * 100:>9.1f}%\")\n            elif choice == \"7\":\n                name = input(\"Goal name: \").strip()\n                target = read_float(\"Target amount: \")\n                g = app.add_goal(name, target)\n                print(f\"Goal '{g.name}' created with target {fmt(g.target)}.\")\n            elif choice == \"8\":\n                goals = app.goals()\n                if not goals:\n                    print(\"No savings goals yet.\")\n                else:\n                    for g in goals:\n                        pct = g.saved / g.target * 100 if g.target else 0\n                        print(f\"{g.name}: {fmt(g.saved)} / {fmt(g.target)} ({pct:.1f}%)\")\n                    print(f\"Total saved: {fmt(app.total_saved())}\")\n            elif choice == \"9\":\n                name = input(\"Goal name: \").strip()\n                amount = read_float(\"Amount to add: \")\n                g = app.contribute(name, amount)\n                pct = g.saved / g.target * 100 if g.target else 0\n                print(f\"{g.name}: {fmt(g.saved)} / {fmt(g.target)} ({pct:.1f}%)\")\n            elif choice == \"10\":\n                print(\"Goodbye!\")\n                break\n            else:\n                print(\"Invalid option.\")\n        except ValueError as exc:\n            print(f\"Error: {exc}\")\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\ntracker.py\n```python\nimport datetime\nfrom collections import defaultdict\n\nimport storage\nfrom models import SavingsGoal, Transaction\n\n\nclass BudgetTracker:\n    def __init__(self):\n        self.data = storage.load()\n\n    def _save(self):\n        storage.save(self.data)\n\n    def add_transaction(self, ttype, amount, category, description, date=None):\n        if ttype not in (\"expense\", \"income\"):\n            raise ValueError(\"Type must be 'expense' or 'income'.\")\n        amount = float(amount)\n        if amount <= 0:\n            raise ValueError(\"Amount must be positive.\")\n        date = date or datetime.date.today().isoformat()\n        datetime.date.fromisoformat(date)\n        txn = Transaction(self.data[\"next_id\"], date, ttype,\n                          category or \"Uncategorized\", description or \"\", amount)\n        self.data[\"next_id\"] += 1\n        self.data[\"transactions\"].append(txn.to_dict())\n        self._save()\n        return txn\n\n    def delete_transaction(self, txn_id):\n        before = len(self.data[\"transactions\"])\n        self.data[\"transactions\"] = [t for t in self.data[\"transactions\"]\n                                     if t[\"id\"] != txn_id]\n        removed = len(self.data[\"transactions\"]) < before\n        if removed:\n            self._save()\n        return removed\n\n    def transactions(self, month=None):\n        txns = [Transaction.from_dict(t) for t in self.data[\"transactions\"]]\n        if month:\n            txns = [t for t in txns if t.date.startswith(month)]\n        return sorted(txns, key=lambda t: (t.date, t.id))\n\n    def summary(self, month=None):\n        txns = self.transactions(month)\n        income = sum(t.amount for t in txns if t.ttype == \"income\")\n        expenses = sum(t.amount for t in txns if t.ttype == \"expense\")\n        return income, expenses, income - expenses\n\n    def category_breakdown(self, month=None):\n        totals = defaultdict(float)\n        for t in self.transactions(month):\n            if t.ttype == \"expense\":\n                totals[t.category] += t.amount\n        return dict(sorted(totals.items(), key=lambda kv: kv[1], reverse=True))\n\n    def add_goal(self, name, target):\n        name = (name or \"\").strip()\n        if not name:\n            raise ValueError(\"Goal name is required.\")\n        target = float(target)\n        if target <= 0:\n            raise ValueError(\"Target must be positive.\")\n        if any(g[\"name\"].lower() == name.lower() for g in self.data[\"goals\"]):\n            raise ValueError(\"A goal with that name already exists.\")\n        goal = SavingsGoal(name, target)\n        self.data[\"goals\"].append(goal.to_dict())\n        self._save()\n        return goal\n\n    def contribute(self, name, amount):\n        amount = float(amount)\n        if amount <= 0:\n            raise ValueError(\"Amount must be positive.\")\n        for g in self.data[\"goals\"]:\n            if g[\"name\"].lower() == (name or \"\").strip().lower():\n                g[\"saved\"] = round(min(g[\"saved\"] + amount, g[\"target\"]), 2)\n                self._save()\n                return SavingsGoal.from_dict(g)\n        raise ValueError(\"Goal not found.\")\n\n    def goals(self):\n        return [SavingsGoal.from_dict(g) for g in self.data[\"goals\"]]\n\n    def total_saved(self):\n        return sum(g[\"saved\"] for g in self.data[\"goals\"])\n```\n\nmodels.py\n```python\nfrom dataclasses import dataclass, asdict\n\n\n@dataclass\nclass Transaction:\n    id: int\n    date: str\n    ttype: str\n    category: str\n    description: str\n    amount: float\n\n    def to_dict(self):\n        return asdict(self)\n\n    @classmethod\n    def from_dict(cls, d):\n        return cls(**d)\n\n\n@dataclass\nclass SavingsGoal:\n    name: str\n    target: float\n    saved: float = 0.0\n\n    def to_dict(self):\n        return asdict(self)\n\n    @classmethod\n    def from_dict(cls, d):\n        return cls(**d)\n```\n\nstorage.py\n```python\nimport json\nimport os\n\nDATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), \"budget_data.json\")\n\n\ndef load():\n    if os.path.exists(DATA_FILE):\n        try:\n            with open(DATA_FILE, \"r\", encoding=\"utf-8\") as fh:\n                data = json.load(fh)\n            if not isinstance(data, dict):\n                raise ValueError(\"Corrupt data file.\")\n            data.setdefault(\"transactions\", [])\n            data.setdefault(\"goals\", [])\n            data.setdefault(\"next_id\", 1)\n            return data\n        except (json.JSONDecodeError, ValueError, OSError):\n            pass\n    return {\"transactions\": [], \"goals\": [], \"next_id\": 1}\n\n\ndef save(data):\n    with open(DATA_FILE, \"w\", encoding=\"utf-8\") as fh:\n        json.dump(data, fh, indent=2)\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+      "result": "{\"verdict\": \"finished\", \"issues\": []}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+      "result": " Finished"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+      "result": "{\"status\": \"failed\", \"test_run_id\": \"1fca882721a66ac9f77364fd10ac56c9bc9d610d36d2bec2bf89284164ad9def\", \"summary\": \"Startup smoke exited with code 1 via EOFError at main.py input('Select option:') because the harness ran 'python -E main.py' with no stdin; the app imported all modules (main, tracker, models, storage) without error and printed the full menu before failing, so this is an unsupported invocation artifact (closed stdin), not a source error or missing dependency. The check is inconclusive on interactive functionality and does not establish a code defect or successful execution.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+      "result": "main.py\n```python\n\"\"\"Budget Tracker - monitor expenses and savings.\"\"\"\nimport datetime\n\nfrom tracker import BudgetTracker\n\n\ndef fmt(x):\n    return f\"${x:,.2f}\"\n\n\ndef read_float(prompt):\n    while True:\n        try:\n            value = float(input(prompt).strip())\n            if value <= 0:\n                print(\"Amount must be positive.\")\n                continue\n            return value\n        except ValueError:\n            print(\"Enter a valid number.\")\n\n\ndef read_date(prompt):\n    raw = input(prompt).strip()\n    if not raw:\n        return None\n    try:\n        return datetime.date.fromisoformat(raw).isoformat()\n    except ValueError:\n        print(\"Invalid date; using today.\")\n        return None\n\n\ndef show_transactions(txns):\n    if not txns:\n        print(\"No transactions recorded.\")\n        return\n    print(f\"\\n{'ID':>4} {'Date':<12} {'Type':<8} {'Category':<15} \"\n          f\"{'Description':<25} {'Amount':>10}\")\n    print(\"-\" * 78)\n    for t in txns:\n        print(f\"{t.id:>4} {t.date:<12} {t.ttype:<8} {t.category:<15} \"\n              f\"{t.description[:25]:<25} {fmt(t.amount):>10}\")\n\n\ndef main():\n    app = BudgetTracker()\n    menu = (\n        \"\\n=== Budget Tracker ===\\n\"\n        \"1) Add expense\\n\"\n        \"2) Add income\\n\"\n        \"3) List transactions\\n\"\n        \"4) Delete transaction\\n\"\n        \"5) Monthly summary\\n\"\n        \"6) Category breakdown\\n\"\n        \"7) Add savings goal\\n\"\n        \"8) View savings goals\\n\"\n        \"9) Contribute to goal\\n\"\n        \"10) Exit\"\n    )\n    while True:\n        print(menu)\n        choice = input(\"Select option: \").strip()\n        try:\n            if choice == \"1\":\n                date = read_date(\"Date (YYYY-MM-DD, blank=today): \")\n                t = app.add_transaction(\n                    \"expense\", read_float(\"Amount: \"),\n                    input(\"Category: \").strip() or \"Uncategorized\",\n                    input(\"Description: \").strip(), date)\n                print(f\"Expense #{t.id} recorded.\")\n            elif choice == \"2\":\n                date = read_date(\"Date (YYYY-MM-DD, blank=today): \")\n                t = app.add_transaction(\n                    \"income\", read_float(\"Amount: \"),\n                    input(\"Source: \").strip() or \"Income\",\n                    input(\"Description: \").strip(), date)\n                print(f\"Income #{t.id} recorded.\")\n            elif choice == \"3\":\n                month = input(\"Filter month YYYY-MM (blank=all): \").strip() or None\n                show_transactions(app.transactions(month))\n            elif choice == \"4\":\n                txn_id = int(input(\"Transaction ID to delete: \").strip())\n                print(\"Deleted.\" if app.delete_transaction(txn_id) else \"ID not found.\")\n            elif choice == \"5\":\n                month = input(\"Month YYYY-MM (blank=all): \").strip() or None\n                income, expenses, net = app.summary(month)\n                print(f\"\\nSummary ({month or 'All time'}): \"\n                      f\"Income {fmt(income)} | Expenses {fmt(expenses)} | Net {fmt(net)}\")\n            elif choice == \"6\":\n                month = input(\"Month YYYY-MM (blank=all): \").strip() or None\n                breakdown = app.category_breakdown(month)\n                if not breakdown:\n                    print(\"No expenses recorded.\")\n                else:\n                    total = sum(breakdown.values())\n                    print(f\"\\n{'Category':<20}{'Amount':>12}{'Share':>10}\")\n                    for cat, amt in breakdown.items():\n                        print(f\"{cat:<20}{fmt(amt):>12}{amt / total * 100:>9.1f}%\")\n            elif choice == \"7\":\n                name = input(\"Goal name: \").strip()\n                target = read_float(\"Target amount: \")\n                g = app.add_goal(name, target)\n                print(f\"Goal '{g.name}' created with target {fmt(g.target)}.\")\n            elif choice == \"8\":\n                goals = app.goals()\n                if not goals:\n                    print(\"No savings goals yet.\")\n                else:\n                    for g in goals:\n                        pct = g.saved / g.target * 100 if g.target else 0\n                        print(f\"{g.name}: {fmt(g.saved)} / {fmt(g.target)} ({pct:.1f}%)\")\n                    print(f\"Total saved: {fmt(app.total_saved())}\")\n            elif choice == \"9\":\n                name = input(\"Goal name: \").strip()\n                amount = read_float(\"Amount to add: \")\n                g = app.contribute(name, amount)\n                pct = g.saved / g.target * 100 if g.target else 0\n                print(f\"{g.name}: {fmt(g.saved)} / {fmt(g.target)} ({pct:.1f}%)\")\n            elif choice == \"10\":\n                print(\"Goodbye!\")\n                break\n            else:\n                print(\"Invalid option.\")\n        except ValueError as exc:\n            print(f\"Error: {exc}\")\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\ntracker.py\n```python\nimport datetime\nfrom collections import defaultdict\n\nimport storage\nfrom models import SavingsGoal, Transaction\n\n\nclass BudgetTracker:\n    def __init__(self):\n        self.data = storage.load()\n\n    def _save(self):\n        storage.save(self.data)\n\n    def add_transaction(self, ttype, amount, category, description, date=None):\n        if ttype not in (\"expense\", \"income\"):\n            raise ValueError(\"Type must be 'expense' or 'income'.\")\n        amount = float(amount)\n        if amount <= 0:\n            raise ValueError(\"Amount must be positive.\")\n        date = date or datetime.date.today().isoformat()\n        datetime.date.fromisoformat(date)\n        txn = Transaction(self.data[\"next_id\"], date, ttype,\n                          category or \"Uncategorized\", description or \"\", amount)\n        self.data[\"next_id\"] += 1\n        self.data[\"transactions\"].append(txn.to_dict())\n        self._save()\n        return txn\n\n    def delete_transaction(self, txn_id):\n        before = len(self.data[\"transactions\"])\n        self.data[\"transactions\"] = [t for t in self.data[\"transactions\"]\n                                     if t[\"id\"] != txn_id]\n        removed = len(self.data[\"transactions\"]) < before\n        if removed:\n            self._save()\n        return removed\n\n    def transactions(self, month=None):\n        txns = [Transaction.from_dict(t) for t in self.data[\"transactions\"]]\n        if month:\n            txns = [t for t in txns if t.date.startswith(month)]\n        return sorted(txns, key=lambda t: (t.date, t.id))\n\n    def summary(self, month=None):\n        txns = self.transactions(month)\n        income = sum(t.amount for t in txns if t.ttype == \"income\")\n        expenses = sum(t.amount for t in txns if t.ttype == \"expense\")\n        return income, expenses, income - expenses\n\n    def category_breakdown(self, month=None):\n        totals = defaultdict(float)\n        for t in self.transactions(month):\n            if t.ttype == \"expense\":\n                totals[t.category] += t.amount\n        return dict(sorted(totals.items(), key=lambda kv: kv[1], reverse=True))\n\n    def add_goal(self, name, target):\n        name = (name or \"\").strip()\n        if not name:\n            raise ValueError(\"Goal name is required.\")\n        target = float(target)\n        if target <= 0:\n            raise ValueError(\"Target must be positive.\")\n        if any(g[\"name\"].lower() == name.lower() for g in self.data[\"goals\"]):\n            raise ValueError(\"A goal with that name already exists.\")\n        goal = SavingsGoal(name, target)\n        self.data[\"goals\"].append(goal.to_dict())\n        self._save()\n        return goal\n\n    def contribute(self, name, amount):\n        amount = float(amount)\n        if amount <= 0:\n            raise ValueError(\"Amount must be positive.\")\n        for g in self.data[\"goals\"]:\n            if g[\"name\"].lower() == (name or \"\").strip().lower():\n                g[\"saved\"] = round(min(g[\"saved\"] + amount, g[\"target\"]), 2)\n                self._save()\n                return SavingsGoal.from_dict(g)\n        raise ValueError(\"Goal not found.\")\n\n    def goals(self):\n        return [SavingsGoal.from_dict(g) for g in self.data[\"goals\"]]\n\n    def total_saved(self):\n        return sum(g[\"saved\"] for g in self.data[\"goals\"])\n```\n\nmodels.py\n```python\nfrom dataclasses import dataclass, asdict\n\n\n@dataclass\nclass Transaction:\n    id: int\n    date: str\n    ttype: str\n    category: str\n    description: str\n    amount: float\n\n    def to_dict(self):\n        return asdict(self)\n\n    @classmethod\n    def from_dict(cls, d):\n        return cls(**d)\n\n\n@dataclass\nclass SavingsGoal:\n    name: str\n    target: float\n    saved: float = 0.0\n\n    def to_dict(self):\n        return asdict(self)\n\n    @classmethod\n    def from_dict(cls, d):\n        return cls(**d)\n```\n\nstorage.py\n```python\nimport json\nimport os\n\nDATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), \"budget_data.json\")\n\n\ndef load():\n    if os.path.exists(DATA_FILE):\n        try:\n            with open(DATA_FILE, \"r\", encoding=\"utf-8\") as fh:\n                data = json.load(fh)\n            if not isinstance(data, dict):\n                raise ValueError(\"Corrupt data file.\")\n            data.setdefault(\"transactions\", [])\n            data.setdefault(\"goals\", [])\n            data.setdefault(\"next_id\", 1)\n            return data\n        except (json.JSONDecodeError, ValueError, OSError):\n            pass\n    return {\"transactions\": [], \"goals\": [], \"next_id\": 1}\n\n\ndef save(data):\n    with open(DATA_FILE, \"w\", encoding=\"utf-8\") as fh:\n        json.dump(data, fh, indent=2)\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+    "source_digests": {
+      "main.py": "29a06f1d30c89dee59370f5bba53fc1ccc56824ca34cbbe1635f1562042fd3ff",
+      "models.py": "30de84f4afb74e2eec3f408a9641e024ef189bb21ed4fa92fc44ac543833b3d1",
+      "storage.py": "76a68ac3f95a87845c8ddedd4932caea456dd61178f69cfc5097f50757864856",
+      "tracker.py": "47c572be8e171f8dae151bfc89dc619aea616cbf04e3596a5b7fda6eb564c964"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "main.py"
+    ],
+    "timeout_seconds": 3,
+    "status": "failed",
+    "exit_code": 1,
+    "stdout": "\n=== Budget Tracker ===\n1) Add expense\n2) Add income\n3) List transactions\n4) Delete transaction\n5) Monthly summary\n6) Category breakdown\n7) Add savings goal\n8) View savings goals\n9) Contribute to goal\n10) Exit\nSelect option: ",
+    "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r05/04_BudgetTracker/artifact\\main.py\", line 130, in <module>\n    main()\n  File \"data/runs/mpst_contract/r05/04_BudgetTracker/artifact\\main.py\", line 63, in main\n    choice = input(\"Select option: \").strip()\n             ^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+    "profile": "process_exit",
+    "id": "1fca882721a66ac9f77364fd10ac56c9bc9d610d36d2bec2bf89284164ad9def"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "e2ea778b5812a2a3a36db1d4883e0684423d5cfd5a3e138835297bf35bc630e6",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "e2ea778b5812a2a3a36db1d4883e0684423d5cfd5a3e138835297bf35bc630e6",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "1f669569c7a6f237207482f691e84cc93d3f80dea59a7b2ef7db952d6dfd4c0a",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "51356eef422f212200bbed282ebeaf8a9b22b5267b5c3d8dfa3a636b371d4043",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "51356eef422f212200bbed282ebeaf8a9b22b5267b5c3d8dfa3a636b371d4043",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeComplete",
+      "contract": "chatdev.completion.v1",
+      "snapshot_id": "680832688c02cc697314043f4315a3f02b8d07bdcc735a5e28ec2817a8ea51bd",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "fbe4458af5d035f1bdc8e0edd793b8c9c21716e9bc57630c0966102e8ff2598e",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeComplete",
+      "contract": "chatdev.completion.v1",
+      "snapshot_id": "680832688c02cc697314043f4315a3f02b8d07bdcc735a5e28ec2817a8ea51bd",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "fbe4458af5d035f1bdc8e0edd793b8c9c21716e9bc57630c0966102e8ff2598e",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeComplete",
+      "contract": "chatdev.completion.v1",
+      "snapshot_id": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2a49e3d1c28d4d8c7b7bebdbbe57af4742e41e7fd1c18e37774a3e6abaa708c7",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeComplete",
+      "contract": "chatdev.completion.v1",
+      "snapshot_id": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2a49e3d1c28d4d8c7b7bebdbbe57af4742e41e7fd1c18e37774a3e6abaa708c7",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeComplete",
+      "contract": "chatdev.completion.v1",
+      "snapshot_id": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "fbe4458af5d035f1bdc8e0edd793b8c9c21716e9bc57630c0966102e8ff2598e",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeComplete",
+      "contract": "chatdev.completion.v1",
+      "snapshot_id": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "fbe4458af5d035f1bdc8e0edd793b8c9c21716e9bc57630c0966102e8ff2598e",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "57cbd0733bdb9083e5532f1cab4d7983d1c5fd7e853fe6854154d8078b5a67d3",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2e268ff0cef63580c64233b07e8fd026c494a543f47a7717f2245832819f24fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "58619b0b2a4fd85ade6fec82c41b3f199c8e176f64c4c6674d5f3dcae596b27f",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3713dc9d1785c47081ef36c7e993dd51ecf9c4913bd8e04500b2a4717fc9a3a0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+        "source_digests": {
+          "main.py": "29a06f1d30c89dee59370f5bba53fc1ccc56824ca34cbbe1635f1562042fd3ff",
+          "models.py": "30de84f4afb74e2eec3f408a9641e024ef189bb21ed4fa92fc44ac543833b3d1",
+          "storage.py": "76a68ac3f95a87845c8ddedd4932caea456dd61178f69cfc5097f50757864856",
+          "tracker.py": "47c572be8e171f8dae151bfc89dc619aea616cbf04e3596a5b7fda6eb564c964"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "\n=== Budget Tracker ===\n1) Add expense\n2) Add income\n3) List transactions\n4) Delete transaction\n5) Monthly summary\n6) Category breakdown\n7) Add savings goal\n8) View savings goals\n9) Contribute to goal\n10) Exit\nSelect option: ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r05/04_BudgetTracker/artifact\\main.py\", line 130, in <module>\n    main()\n  File \"data/runs/mpst_contract/r05/04_BudgetTracker/artifact\\main.py\", line 63, in main\n    choice = input(\"Select option: \").strip()\n             ^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "1fca882721a66ac9f77364fd10ac56c9bc9d610d36d2bec2bf89284164ad9def"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+        "source_digests": {
+          "main.py": "29a06f1d30c89dee59370f5bba53fc1ccc56824ca34cbbe1635f1562042fd3ff",
+          "models.py": "30de84f4afb74e2eec3f408a9641e024ef189bb21ed4fa92fc44ac543833b3d1",
+          "storage.py": "76a68ac3f95a87845c8ddedd4932caea456dd61178f69cfc5097f50757864856",
+          "tracker.py": "47c572be8e171f8dae151bfc89dc619aea616cbf04e3596a5b7fda6eb564c964"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "\n=== Budget Tracker ===\n1) Add expense\n2) Add income\n3) List transactions\n4) Delete transaction\n5) Monthly summary\n6) Category breakdown\n7) Add savings goal\n8) View savings goals\n9) Contribute to goal\n10) Exit\nSelect option: ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r05/04_BudgetTracker/artifact\\main.py\", line 130, in <module>\n    main()\n  File \"data/runs/mpst_contract/r05/04_BudgetTracker/artifact\\main.py\", line 63, in main\n    choice = input(\"Select option: \").strip()\n             ^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "1fca882721a66ac9f77364fd10ac56c9bc9d610d36d2bec2bf89284164ad9def"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "5bc45bfdcb34f397736fe677fcbf8dbd59b6a486b33956f38e955297cc77d731",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "7d788ee0cd6a2d45659311ab942ff5ecbc181b7bead2dc43a8632470db5c20af",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "fbe4458af5d035f1bdc8e0edd793b8c9c21716e9bc57630c0966102e8ff2598e",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "fbe4458af5d035f1bdc8e0edd793b8c9c21716e9bc57630c0966102e8ff2598e",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "457f413e766025c81425e5e89e4ff60d69a90d6e2c794fbdb1aa7fb338f25757",
+        "source_digests": {
+          "main.py": "29a06f1d30c89dee59370f5bba53fc1ccc56824ca34cbbe1635f1562042fd3ff",
+          "models.py": "30de84f4afb74e2eec3f408a9641e024ef189bb21ed4fa92fc44ac543833b3d1",
+          "storage.py": "76a68ac3f95a87845c8ddedd4932caea456dd61178f69cfc5097f50757864856",
+          "tracker.py": "47c572be8e171f8dae151bfc89dc619aea616cbf04e3596a5b7fda6eb564c964"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "\n=== Budget Tracker ===\n1) Add expense\n2) Add income\n3) List transactions\n4) Delete transaction\n5) Monthly summary\n6) Category breakdown\n7) Add savings goal\n8) View savings goals\n9) Contribute to goal\n10) Exit\nSelect option: ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r05/04_BudgetTracker/artifact\\main.py\", line 130, in <module>\n    main()\n  File \"data/runs/mpst_contract/r05/04_BudgetTracker/artifact\\main.py\", line 63, in main\n    choice = input(\"Select option: \").strip()\n             ^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "1fca882721a66ac9f77364fd10ac56c9bc9d610d36d2bec2bf89284164ad9def"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": false,
+      "evidence_id": "1fca882721a66ac9f77364fd10ac56c9bc9d610d36d2bec2bf89284164ad9def",
+      "violations": [
+        {
+          "layer": "A",
+          "rule": "current_startup_passed",
+          "path": "$",
+          "message": "Current startup did not pass.",
+          "repair": "Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior."
+        }
+      ]
+    }
+  ]
+}

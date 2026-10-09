@@ -1,0 +1,66 @@
+{
+  "task_index": 0,
+  "project_name": "Checkers",
+  "framework": "ChatDev",
+  "workflow_status": "completed",
+  "workspace": "data/runs/baseline/r09/00_Checkers/artifact",
+  "source_file_count": 7,
+  "python_compile": {
+    "checked": 7,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-04T17:50:48+0800",
+  "judge": {
+    "verdict": "fail",
+    "functional_completeness": 0.15,
+    "executable_likelihood": 0.1,
+    "implemented_requirements": [
+      {
+        "requirement": "8x8 board representation",
+        "fulfilled": true,
+        "evidence": "board.py defines BOARD_SIZE = 8 and creates an 8x8 grid with initial piece placement."
+      },
+      {
+        "requirement": "Alternate turns between two players",
+        "fulfilled": true,
+        "evidence": "game.py stores current player in self.current and flips it with self.current = self.current.opponent after a move."
+      },
+      {
+        "requirement": "Standard capture rules (mandatory jumps, multi‑jump continuation)",
+        "fulfilled": false,
+        "evidence": "rules.py is truncated and does not provide implementations of all_moves, moves_for_piece, or jump_targets, which are required for capture enforcement and multi‑jump logic."
+      },
+      {
+        "requirement": "Kinging when a man reaches the far rank",
+        "fulfilled": true,
+        "evidence": "Board.apply_move checks the piece's color and end row, calls piece.crown() and returns a crowned flag."
+      },
+      {
+        "requirement": "Prompt for moves in algebraic notation and parsing",
+        "fulfilled": true,
+        "evidence": "parser.py defines parse_squares that recognises formats like \"b6-a4\" and converts them to (row, col) tuples."
+      },
+      {
+        "requirement": "Update board state after each move",
+        "fulfilled": true,
+        "evidence": "Board.apply_move moves the piece, removes captured pieces, and handles kinging; Game.apply calls this method."
+      }
+    ],
+    "critical_issues": [
+      "rules.py is incomplete – core move‑generation functions (all_moves, moves_for_piece, jump_targets) are missing, so the game cannot enforce legal moves or mandatory captures.",
+      "Without the rule engine, Game.legal_moves and Game.apply will raise ImportError/AttributeError at runtime.",
+      "No entry‑point or user‑interaction loop is provided, so the program cannot actually prompt for moves.",
+      "Parser returns a list of squares but no function converts that list into Move objects; integration is absent."
+    ],
+    "summary": "The repository contains a solid foundation for board representation, piece objects, move data structures, and a game controller that tracks turns and kinging. However, the essential rule engine that generates legal moves and enforces mandatory captures is missing, and there is no runnable interface to accept player input. Consequently, the core requirements of a functional checkers game are not met, leading to a failing verdict.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": false
+}

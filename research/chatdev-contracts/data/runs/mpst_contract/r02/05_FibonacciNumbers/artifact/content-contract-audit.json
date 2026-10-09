@@ -1,0 +1,338 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "As the Chief Product Officer, I'd like to share my analysis of the customer's request and propose a product modality.\n\n**Customer's Need Analysis:**\nThe customer explicitly asked to \"write a program that generates Fibonacci numbers up to a given number.\" This is a clear functional requirement — they want executable software that takes an input (a given number) and produces output (Fibonacci numbers up to that value).\n\n**My Recommendation: Application**\n\nHere's my reasoning:\n\n1. **Direct alignment with the request**: The customer asked for a \"program,\" and an Application (implemented via Python) is the most faithful realization of that request.\n\n2. **Interactivity**: An Application can accept user input (the upper limit number) and dynamically generate and display the Fibonacci sequence, which static formats like Documents, PDFs, or Images cannot do.\n\n3. **Realizability**: A Python application is straightforward to implement, test, and deliver — we can build a simple command-line tool or even add a lightweight GUI (e.g., with Tkinter) for better user experience.\n\n4. **Extensibility**: If the customer later wants enhancements (e.g., visualization of the sequence, export options), an Application provides a solid foundation to build upon.\n\nOther modalities like Excel (using formulas) or Website (using JavaScript) could technically work, but they deviate from the customer's explicit ask for a \"program.\"\n\nWhat are your thoughts on this? Do you agree that Application is the best fit, or would you prefer a different modality?"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\n\"\"\"Generate Fibonacci numbers up to a given number.\"\"\"\n\nimport sys\n\n\ndef fibonacci_up_to(limit):\n    \"\"\"Yield Fibonacci numbers not exceeding the given limit.\"\"\"\n    a, b = 0, 1\n    while a <= limit:\n        yield a\n        a, b = b, a + b\n\n\ndef parse_limit(args):\n    \"\"\"Read the limit from a command-line argument or interactive input.\"\"\"\n    raw = args[1] if len(args) > 1 else input(\"Enter a number: \").strip()\n    try:\n        return int(raw), None\n    except ValueError:\n        return None, \"Invalid input: please enter an integer.\"\n\n\ndef main(argv):\n    limit, error = parse_limit(argv)\n    if error:\n        print(error)\n        return 1\n    if limit < 0:\n        print(\"Please enter a non-negative integer.\")\n        return 1\n    numbers = list(fibonacci_up_to(limit))\n    print(\"Fibonacci numbers up to {}:\".format(limit))\n    print(\", \".join(map(str, numbers)))\n    return 0\n\n\nif __name__ == \"__main__\":\n    sys.exit(main(sys.argv))\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "239c4e177172955d9554290064f22d0dbd120d9f77f8077159a92ce843f9b3e0",
+      "result": "{\"verdict\": \"finished\", \"issues\": []}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "239c4e177172955d9554290064f22d0dbd120d9f77f8077159a92ce843f9b3e0",
+      "result": " Finished"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "239c4e177172955d9554290064f22d0dbd120d9f77f8077159a92ce843f9b3e0",
+      "result": "{\"status\": \"failed\", \"test_run_id\": \"2bd51fff115336d0624ea7536e41d19fc9a50cbf939993af0bfde7705c5fadd1\", \"summary\": \"Startup smoke run failed with exit code 1. With no command-line argument supplied, main.py fell back to interactive input and crashed with an unhandled EOFError at line 16 (input('Enter a number:')) because stdin was closed in the non-interactive harness. This is a source error (missing EOF handling in the interactive-input fallback), not a missing dependency or unsupported invocation; no Fibonacci output was produced.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "239c4e177172955d9554290064f22d0dbd120d9f77f8077159a92ce843f9b3e0",
+      "result": "main.py\n```python\n\"\"\"Generate Fibonacci numbers up to a given number.\"\"\"\n\nimport sys\n\n\ndef fibonacci_up_to(limit):\n    \"\"\"Yield Fibonacci numbers not exceeding the given limit.\"\"\"\n    a, b = 0, 1\n    while a <= limit:\n        yield a\n        a, b = b, a + b\n\n\ndef parse_limit(args):\n    \"\"\"Read the limit from a command-line argument or interactive input.\"\"\"\n    if len(args) > 1:\n        raw = args[1]\n    else:\n        try:\n            raw = input(\"Enter a number: \").strip()\n        except EOFError:\n            return None, \"No input available: pass the limit as a command-line argument.\"\n    try:\n        return int(raw), None\n    except ValueError:\n        return None, \"Invalid input: please enter an integer.\"\n\n\ndef main(argv):\n    limit, error = parse_limit(argv)\n    if error:\n        print(error)\n        return 1\n    if limit < 0:\n        print(\"Please enter a non-negative integer.\")\n        return 1\n    numbers = list(fibonacci_up_to(limit))\n    print(\"Fibonacci numbers up to {}:\".format(limit))\n    print(\", \".join(map(str, numbers)))\n    return 0\n\n\nif __name__ == \"__main__\":\n    sys.exit(main(sys.argv))\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "7f6345e9c75a854cb6dd3da642bb4f88cfc0e5849f29a20344b7893f5022cde3",
+    "source_digests": {
+      "main.py": "52b6f75b58d2100b0614f1a9f87594ebb34f541dba413dc74160dd41fabd2016"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "main.py"
+    ],
+    "timeout_seconds": 3,
+    "status": "failed",
+    "exit_code": 1,
+    "stdout": "Enter a number: No input available: pass the limit as a command-line argument.\n",
+    "stderr": "",
+    "profile": "process_exit",
+    "id": "dfe4a9b31e38dc29a57a18b7ec6b9893906e40e58cfc15cdaccce9431cc7a5b8"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "4a93d03f495542c6cbe53d4c81c48849155b2fa106b55e576b95be2fdafdf3f4",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "4a93d03f495542c6cbe53d4c81c48849155b2fa106b55e576b95be2fdafdf3f4",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "44bc0c0178009d6409f52f0711cd75d02b327a0cd3ab5c08f5ecf7fbc5ee9848",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "duplicate_source_file",
+          "path": "$",
+          "message": "Return each final file once: fibonacci.py",
+          "repair": "Return only final complete files, each as a standalone filename followed by a closed Python code fence. No drafts or analysis."
+        }
+      ],
+      "candidate_sha256": "7cdb8737a1a5a4092f218b8767a39c8f8499060c648f1040042aded533a81dc8",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": "The task is to write a program that generates Fibonacci numbers up to a given number, in Python. I need to return final source files only, starting with main.py, each file as a filename line followed by a closed fenced Python code block.\n\nLet me write a compact, complete implementation. I'll create main.py that:\n- Generates Fibonacci numbers up to a given number (limit)\n- Handles user input (CLI args or interactive)\n- No placeholder functions\n\nKeep it compact but complete. Maybe just main.py is sufficient, but I could add a fibonacci.py module. The instructions say \"Start with main.py, followed by every other required Python file.\" A single main.py is fine, but splitting into a module could be nice. To keep compact, I'll do main.py plus fibonacci.py — actually, a single main.py is simplest and complete. But having a small module structure shows good practice. Let me do two files: fibonacci.py with the generator function, and main.py with CLI/interactive input.\n\nfibonacci.py:\n```python\ndef fibonacci_up_to(limit):\n    \"\"\"Yield Fibonacci numbers not exceeding limit.\"\"\"\n    if limit < 0:\n        return\n    a, b = 0, 1\n    while a <= limit:\n        yield a\n        a, b = b, a + b\n```\n\nmain.py:\n```python\nimport sys\nfrom fibonacci import fibonacci_up_to\n\n\ndef parse_limit(text):\n    \"\"\"Parse a non-negative integer limit from text.\"\"\"\n    try:\n        value = int(text.strip())\n    except ValueError:\n        raise SystemExit(f\"Invalid input: {text!r} is not an integer.\")\n    if value < 0:\n        raise SystemExit(\"Limit must be a non-negative integer.\")\n    return value\n\n\ndef main(argv):\n    if len(argv) > 1:\n        limit = parse_limit(argv[1])\n    else:\n        try:\n            text = input(\"Enter the upper limit for Fibonacci numbers: \")\n        except EOFError:\n            return 1\n        limit = parse_limit(text)\n    numbers = list(fibonacci_up_to(limit))\n    print(f\"Fibonacci numbers up to {limit}:\")\n    print(\", \".join(map(str, numbers)) if numbers else \"(none)\")\n    return 0\n\n\nif __name__ == \"__main__\":\n    raise SystemExit(main(sys.argv))\n```\n\nThat's compact and complete. Return only the files.main.py\n```python\nimport sys\n\nfrom fibonacci import fibonacci_up_to\n\n\ndef parse_limit(text):\n    \"\"\"Parse a non-negative integer limit from text.\"\"\"\n    try:\n        value = int(text.strip())\n    except ValueError:\n        raise SystemExit(f\"Invalid input: {text!r} is not an integer.\")\n    if value < 0:\n        raise SystemExit(\"Limit must be a non-negative integer.\")\n    return value\n\n\ndef main(argv):\n    if len(argv) > 1:\n        limit = parse_limit(argv[1])\n    else:\n        try:\n            text = input(\"Enter the upper limit for Fibonacci numbers: \")\n        except EOFError:\n            return 1\n        limit = parse_limit(text)\n\n    numbers = list(fibonacci_up_to(limit))\n    print(f\"Fibonacci numbers up to {limit}:\")\n    print(\", \".join(map(str, numbers)) if numbers else \"(none)\")\n    return 0\n\n\nif __name__ == \"__main__\":\n    raise SystemExit(main(sys.argv))\n```\n\nfibonacci.py\n```python\ndef fibonacci_up_to(limit):\n    \"\"\"Yield Fibonacci numbers not exceeding the given limit.\"\"\"\n    if limit < 0:\n        return\n    a, b = 0, 1\n    while a <= limit:\n        yield a\n        a, b = b, a + b\n```"
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C2",
+          "rule": "entry_point",
+          "path": "$",
+          "message": "No main.py entry point.",
+          "repair": "Provide main.py."
+        }
+      ],
+      "candidate_sha256": "502e3013e5f381333e45e5a75ef7998a3e65d79e7059efd989780ad79ce74157",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": "The user wants a Python program that generates Fibonacci numbers up to a given number. They want final source files only, starting with main.py, followed by other required Python files. The feedback mentions fibonacci.py was duplicated, so I should return each file once: main.py and fibonacci.py.\n\nLet me write a compact complete implementation:\n\nmain.py - entry point that reads a limit and prints Fibonacci numbers up to that number.\nfibonacci.py - module with the generation function.\n\nKeep it compact, no placeholders, no analysis.main.py\n```python\n\"\"\"Entry point: generate Fibonacci numbers up to a given number.\"\"\"\nimport sys\n\nfrom fibonacci import fibonacci_up_to\n\n\ndef main() -> None:\n    if len(sys.argv) > 1:\n        try:\n            limit = int(sys.argv[1])\n        except ValueError:\n            print(\"Error: limit must be an integer.\", file=sys.stderr)\n            sys.exit(1)\n    else:\n        raw = input(\"Enter the upper limit: \").strip()\n        try:\n            limit = int(raw)\n        except ValueError:\n            print(\"Error: limit must be an integer.\", file=sys.stderr)\n            sys.exit(1)\n\n    numbers = fibonacci_up_to(limit)\n    print(f\"Fibonacci numbers up to {limit}:\")\n    print(\", \".join(map(str, numbers)))\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nfibonacci.py\n```python\n\"\"\"Fibonacci generation utilities.\"\"\"\n\n\ndef fibonacci_up_to(limit: int) -> list:\n    \"\"\"Return the list of Fibonacci numbers not exceeding limit.\"\"\"\n    if limit < 0:\n        return []\n    result = []\n    a, b = 0, 1\n    while a <= limit:\n        result.append(a)\n        a, b = b, a + b\n    return result\n```"
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "79775b4ac11170de5dacd2c5038a46cec2a4896aaf26a56e1f37ae5df8850d06",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "79775b4ac11170de5dacd2c5038a46cec2a4896aaf26a56e1f37ae5df8850d06",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "239c4e177172955d9554290064f22d0dbd120d9f77f8077159a92ce843f9b3e0",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "41a4b7cba60fe48a82dea68df25c150b1c1a538a99dbfb89714d4f298e56bd57",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "239c4e177172955d9554290064f22d0dbd120d9f77f8077159a92ce843f9b3e0",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2e268ff0cef63580c64233b07e8fd026c494a543f47a7717f2245832819f24fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "239c4e177172955d9554290064f22d0dbd120d9f77f8077159a92ce843f9b3e0",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "49cd1853b3ec9b8064921bcca2bbe073db263347d4f0dc8c4118c1328d8c5021",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "239c4e177172955d9554290064f22d0dbd120d9f77f8077159a92ce843f9b3e0",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3713dc9d1785c47081ef36c7e993dd51ecf9c4913bd8e04500b2a4717fc9a3a0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "239c4e177172955d9554290064f22d0dbd120d9f77f8077159a92ce843f9b3e0",
+        "source_digests": {
+          "main.py": "ac5c2a646631b476a6f7c796a9e19e2311c06bd9f38b22ea2fa80e4b0fd4f0d9"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "Enter a number: ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r02/05_FibonacciNumbers/artifact\\main.py\", line 38, in <module>\n    sys.exit(main(sys.argv))\n             ^^^^^^^^^^^^^^\n  File \"data/runs/mpst_contract/r02/05_FibonacciNumbers/artifact\\main.py\", line 24, in main\n    limit, error = parse_limit(argv)\n                   ^^^^^^^^^^^^^^^^^\n  File \"data/runs/mpst_contract/r02/05_FibonacciNumbers/artifact\\main.py\", line 16, in parse_limit\n    raw = args[1] if len(args) > 1 else input(\"Enter a number: \").strip()\n                                        ^^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "2bd51fff115336d0624ea7536e41d19fc9a50cbf939993af0bfde7705c5fadd1"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "239c4e177172955d9554290064f22d0dbd120d9f77f8077159a92ce843f9b3e0",
+        "source_digests": {
+          "main.py": "ac5c2a646631b476a6f7c796a9e19e2311c06bd9f38b22ea2fa80e4b0fd4f0d9"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "Enter a number: ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r02/05_FibonacciNumbers/artifact\\main.py\", line 38, in <module>\n    sys.exit(main(sys.argv))\n             ^^^^^^^^^^^^^^\n  File \"data/runs/mpst_contract/r02/05_FibonacciNumbers/artifact\\main.py\", line 24, in main\n    limit, error = parse_limit(argv)\n                   ^^^^^^^^^^^^^^^^^\n  File \"data/runs/mpst_contract/r02/05_FibonacciNumbers/artifact\\main.py\", line 16, in parse_limit\n    raw = args[1] if len(args) > 1 else input(\"Enter a number: \").strip()\n                                        ^^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "2bd51fff115336d0624ea7536e41d19fc9a50cbf939993af0bfde7705c5fadd1"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "239c4e177172955d9554290064f22d0dbd120d9f77f8077159a92ce843f9b3e0",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "e4e459b5d28419d42ae7ce99ce2e06daeecc1c31784b12acb6f1dac4ddc870ea",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "239c4e177172955d9554290064f22d0dbd120d9f77f8077159a92ce843f9b3e0",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "65f59ea09b5e3a3dcb2934c4201361f371b456f6275743e6b318cfc00b50ec9e",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "239c4e177172955d9554290064f22d0dbd120d9f77f8077159a92ce843f9b3e0",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "864fc1cbcf97a5557cc63acc7bac7a073a527321d361687f89160e92c2234ac4",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "239c4e177172955d9554290064f22d0dbd120d9f77f8077159a92ce843f9b3e0",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "864fc1cbcf97a5557cc63acc7bac7a073a527321d361687f89160e92c2234ac4",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "7f6345e9c75a854cb6dd3da642bb4f88cfc0e5849f29a20344b7893f5022cde3",
+        "source_digests": {
+          "main.py": "52b6f75b58d2100b0614f1a9f87594ebb34f541dba413dc74160dd41fabd2016"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "Enter a number: No input available: pass the limit as a command-line argument.\n",
+        "stderr": "",
+        "profile": "process_exit",
+        "id": "dfe4a9b31e38dc29a57a18b7ec6b9893906e40e58cfc15cdaccce9431cc7a5b8"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": false,
+      "evidence_id": "dfe4a9b31e38dc29a57a18b7ec6b9893906e40e58cfc15cdaccce9431cc7a5b8",
+      "violations": [
+        {
+          "layer": "A",
+          "rule": "current_startup_passed",
+          "path": "$",
+          "message": "Current startup did not pass.",
+          "repair": "Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior."
+        }
+      ]
+    }
+  ]
+}

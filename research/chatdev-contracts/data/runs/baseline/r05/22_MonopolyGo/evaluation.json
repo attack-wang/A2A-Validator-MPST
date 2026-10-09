@@ -1,0 +1,84 @@
+{
+  "task_index": 22,
+  "project_name": "MonopolyGo",
+  "framework": "ChatDev",
+  "workflow_status": "completed",
+  "workspace": "data/runs/baseline/r05/22_MonopolyGo/artifact",
+  "source_file_count": 6,
+  "python_compile": {
+    "checked": 6,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-03T14:30:01+0800",
+  "judge": {
+    "verdict": "fail",
+    "functional_completeness": 0.85,
+    "executable_likelihood": 0.3,
+    "implemented_requirements": [
+      {
+        "requirement": "Dice rolling with doubles detection",
+        "fulfilled": true,
+        "evidence": "dice.py defines class Dice with roll(), last_total and last_is_doubles properties. Game.take_turn uses Dice.roll() and checks dice.last_is_doubles."
+      },
+      {
+        "requirement": "Player movement around a 24‑space board, including GO salary collection",
+        "fulfilled": true,
+        "evidence": "Game._move_player and Game._move_to handle stepwise movement, wrap‑around, and add GO_SALARY when passing GO. Board.SIZE = 24."
+      },
+      {
+        "requirement": "Purchasing properties and tracking ownership",
+        "fulfilled": true,
+        "evidence": "Board defines Property objects with owner field. Game._offer_purchase prompts the player, charges money, calls player.add_property(prop) and sets prop.owner."
+      },
+      {
+        "requirement": "Rent calculation and payment",
+        "fulfilled": true,
+        "evidence": "Game._resolve_property calls Property.calculate_rent (doubles rent on monopoly) and then Game._charge to transfer rent to the owner."
+      },
+      {
+        "requirement": "Chance cards with various effects (money, move, jail, collect/pay each, per‑property payment)",
+        "fulfilled": true,
+        "evidence": "chance.py defines a deck of ChanceCard objects. Game._resolve_chance implements all EFFECT_* branches handling money, movement, jail, get‑out‑of‑jail, collect/pay each, and per‑property payment."
+      },
+      {
+        "requirement": "Tracking player money, net worth and bankruptcy",
+        "fulfilled": true,
+        "evidence": "player.py defines money, receive(), pay(), net_worth() and bankrupt flag. Game._charge and Game._declare_bankrupt update these fields."
+      },
+      {
+        "requirement": "Display of game status and prompts for player decisions",
+        "fulfilled": true,
+        "evidence": "Game.display_status prints each player's cash, location and properties. Game._prompt and Game._pause are used for purchase decisions, jail options, and dice rolls."
+      },
+      {
+        "requirement": "Jail rules (go to jail, paying fine, using Get Out of Jail card, rolling doubles, max turns)",
+        "fulfilled": true,
+        "evidence": "Board includes JailSpace and GoToJailSpace. Game._send_to_jail, Game._handle_jail_turn, and related constants implement fine payment, card usage, double rolls, and MAX_JAIL_TURNS."
+      },
+      {
+        "requirement": "Free Parking pot that accumulates from taxes and fines and is awarded to the landing player",
+        "fulfilled": true,
+        "evidence": "Game._charge with to_pot=True adds money to self.pot. Game._resolve_space for free_parking awards the pot to the player."
+      },
+      {
+        "requirement": "Entry point that collects player names and starts the game",
+        "fulfilled": true,
+        "evidence": "main.py defines collect_player_names() with CLI, interactive, and default fallback, then creates Game and calls play()."
+      }
+    ],
+    "critical_issues": [
+      "game.py does not import the Player class, causing a NameError when Game.__init__ tries to instantiate players.",
+      "Because of the missing import, the program cannot be executed without modification."
+    ],
+    "summary": "The repository contains a fairly complete implementation of the requested simplified Monopoly Go! features: dice rolling, board movement, property purchase, rent, chance cards, money tracking, jail mechanics, and a Free Parking pot. All core gameplay logic is present and well‑structured. However, a critical bug—missing import of the Player class in game.py—prevents the code from running, which lowers the executable likelihood and results in a failing overall verdict.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": false
+}

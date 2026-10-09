@@ -1,0 +1,302 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Application"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\n\"\"\"Connect Four - two-player console game.\"\"\"\nfrom connect_four import COLS, ConnectFour\n\n\ndef read_column(game):\n    \"\"\"Prompt until the current player enters a valid, non-full column.\"\"\"\n    while True:\n        raw = input(f\"Player {game.current}, choose a column (1-{COLS}): \").strip()\n        if not raw.isdigit():\n            print(\"Invalid input: please type a number.\")\n            continue\n        col = int(raw) - 1\n        if not game.is_valid_column(col):\n            print(\"Invalid column: out of range or already full. Try again.\")\n            continue\n        return col\n\n\ndef main():\n    game = ConnectFour()\n    print(\"=== Connect Four ===\")\n    print(\"Players X and O alternate turns; type a column number to drop a disc.\")\n    print(\"First to line up four discs horizontally, vertically, or diagonally wins.\")\n    game.display()\n    while True:\n        col = read_column(game)\n        row = game.drop_disc(col)\n        game.display()\n        if game.check_win(row, col):\n            print(f\"Player {game.current} wins! Four discs in a line.\")\n            break\n        if game.is_full():\n            print(\"It's a draw! The grid is full.\")\n            break\n        game.switch_player()\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nconnect_four.py\n```python\n\"\"\"Connect Four game logic: board state, move handling, and win detection.\"\"\"\n\nROWS, COLS = 6, 7\nEMPTY = \".\"\n\n\nclass ConnectFour:\n    \"\"\"Seven-column, six-row grid where two players drop alternating discs.\"\"\"\n\n    def __init__(self):\n        self.board = [[EMPTY] * COLS for _ in range(ROWS)]\n        self.current = \"X\"\n\n    def display(self):\n        \"\"\"Print the board with column numbers beneath it.\"\"\"\n        print()\n        for row in self.board:\n            print(\" \".join(row))\n        print(\" \".join(str(c) for c in range(1, COLS + 1)))\n        print()\n\n    def is_valid_column(self, col):\n        \"\"\"A column is valid if it is in range and its top cell is empty.\"\"\"\n        return 0 <= col < COLS and self.board[0][col] == EMPTY\n\n    def drop_disc(self, col):\n        \"\"\"Place the current player's disc in the lowest empty row of col.\"\"\"\n        for r in range(ROWS - 1, -1, -1):\n            if self.board[r][col] == EMPTY:\n                self.board[r][col] = self.current\n                return r\n        return -1\n\n    def check_win(self, row, col):\n        \"\"\"True if the disc at (row, col) completes a line of four or more.\"\"\"\n        player = self.board[row][col]\n        for dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):\n            count = 1\n            for sign in (1, -1):\n                r, c = row + dr * sign, col + dc * sign\n                while 0 <= r < ROWS and 0 <= c < COLS and self.board[r][c] == player:\n                    count += 1\n                    r += dr * sign\n                    c += dc * sign\n            if count >= 4:\n                return True\n        return False\n\n    def is_full(self):\n        \"\"\"The grid is full when every top-row cell is occupied.\"\"\"\n        return all(self.board[0][c] != EMPTY for c in range(COLS))\n\n    def switch_player(self):\n        \"\"\"Hand the turn to the other player.\"\"\"\n        self.current = \"O\" if self.current == \"X\" else \"X\"\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "f63aa82500c529fe2cfed00fa4e8b7817da7ff9265f80c527872f41aa07e29ba",
+      "result": "{\"verdict\": \"finished\", \"issues\": []}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "f63aa82500c529fe2cfed00fa4e8b7817da7ff9265f80c527872f41aa07e29ba",
+      "result": " Finished"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "f63aa82500c529fe2cfed00fa4e8b7817da7ff9265f80c527872f41aa07e29ba",
+      "result": "{\"status\": \"failed\", \"test_run_id\": \"c9578834bf176313146228f14d8fe7e056019978340ff166e7273fd7e271fef1\", \"summary\": \"Startup smoke test failed with exit code 1 due to EOFError at the first input() call in read_column (main.py line 8). The program itself launched correctly: it printed the banner, rendered the empty 6x7 board with column numbers, and reached the first player prompt. This is not a source code defect or missing dependency; the failure stems from the smoke harness invoking the interactive console game with no stdin attached (EOF when reading a line). The game requires an interactive terminal or piped input to proceed past the first column prompt.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "f63aa82500c529fe2cfed00fa4e8b7817da7ff9265f80c527872f41aa07e29ba",
+      "result": "main.py\n```python\n\"\"\"Connect Four - two-player console game.\"\"\"\nfrom connect_four import COLS, ConnectFour\n\n\ndef read_column(game):\n    \"\"\"Prompt until the current player enters a valid, non-full column.\"\"\"\n    while True:\n        raw = input(f\"Player {game.current}, choose a column (1-{COLS}): \").strip()\n        if not raw.isdigit():\n            print(\"Invalid input: please type a number.\")\n            continue\n        col = int(raw) - 1\n        if not game.is_valid_column(col):\n            print(\"Invalid column: out of range or already full. Try again.\")\n            continue\n        return col\n\n\ndef main():\n    game = ConnectFour()\n    print(\"=== Connect Four ===\")\n    print(\"Players X and O alternate turns; type a column number to drop a disc.\")\n    print(\"First to line up four discs horizontally, vertically, or diagonally wins.\")\n    game.display()\n    while True:\n        col = read_column(game)\n        row = game.drop_disc(col)\n        game.display()\n        if game.check_win(row, col):\n            print(f\"Player {game.current} wins! Four discs in a line.\")\n            break\n        if game.is_full():\n            print(\"It's a draw! The grid is full.\")\n            break\n        game.switch_player()\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\nconnect_four.py\n```python\n\"\"\"Connect Four game logic: board state, move handling, and win detection.\"\"\"\n\nROWS, COLS = 6, 7\nEMPTY = \".\"\n\n\nclass ConnectFour:\n    \"\"\"Seven-column, six-row grid where two players drop alternating discs.\"\"\"\n\n    def __init__(self):\n        self.board = [[EMPTY] * COLS for _ in range(ROWS)]\n        self.current = \"X\"\n\n    def display(self):\n        \"\"\"Print the board with column numbers beneath it.\"\"\"\n        print()\n        for row in self.board:\n            print(\" \".join(row))\n        print(\" \".join(str(c) for c in range(1, COLS + 1)))\n        print()\n\n    def is_valid_column(self, col):\n        \"\"\"A column is valid if it is in range and its top cell is empty.\"\"\"\n        return 0 <= col < COLS and self.board[0][col] == EMPTY\n\n    def drop_disc(self, col):\n        \"\"\"Place the current player's disc in the lowest empty row of col.\"\"\"\n        for r in range(ROWS - 1, -1, -1):\n            if self.board[r][col] == EMPTY:\n                self.board[r][col] = self.current\n                return r\n        return -1\n\n    def check_win(self, row, col):\n        \"\"\"True if the disc at (row, col) completes a line of four or more.\"\"\"\n        player = self.board[row][col]\n        for dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):\n            count = 1\n            for sign in (1, -1):\n                r, c = row + dr * sign, col + dc * sign\n                while 0 <= r < ROWS and 0 <= c < COLS and self.board[r][c] == player:\n                    count += 1\n                    r += dr * sign\n                    c += dc * sign\n            if count >= 4:\n                return True\n        return False\n\n    def is_full(self):\n        \"\"\"The grid is full when every top-row cell is occupied.\"\"\"\n        return all(self.board[0][c] != EMPTY for c in range(COLS))\n\n    def switch_player(self):\n        \"\"\"Hand the turn to the other player.\"\"\"\n        self.current = \"O\" if self.current == \"X\" else \"X\"\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "f63aa82500c529fe2cfed00fa4e8b7817da7ff9265f80c527872f41aa07e29ba",
+    "source_digests": {
+      "connect_four.py": "e97c6f72c7b5a59aefb3e790ca5b81668e71687a1bd83254681e0d043225e904",
+      "main.py": "fb159e699bb8442c64b0628211ec84d3fc1c38bbf4c5c62b20459f965037d7ed"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "main.py"
+    ],
+    "timeout_seconds": 3,
+    "status": "failed",
+    "exit_code": 1,
+    "stdout": "=== Connect Four ===\nPlayers X and O alternate turns; type a column number to drop a disc.\nFirst to line up four discs horizontally, vertically, or diagonally wins.\n\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n1 2 3 4 5 6 7\n\nPlayer X, choose a column (1-7): ",
+    "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r09/16_ConnectFour/artifact\\main.py\", line 39, in <module>\n    main()\n  File \"data/runs/mpst_contract/r09/16_ConnectFour/artifact\\main.py\", line 26, in main\n    col = read_column(game)\n          ^^^^^^^^^^^^^^^^^\n  File \"data/runs/mpst_contract/r09/16_ConnectFour/artifact\\main.py\", line 8, in read_column\n    raw = input(f\"Player {game.current}, choose a column (1-{COLS}): \").strip()\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+    "profile": "process_exit",
+    "id": "c9578834bf176313146228f14d8fe7e056019978340ff166e7273fd7e271fef1"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "12e14335575d7e1223e2e23d44c10380a76b76ec7819d1d1442ecf8cce311960",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "57d005c3b71920cefd5b63883aac3200365d1f8a4aa4b23a48238444adb055e7",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "694727febe0da2b3189164abc1aaf73bed6bf9a49fefed87cf2dee67010438be",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "8ade8e1629ca4f0d8b03eb7c7b92b514d0c2a314dce945d070da83eaa1f40ddc",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "8ade8e1629ca4f0d8b03eb7c7b92b514d0c2a314dce945d070da83eaa1f40ddc",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "f63aa82500c529fe2cfed00fa4e8b7817da7ff9265f80c527872f41aa07e29ba",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "41a4b7cba60fe48a82dea68df25c150b1c1a538a99dbfb89714d4f298e56bd57",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "f63aa82500c529fe2cfed00fa4e8b7817da7ff9265f80c527872f41aa07e29ba",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2e268ff0cef63580c64233b07e8fd026c494a543f47a7717f2245832819f24fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "f63aa82500c529fe2cfed00fa4e8b7817da7ff9265f80c527872f41aa07e29ba",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3e1445169e1d68db5cf7460a262c19f2ea545f776a060f0a7c4e6d32da4b523e",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "f63aa82500c529fe2cfed00fa4e8b7817da7ff9265f80c527872f41aa07e29ba",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3713dc9d1785c47081ef36c7e993dd51ecf9c4913bd8e04500b2a4717fc9a3a0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "f63aa82500c529fe2cfed00fa4e8b7817da7ff9265f80c527872f41aa07e29ba",
+        "source_digests": {
+          "connect_four.py": "e97c6f72c7b5a59aefb3e790ca5b81668e71687a1bd83254681e0d043225e904",
+          "main.py": "fb159e699bb8442c64b0628211ec84d3fc1c38bbf4c5c62b20459f965037d7ed"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "=== Connect Four ===\nPlayers X and O alternate turns; type a column number to drop a disc.\nFirst to line up four discs horizontally, vertically, or diagonally wins.\n\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n1 2 3 4 5 6 7\n\nPlayer X, choose a column (1-7): ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r09/16_ConnectFour/artifact\\main.py\", line 39, in <module>\n    main()\n  File \"data/runs/mpst_contract/r09/16_ConnectFour/artifact\\main.py\", line 26, in main\n    col = read_column(game)\n          ^^^^^^^^^^^^^^^^^\n  File \"data/runs/mpst_contract/r09/16_ConnectFour/artifact\\main.py\", line 8, in read_column\n    raw = input(f\"Player {game.current}, choose a column (1-{COLS}): \").strip()\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "c9578834bf176313146228f14d8fe7e056019978340ff166e7273fd7e271fef1"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "f63aa82500c529fe2cfed00fa4e8b7817da7ff9265f80c527872f41aa07e29ba",
+        "source_digests": {
+          "connect_four.py": "e97c6f72c7b5a59aefb3e790ca5b81668e71687a1bd83254681e0d043225e904",
+          "main.py": "fb159e699bb8442c64b0628211ec84d3fc1c38bbf4c5c62b20459f965037d7ed"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "=== Connect Four ===\nPlayers X and O alternate turns; type a column number to drop a disc.\nFirst to line up four discs horizontally, vertically, or diagonally wins.\n\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n1 2 3 4 5 6 7\n\nPlayer X, choose a column (1-7): ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r09/16_ConnectFour/artifact\\main.py\", line 39, in <module>\n    main()\n  File \"data/runs/mpst_contract/r09/16_ConnectFour/artifact\\main.py\", line 26, in main\n    col = read_column(game)\n          ^^^^^^^^^^^^^^^^^\n  File \"data/runs/mpst_contract/r09/16_ConnectFour/artifact\\main.py\", line 8, in read_column\n    raw = input(f\"Player {game.current}, choose a column (1-{COLS}): \").strip()\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "c9578834bf176313146228f14d8fe7e056019978340ff166e7273fd7e271fef1"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "f63aa82500c529fe2cfed00fa4e8b7817da7ff9265f80c527872f41aa07e29ba",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "515c677a97fb0b601e7b347d5fba94fec4d8c5de595498e59d30ab5fc602b8c1",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "f63aa82500c529fe2cfed00fa4e8b7817da7ff9265f80c527872f41aa07e29ba",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "61741b38654c5a0d227abad71f366f0336e0c933b965d3a5a4b0fe0d727ad60f",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "f63aa82500c529fe2cfed00fa4e8b7817da7ff9265f80c527872f41aa07e29ba",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "8ade8e1629ca4f0d8b03eb7c7b92b514d0c2a314dce945d070da83eaa1f40ddc",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "f63aa82500c529fe2cfed00fa4e8b7817da7ff9265f80c527872f41aa07e29ba",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "8ade8e1629ca4f0d8b03eb7c7b92b514d0c2a314dce945d070da83eaa1f40ddc",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "f63aa82500c529fe2cfed00fa4e8b7817da7ff9265f80c527872f41aa07e29ba",
+        "source_digests": {
+          "connect_four.py": "e97c6f72c7b5a59aefb3e790ca5b81668e71687a1bd83254681e0d043225e904",
+          "main.py": "fb159e699bb8442c64b0628211ec84d3fc1c38bbf4c5c62b20459f965037d7ed"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "=== Connect Four ===\nPlayers X and O alternate turns; type a column number to drop a disc.\nFirst to line up four discs horizontally, vertically, or diagonally wins.\n\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n. . . . . . .\n1 2 3 4 5 6 7\n\nPlayer X, choose a column (1-7): ",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r09/16_ConnectFour/artifact\\main.py\", line 39, in <module>\n    main()\n  File \"data/runs/mpst_contract/r09/16_ConnectFour/artifact\\main.py\", line 26, in main\n    col = read_column(game)\n          ^^^^^^^^^^^^^^^^^\n  File \"data/runs/mpst_contract/r09/16_ConnectFour/artifact\\main.py\", line 8, in read_column\n    raw = input(f\"Player {game.current}, choose a column (1-{COLS}): \").strip()\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nEOFError: EOF when reading a line\n",
+        "profile": "process_exit",
+        "id": "c9578834bf176313146228f14d8fe7e056019978340ff166e7273fd7e271fef1"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": false,
+      "evidence_id": "c9578834bf176313146228f14d8fe7e056019978340ff166e7273fd7e271fef1",
+      "violations": [
+        {
+          "layer": "A",
+          "rule": "current_startup_passed",
+          "path": "$",
+          "message": "Current startup did not pass.",
+          "repair": "Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior."
+        }
+      ]
+    }
+  ]
+}

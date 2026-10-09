@@ -1,0 +1,309 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "As the Chief Product Officer, I'd like to share my thoughts on the product modality for this task.\n\nThe customer's request is to develop a two-player Pong game, which is inherently an interactive, real-time visualized game requiring:\n- Real-time rendering of paddles, ball, and scores\n- Continuous keyboard input from two players\n- Dynamic game logic (ball physics, scoring, win threshold)\n\nGiven these requirements, I believe the most suitable modality is **Application**. An application (e.g., implemented via Python with a game library like Pygame) can fully support real-time interaction, smooth animation, keyboard controls for both players, and the complete game loop — none of which static formats like Image, Document, or PowerPoint could deliver. A Website (HTML/JS) could also technically work, but the Application modality aligns best with our proven capability in implementing visualized games via Python.\n\nMay I hear your opinion on this? If you agree, we can conclude the discussion."
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\nimport pygame\n\nfrom pong import FPS, HEIGHT, WIDTH, Game\n\n\ndef main():\n    pygame.init()\n    screen = pygame.display.set_mode((WIDTH, HEIGHT))\n    pygame.display.set_caption(\"Pong - Two Player\")\n    clock = pygame.time.Clock()\n    game = Game(screen)\n    running = True\n    while running:\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                running = False\n            else:\n                game.handle_event(event)\n        game.update()\n        game.draw()\n        clock.tick(FPS)\n    pygame.quit()\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\npong.py\n```python\nimport random\n\nimport pygame\n\nWIDTH, HEIGHT = 800, 500\nFPS = 60\nPADDLE_W, PADDLE_H = 12, 90\nPADDLE_SPEED = 6\nBALL_SIZE = 12\nBALL_SPEED = 6\nMAX_BALL_SPEED = 14\nWIN_SCORE = 5\nWHITE = (255, 255, 255)\nBLACK = (20, 20, 20)\n\n\nclass Paddle:\n    def __init__(self, x, up_key, down_key):\n        self.rect = pygame.Rect(x, HEIGHT // 2 - PADDLE_H // 2, PADDLE_W, PADDLE_H)\n        self.up_key = up_key\n        self.down_key = down_key\n        self.score = 0\n\n    def move(self, keys):\n        if keys[self.up_key] and self.rect.top > 0:\n            self.rect.y -= PADDLE_SPEED\n        if keys[self.down_key] and self.rect.bottom < HEIGHT:\n            self.rect.y += PADDLE_SPEED\n\n    def reset(self):\n        self.rect.y = HEIGHT // 2 - PADDLE_H // 2\n        self.score = 0\n\n\nclass Ball:\n    def __init__(self):\n        self.rect = pygame.Rect(0, 0, BALL_SIZE, BALL_SIZE)\n        self.vx = 0.0\n        self.vy = 0.0\n\n    def reset(self, direction):\n        self.rect.center = (WIDTH // 2, HEIGHT // 2)\n        angle = random.uniform(-0.7, 0.7)\n        self.vx = direction * BALL_SPEED\n        self.vy = angle * BALL_SPEED\n\n    def update(self):\n        self.rect.x += int(self.vx)\n        self.rect.y += int(self.vy)\n        if self.rect.top <= 0:\n            self.rect.top = 0\n            self.vy = abs(self.vy)\n        elif self.rect.bottom >= HEIGHT:\n            self.rect.bottom = HEIGHT\n            self.vy = -abs(self.vy)\n\n\nclass Game:\n    def __init__(self, screen):\n        self.screen = screen\n        self.big_font = pygame.font.Font(None, 64)\n        self.font = pygame.font.Font(None, 32)\n        self.left = Paddle(30, pygame.K_w, pygame.K_s)\n        self.right = Paddle(WIDTH - 42, pygame.K_UP, pygame.K_DOWN)\n        self.ball = Ball()\n        self.serve_dir = random.choice((-1, 1))\n        self.ball.reset(self.serve_dir)\n        self.state = \"serve\"\n        self.winner = None\n\n    def handle_event(self, event):\n        if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:\n            if self.state == \"serve\":\n                self.state = \"play\"\n            elif self.state == \"over\":\n                self.restart()\n\n    def restart(self):\n        self.left.reset()\n        self.right.reset()\n        self.serve_dir = random.choice((-1, 1))\n        self.ball.reset(self.serve_dir)\n        self.winner = None\n        self.state = \"serve\"\n\n    def update(self):\n        keys = pygame.key.get_pressed()\n        self.left.move(keys)\n        self.right.move(keys)\n        if self.state == \"play\":\n            self.ball.update()\n            self.collide()\n            if self.ball.rect.right <= 0:\n                self.score_point(self.right)\n            elif self.ball.rect.left >= WIDTH:\n                self.score_point(self.left)\n\n    def collide(self):\n        ball = self.ball\n        if ball.vx < 0 and ball.rect.colliderect(self.left.rect):\n            self.bounce(self.left, 1)\n        elif ball.vx > 0 and ball.rect.colliderect(self.right.rect):\n            self.bounce(self.right, -1)\n\n    def bounce(self, paddle, direction):\n        ball = self.ball\n        offset = (ball.rect.centery - paddle.rect.centery) / (PADDLE_H / 2)\n        offset = max(-1.0, min(1.0, offset))\n        speed = min(abs(ball.vx) * 1.05 + 0.3, MAX_BALL_SPEED)\n        ball.vx = direction * speed\n        ball.vy = offset * speed * 0.8\n        if direction > 0:\n            ball.rect.left = paddle.rect.right\n        else:\n            ball.rect.right = paddle.rect.left\n\n    def score_point(self, scorer):\n        scorer.score += 1\n        if scorer.score >= WIN_SCORE:\n            self.winner = scorer\n            self.ball.rect.center = (WIDTH // 2, HEIGHT // 2)\n            self.state = \"over\"\n        else:\n            self.serve_dir = 1 if scorer is self.left else -1\n            self.ball.reset(self.serve_dir)\n            self.state = \"serve\"\n\n    def draw(self):\n        self.screen.fill(BLACK)\n        for y in range(10, HEIGHT, 24):\n            pygame.draw.rect(self.screen, WHITE, (WIDTH // 2 - 2, y, 4, 12))\n        pygame.draw.rect(self.screen, WHITE, self.left.rect)\n        pygame.draw.rect(self.screen, WHITE, self.right.rect)\n        pygame.draw.rect(self.screen, WHITE, self.ball.rect)\n        ls = self.big_font.render(str(self.left.score), True, WHITE)\n        rs = self.big_font.render(str(self.right.score), True, WHITE)\n        self.screen.blit(ls, ls.get_rect(center=(WIDTH // 2 - 70, 40)))\n        self.screen.blit(rs, rs.get_rect(center=(WIDTH // 2 + 70, 40)))\n        if self.state == \"serve\":\n            text = self.font.render(\n                \"Press SPACE to serve  |  Left: W/S   Right: Up/Down  |  First to %d wins\" % WIN_SCORE,\n                True, WHITE)\n            self.screen.blit(text, text.get_rect(center=(WIDTH // 2, HEIGHT - 30)))\n        elif self.state == \"over\":\n            num = \"1\" if self.winner is self.left else \"2\"\n            text = self.font.render(\n                \"Player %s wins!  Press SPACE for a new game\" % num, True, WHITE)\n            self.screen.blit(text, text.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 80)))\n        pygame.display.flip()\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "b893c6da2733d7a61d9c972cf957c3fa34f60905d2d2cd5521ded89602ddb844",
+      "result": "{\"verdict\": \"finished\", \"issues\": []}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "b893c6da2733d7a61d9c972cf957c3fa34f60905d2d2cd5521ded89602ddb844",
+      "result": " Finished"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "b893c6da2733d7a61d9c972cf957c3fa34f60905d2d2cd5521ded89602ddb844",
+      "result": "{\"status\": \"failed\", \"test_run_id\": \"a19a7902e7f4ed2fe2b176f0117134232ddcdcf728310cdc3f7b02087c73b3bc\", \"summary\": \"Startup smoke failed with exit code 1 due to ModuleNotFoundError: No module named 'pygame' raised at main.py line 1 before any game logic executed. This is a missing dependency in the host environment, not a source code defect; the Pong source (main.py, pong.py) requires pygame to be installed (e.g., pip install pygame) and the smoke test re-run to obtain conclusive execution evidence.\"}"
+    },
+    {
+      "phase": "TestModification",
+      "source_snapshot": "b893c6da2733d7a61d9c972cf957c3fa34f60905d2d2cd5521ded89602ddb844",
+      "result": "main.py\n```python\nimport tkinter as tk\n\nfrom pong import Game\n\n\ndef main():\n    root = tk.Tk()\n    root.title(\"Pong - Two Player\")\n    root.resizable(False, False)\n    game = Game(root)\n    root.protocol(\"WM_DELETE_WINDOW\", game.quit)\n    root.mainloop()\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\npong.py\n```python\nimport random\nimport tkinter as tk\n\nWIDTH, HEIGHT = 800, 500\nFPS = 60\nPADDLE_W, PADDLE_H = 12, 90\nPADDLE_SPEED = 6\nBALL_SIZE = 12\nBALL_SPEED = 6\nMAX_BALL_SPEED = 14\nWIN_SCORE = 5\nWHITE = \"#ffffff\"\nBLACK = \"#141414\"\nARROW_KEYS = (\"Up\", \"Down\", \"Left\", \"Right\")\n\n\nclass Paddle:\n    def __init__(self, x, up_key, down_key):\n        self.x = x\n        self.y = HEIGHT // 2 - PADDLE_H // 2\n        self.up_key = up_key\n        self.down_key = down_key\n        self.score = 0\n\n    def move(self, keys):\n        if self.up_key in keys and self.y > 0:\n            self.y -= PADDLE_SPEED\n        if self.down_key in keys and self.y + PADDLE_H < HEIGHT:\n            self.y += PADDLE_SPEED\n\n    def reset(self):\n        self.y = HEIGHT // 2 - PADDLE_H // 2\n        self.score = 0\n\n\nclass Ball:\n    def __init__(self):\n        self.x = 0.0\n        self.y = 0.0\n        self.vx = 0.0\n        self.vy = 0.0\n\n    def reset(self, direction):\n        self.x = WIDTH // 2 - BALL_SIZE / 2\n        self.y = HEIGHT // 2 - BALL_SIZE / 2\n        angle = random.uniform(-0.7, 0.7)\n        self.vx = direction * BALL_SPEED\n        self.vy = angle * BALL_SPEED\n\n    def update(self):\n        self.x += self.vx\n        self.y += self.vy\n        if self.y <= 0:\n            self.y = 0\n            self.vy = abs(self.vy)\n        elif self.y + BALL_SIZE >= HEIGHT:\n            self.y = HEIGHT - BALL_SIZE\n            self.vy = -abs(self.vy)\n\n    def hits(self, px, py):\n        return (self.x < px + PADDLE_W and self.x + BALL_SIZE > px and\n                self.y < py + PADDLE_H and self.y + BALL_SIZE > py)\n\n\nclass Game:\n    def __init__(self, root):\n        self.root = root\n        self.canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT,\n                                bg=BLACK, highlightthickness=0)\n        self.canvas.pack()\n        root.bind(\"<KeyPress>\", self._key_down)\n        root.bind(\"<KeyRelease>\", self._key_up)\n        self.keys = set()\n        self.big_font = (\"Helvetica\", 32, \"bold\")\n        self.font = (\"Helvetica\", 11)\n        self.left = Paddle(30, \"w\", \"s\")\n        self.right = Paddle(WIDTH - 42, \"Up\", \"Down\")\n        self.ball = Ball()\n        self.serve_dir = random.choice((-1, 1))\n        self.ball.reset(self.serve_dir)\n        self.state = \"serve\"\n        self.winner = None\n        self._create_items()\n        self._tick()\n\n    def _create_items(self):\n        c = self.canvas\n        for y in range(10, HEIGHT, 24):\n            c.create_rectangle(WIDTH // 2 - 2, y, WIDTH // 2 + 2, y + 12,\n                               fill=WHITE, outline=\"\")\n        self.left_item = c.create_rectangle(0, 0, 0, 0, fill=WHITE, outline=\"\")\n        self.right_item = c.create_rectangle(0, 0, 0, 0, fill=WHITE, outline=\"\")\n        self.ball_item = c.create_oval(0, 0, 0, 0, fill=WHITE, outline=\"\")\n        self.left_score = c.create_text(WIDTH // 2 - 70, 40, text=\"0\",\n                                        fill=WHITE, font=self.big_font)\n        self.right_score = c.create_text(WIDTH // 2 + 70, 40, text=\"0\",\n                                         fill=WHITE, font=self.big_font)\n        self.message = c.create_text(WIDTH // 2, HEIGHT - 30, text=\"\",\n                                     fill=WHITE, font=self.font)\n\n    @staticmethod\n    def _normalize(keysym):\n        return keysym if keysym in ARROW_KEYS else keysym.lower()\n\n    def _key_down(self, event):\n        key = self._normalize(event.keysym)\n        if key == \"space\":\n            if \"space\" not in self.keys:\n                if self.state == \"serve\":\n                    self.state = \"play\"\n                elif self.state == \"over\":\n                    self.restart()\n                self.keys.add(\"space\")\n            return\n        self.keys.add(key)\n\n    def _key_up(self, event):\n        self.keys.discard(self._normalize(event.keysym))\n\n    def restart(self):\n        self.left.reset()\n        self.right.reset()\n        self.serve_dir = random.choice((-1, 1))\n        self.ball.reset(self.serve_dir)\n        self.winner = None\n        self.state = \"serve\"\n\n    def update(self):\n        self.left.move(self.keys)\n        self.right.move(self.keys)\n        if self.state == \"play\":\n            self.ball.update()\n            self.collide()\n            if self.ball.x + BALL_SIZE <= 0:\n                self.score_point(self.right)\n            elif self.ball.x >= WIDTH:\n                self.score_point(self.left)\n\n    def collide(self):\n        ball = self.ball\n        if ball.vx < 0 and ball.hits(self.left.x, self.left.y):\n            self.bounce(self.left, 1)\n        elif ball.vx > 0 and ball.hits(self.right.x, self.right.y):\n            self.bounce(self.right, -1)\n\n    def bounce(self, paddle, direction):\n        ball = self.ball\n        offset = (ball.y + BALL_SIZE / 2 - (paddle.y + PADDLE_H / 2)) / (PADDLE_H / 2)\n        offset = max(-1.0, min(1.0, offset))\n        speed = min(abs(ball.vx) * 1.05 + 0.3, MAX_BALL_SPEED)\n        ball.vx = direction * speed\n        ball.vy = offset * speed * 0.8\n        if direction > 0:\n            ball.x = paddle.x + PADDLE_W\n        else:\n            ball.x = paddle.x - BALL_SIZE\n\n    def score_point(self, scorer):\n        scorer.score += 1\n        if scorer.score >= WIN_SCORE:\n            self.winner = scorer\n            self.ball.x = WIDTH // 2 - BALL_SIZE / 2\n            self.ball.y = HEIGHT // 2 - BALL_SIZE / 2\n            self.state = \"over\"\n        else:\n            self.serve_dir = 1 if scorer is self.left else -1\n            self.ball.reset(self.serve_dir)\n            self.state = \"serve\"\n\n    def draw(self):\n        c = self.canvas\n        c.coords(self.left_item, self.left.x, self.left.y,\n                 self.left.x + PADDLE_W, self.left.y + PADDLE_H)\n        c.coords(self.right_item, self.right.x, self.right.y,\n                 self.right.x + PADDLE_W, self.right.y + PADDLE_H)\n        c.coords(self.ball_item, self.ball.x, self.ball.y,\n                 self.ball.x + BALL_SIZE, self.ball.y + BALL_SIZE)\n        c.itemconfigure(self.left_score, text=str(self.left.score))\n        c.itemconfigure(self.right_score, text=str(self.right.score))\n        if self.state == \"serve\":\n            msg = (\"Press SPACE to serve  |  Left: W/S   Right: Up/Down  |  \"\n                   \"First to %d wins\" % WIN_SCORE)\n        elif self.state == \"over\":\n            num = \"1\" if self.winner is self.left else \"2\"\n            msg = \"Player %s wins!  Press SPACE for a new game\" % num\n        else:\n            msg = \"\"\n        c.itemconfigure(self.message, text=msg)\n\n    def _tick(self):\n        self.update()\n        self.draw()\n        self.canvas.after(1000 // FPS, self._tick)\n\n    def quit(self):\n        self.root.destroy()\n```"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "3374d623521c8c9f4d19dbe1517f52da6637ba087705f2c27a4fc1790c6e72af",
+    "source_digests": {
+      "main.py": "ca45d5c43d5a1e82912faa5107b7ed69be121adc9dff08adcbddd3853a689de0",
+      "pong.py": "486b136bbf8b2153f9a8416b0657808a6246b383c90a33fc9d53b45bde110c64"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "source/pure-contract\\content_lab\\startup_probe.py",
+      "data/runs/mpst_contract/r10/28_Pong/artifact\\main.py",
+      "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-p7dc8bz4\\probe.json"
+    ],
+    "timeout_seconds": 3,
+    "status": "passed",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "profile": "tkinter_event_loop",
+    "observation": {
+      "event_loop_observed": true,
+      "mapped_window": true,
+      "widget_count": 1,
+      "callback_errors": []
+    },
+    "id": "e0417736c2ea7e9a32e5eb1b5554ebe062480f6de9a5d09d13e6c89f3ff29bfc"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "ac8d1d2644b0fc3bbcee1f8f3bf081ff6741f01027cf94dd116d29be90ca5242",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "ac8d1d2644b0fc3bbcee1f8f3bf081ff6741f01027cf94dd116d29be90ca5242",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "694727febe0da2b3189164abc1aaf73bed6bf9a49fefed87cf2dee67010438be",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8e2639669ffd012a593255fa9ebf21c5eda3da4ed3a38f28cdefe73b2b6480c",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "f6d1db4f0d3487f7c41b59857c8da6c2cdb848c4794dca8eafa1a8a971975b9f",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "f6d1db4f0d3487f7c41b59857c8da6c2cdb848c4794dca8eafa1a8a971975b9f",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "b893c6da2733d7a61d9c972cf957c3fa34f60905d2d2cd5521ded89602ddb844",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "41a4b7cba60fe48a82dea68df25c150b1c1a538a99dbfb89714d4f298e56bd57",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "b893c6da2733d7a61d9c972cf957c3fa34f60905d2d2cd5521ded89602ddb844",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2e268ff0cef63580c64233b07e8fd026c494a543f47a7717f2245832819f24fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "b893c6da2733d7a61d9c972cf957c3fa34f60905d2d2cd5521ded89602ddb844",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8700fb183943e095d13134cd4e69d7c20578218ffc78582ca4a8388a666754b",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "b893c6da2733d7a61d9c972cf957c3fa34f60905d2d2cd5521ded89602ddb844",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3713dc9d1785c47081ef36c7e993dd51ecf9c4913bd8e04500b2a4717fc9a3a0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "b893c6da2733d7a61d9c972cf957c3fa34f60905d2d2cd5521ded89602ddb844",
+        "source_digests": {
+          "main.py": "eca67ec0fc250c23be1149193d869cda111dc728614fadf6ac44e6228e8fc7e5",
+          "pong.py": "090ab321b517bb95f7a2008983f2202fbb6b321f30af2b1da951752f13a2e1c2"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r10/28_Pong/artifact\\main.py\", line 1, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+        "profile": "process_exit",
+        "id": "a19a7902e7f4ed2fe2b176f0117134232ddcdcf728310cdc3f7b02087c73b3bc"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "b893c6da2733d7a61d9c972cf957c3fa34f60905d2d2cd5521ded89602ddb844",
+        "source_digests": {
+          "main.py": "eca67ec0fc250c23be1149193d869cda111dc728614fadf6ac44e6228e8fc7e5",
+          "pong.py": "090ab321b517bb95f7a2008983f2202fbb6b321f30af2b1da951752f13a2e1c2"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "failed",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"data/runs/mpst_contract/r10/28_Pong/artifact\\main.py\", line 1, in <module>\n    import pygame\nModuleNotFoundError: No module named 'pygame'\n",
+        "profile": "process_exit",
+        "id": "a19a7902e7f4ed2fe2b176f0117134232ddcdcf728310cdc3f7b02087c73b3bc"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "b893c6da2733d7a61d9c972cf957c3fa34f60905d2d2cd5521ded89602ddb844",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "bdb82069dbd0503e0038159a2fb78e764d1f6b33dce74dfcb60545c0d2525bf4",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "b893c6da2733d7a61d9c972cf957c3fa34f60905d2d2cd5521ded89602ddb844",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "71b7d9bec99ce968d5b31eda559eca7d5e879abed5eceb75f49b52ca87588880",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "b893c6da2733d7a61d9c972cf957c3fa34f60905d2d2cd5521ded89602ddb844",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "8fc9f9c69e28aeb358097fce15747e6f57084cef455d5ab306b1d7aeadf13560",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestModification",
+      "contract": "chatdev.test_fix.v1",
+      "snapshot_id": "b893c6da2733d7a61d9c972cf957c3fa34f60905d2d2cd5521ded89602ddb844",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "8fc9f9c69e28aeb358097fce15747e6f57084cef455d5ab306b1d7aeadf13560",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "3374d623521c8c9f4d19dbe1517f52da6637ba087705f2c27a4fc1790c6e72af",
+        "source_digests": {
+          "main.py": "ca45d5c43d5a1e82912faa5107b7ed69be121adc9dff08adcbddd3853a689de0",
+          "pong.py": "486b136bbf8b2153f9a8416b0657808a6246b383c90a33fc9d53b45bde110c64"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "source/pure-contract\\content_lab\\startup_probe.py",
+          "data/runs/mpst_contract/r10/28_Pong/artifact\\main.py",
+          "<USER_HOME>\\AppData\\Local\\Temp\\chatdev-startup-p7dc8bz4\\probe.json"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "profile": "tkinter_event_loop",
+        "observation": {
+          "event_loop_observed": true,
+          "mapped_window": true,
+          "widget_count": 1,
+          "callback_errors": []
+        },
+        "id": "e0417736c2ea7e9a32e5eb1b5554ebe062480f6de9a5d09d13e6c89f3ff29bfc"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": true,
+      "evidence_id": "e0417736c2ea7e9a32e5eb1b5554ebe062480f6de9a5d09d13e6c89f3ff29bfc"
+    }
+  ]
+}

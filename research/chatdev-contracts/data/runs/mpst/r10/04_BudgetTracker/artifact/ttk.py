@@ -1,0 +1,3 @@
+def delete(self, *items):
+    """Delete all items in *items."""
+    items = (self._w, 'delete') + items  # no...

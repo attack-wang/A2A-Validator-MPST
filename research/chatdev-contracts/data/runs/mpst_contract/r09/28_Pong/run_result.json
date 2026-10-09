@@ -1,0 +1,38 @@
+{
+  "task_index": 28,
+  "project_name": "Pong",
+  "description": "Develop a two-player Pong game. Each player controls a vertical paddle, moving up and down to bounce a ball back. The ball bounces between the two paddles and off the top and bottom edges. Players score a point when the opponent misses the ball. Incorporate a winning score threshold and reset the ball after each point.",
+  "framework": "ChatDev1.0",
+  "model": "glm-5.3-flash:cloud",
+  "content_contracts_enabled": true,
+  "session_type_enabled": true,
+  "status": "failed",
+  "error": "exit code 1",
+  "failure_type": "content_contract",
+  "project_path": "data/runs/mpst_contract/r09/28_Pong/artifact",
+  "elapsed_seconds": 89.079,
+  "contract_rejections": 1,
+  "violated_rules": [
+    "current_startup_passed"
+  ],
+  "last_diagnostic": ":\n        self.rect.y = HEIGHT // 2 - PADDLE_H // 2\n\n    def draw(self):\n        pygame.draw.rect(screen, WHITE, self.rect)\n\n\nclass Ball:\n    def __init__(self):\n        self.reset(random.choice([-1, 1]))\n\n    def reset(self, direction):\n        self.rect = pygame.Rect(WIDTH // 2 - BALL_SIZE // 2,\n                                HEIGHT // 2 - BALL_SIZE // 2, BALL_SIZE, BALL_SIZE)\n        self.vx = BALL_SPEED_X * direction\n        self.vy = random.choice([-1, 1]) * BALL_SPEED_Y\n\n    def draw(self):\n        pygame.draw.rect(screen, WHITE, self.rect)\n\n\ndef main():\n    left = Paddle(20)\n    right = Paddle(WIDTH - 20 - PADDLE_W)\n    ball = Ball()\n    score_left = 0\n    score_right = 0\n    winner = None\n    running = True\n\n    while running:\n        for event in pygame.event.get():\n            if event.type == pygame.QUIT:\n                running = False\n            elif event.type == pygame.KEYDOWN and event.key == pygame.K_r and winner:\n                score_left = score_right = 0\n                winner = None\n                left.reset()\n                right.reset()\n                ball.reset(random.choice([-1, 1]))\n\n        keys = pygame.key.get_pressed()\n        if not winner:\n            if keys[pygame.K_w]:\n                left.move(-PADDLE_SPEED)\n            if keys[pygame.K_s]:\n                left.move(PADDLE_SPEED)\n            if keys[pygame.K_UP]:\n                right.move(-PADDLE_SPEED)\n            if keys[pygame.K_DOWN]:\n                right.move(PADDLE_SPEED)\n\n            ball.rect.x += ball.vx\n            ball.rect.y += ball.vy\n\n            if ball.rect.top <= 0:\n                ball.rect.top = 0\n                ball.vy = -ball.vy\n            if ball.rect.bottom >= HEIGHT:\n                ball.rect.bottom = HEIGHT\n                ball.vy = -ball.vy\n\n            if ball.rect.colliderect(left.rect) and ball.vx < 0:\n                ball.rect.left = left.rect.right\n                ball.vx = -ball.vx\n                ball.vy += int((ball.rect.centery - left.rect.centery) / (PADDLE_H / 2) * 3)\n            if ball.rect.colliderect(right.rect) and ball.vx > 0:\n                ball.rect.right = right.rect.left\n                ball.vx = -ball.vx\n                ball.vy += int((ball.rect.centery - right.rect.centery) / (PADDLE_H / 2) * 3)\n            ball.vy = max(-10, min(10, ball.vy))\n\n            if ball.rect.right < 0:\n                score_right += 1\n                ball.reset(-1)\n            elif ball.rect.left > WIDTH:\n                score_left += 1\n                ball.reset(1)\n\n            if score_left >= WIN_SCORE:\n                winner = \"Left Player\"\n            elif score_right >= WIN_SCORE:\n                winner = \"Right Player\"\n\n        screen.fill(BLACK)\n        pygame.draw.line(screen, WHITE, (WIDTH // 2, 0), (WIDTH // 2, HEIGHT), 2)\n        left.draw()\n        right.draw()\n        ball.draw()\n        score_text = font.render(f\"{score_left}    {score_right}\", True, WHITE)\n        screen.blit(score_text, (WIDTH // 2 - score_text.get_width() // 2, 20))\n        if winner:\n            win_text = font.render(f\"{winner} wins! Press R to restart\", True, WHITE)\n            screen.blit(win_text, (WIDTH // 2 - win_text.get_width() // 2, HEIGHT // 2 - 24))\n\n        pygame.display.flip()\n        clock.tick(FPS)\n\n    pygame.quit()\n    sys.exit()\n\n\nif __name__ == \"__main__\":\n    main()\n```\n\n**[Update Codes]**\n\nmain.py updated.\n\n\n```\n'''\n\n'''\n--- Old\n+++ New\n@@ -1,5 +1,11 @@\n-import pygame\n import sys\n+\n+try:\n+    import pygame\n+except ImportError:\n+    print(\"pygame is required to run this game. Install it with: pip install pygame\")\n+    sys.exit(1)\n+\n import random\n \n pygame.init()\n```\n\ndir: data/runs/mpst_contract/r09/28_Pong/artifact\n**[Software Info]**:\n\n \n\n💰**cost**=unknown\n\n🔨**version_updates**=-1\n\n📃**num_code_files**=1\n\n🏞**num_png_files**=0\n\n📚**num_doc_files**=5\n\n📃**code_lines**=111\n\n📋**env_lines**=-1\n\n📒**manual_lines**=-1\n\n🗣**num_utterances**=14\n\n🤔**num_self_reflections**=0\n\n❓**num_prompt_tokens**=6602\n\n❗**num_completion_tokens**=9789\n\n🌟**num_total_tokens**=16391\n\nTraceback (most recent call last):\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\run.py\", line 136, in <module>\n    chat_chain.execute_chain()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\chat_chain.py\", line 183, in execute_chain\n    content_guard.finish()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\content_guard.py\", line 134, in finish\n    raise ContentViolation(\"chatdev.stage_exit.v1\", findings)\ncontent_lab.chatdev_contracts.ContentViolation: {\"contract\": \"chatdev.stage_exit.v1\", \"violations\": [{\"layer\": \"A\", \"rule\": \"current_startup_passed\", \"path\": \"$\", \"message\": \"Current startup did not pass.\", \"repair\": \"Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior.\"}]}\n",
+  "artifact_pass": false,
+  "evaluation_error": null,
+  "result_path": "data/runs/mpst_contract/r09/28_Pong\\run_result.json",
+  "model_decision_enabled": false,
+  "model_decision_calls": 0,
+  "terminal_contract": "chatdev.stage_exit.v1",
+  "terminal_rules": [
+    "current_startup_passed"
+  ],
+  "audit_checks": 18,
+  "delivered_phases": [
+    "DemandAnalysis",
+    "LanguageChoose",
+    "Coding",
+    "CodeReviewComment",
+    "CodeReviewModification",
+    "TestErrorSummary",
+    "TestModification"
+  ]
+}

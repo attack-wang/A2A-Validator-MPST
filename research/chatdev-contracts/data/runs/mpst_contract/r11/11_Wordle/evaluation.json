@@ -1,0 +1,71 @@
+{
+  "task_index": 11,
+  "project_name": "Wordle",
+  "framework": "ChatDev1.0",
+  "workflow_status": "completed",
+  "workspace": "data/runs/mpst_contract/r11/11_Wordle/artifact",
+  "source_file_count": 2,
+  "python_compile": {
+    "checked": 2,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-07T05:31:10+0800",
+  "judge": {
+    "verdict": "pass",
+    "functional_completeness": 0.96,
+    "executable_likelihood": 0.98,
+    "implemented_requirements": [
+      {
+        "requirement": "Provide a daily 5‑letter English word",
+        "fulfilled": true,
+        "evidence": "def pick_daily_word():\n    today = date.today().isoformat()\n    rng = random.Random(today)\n    return rng.choice(WORDS), today  # WORDS contains only 5‑letter entries"
+      },
+      {
+        "requirement": "Allow the player up to 6 guesses",
+        "fulfilled": true,
+        "evidence": "MAX_TURNS = 6\n...\nfor attempt in range(1, MAX_TURNS + 1):"
+      },
+      {
+        "requirement": "Terminal‑based UI with no GUI dependencies",
+        "fulfilled": true,
+        "evidence": "print(...) and input(...) are used throughout; the script runs with #!/usr/bin/env python3 and only stdlib imports."
+      },
+      {
+        "requirement": "Show green for correct‑position letters, yellow for correct‑letter wrong‑position, grey for absent letters",
+        "fulfilled": true,
+        "evidence": "GREEN, YELLOW, GREY = \"\\033[92m\", \"\\033[93m\", \"\\033[90m\"\n...\nresult[i] = GREEN / YELLOW / GREY in score_guess()\n...\nreturn \"\".join(f\"{c}{ch}{RESET}\" for ch, c in zip(guess, colors))"
+      },
+      {
+        "requirement": "Validate each guess (length, alphabetic, in word list)",
+        "fulfilled": true,
+        "evidence": "def get_guess(attempt):\n    raw = input(...).strip().lower()\n    if len(raw) != WORD_LEN: ...\n    elif not raw.isalpha(): ...\n    elif raw not in WORDS: ...\n    else: return raw"
+      },
+      {
+        "requirement": "Declare win when the word is guessed within allowed attempts",
+        "fulfilled": true,
+        "evidence": "if guess == answer:\n    print(BOLD + f\"You won in {attempt}/{MAX_TURNS}! The word was {answer.upper()}.\" + RESET)\n    return"
+      },
+      {
+        "requirement": "Declare loss after 6 unsuccessful attempts and reveal the solution",
+        "fulfilled": true,
+        "evidence": "print(BOLD + f\"You lost. The word was {answer.upper()}.\" + RESET)  # after the loop"
+      },
+      {
+        "requirement": "Display colored feedback after each guess",
+        "fulfilled": true,
+        "evidence": "print(\"  \" + render(guess, score_guess(guess, answer)) + \"\\n\")"
+      }
+    ],
+    "critical_issues": [],
+    "summary": "The repository contains a complete, terminal‑only Wordle implementation. It selects a deterministic daily 5‑letter word, enforces six attempts, validates input, applies standard Wordle scoring, and prints colored results using ANSI codes. All core requirements are met and the code is highly likely to run unchanged on a Linux terminal.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": true
+}

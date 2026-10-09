@@ -1,0 +1,298 @@
+{
+  "profile": "ChatDev1.0/MPSTContent/Python",
+  "delivered": [
+    {
+      "phase": "DemandAnalysis",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": " Application"
+    },
+    {
+      "phase": "LanguageChoose",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "Python"
+    },
+    {
+      "phase": "Coding",
+      "source_snapshot": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result": "main.py\n```python\n\"\"\"Entry point for the Gomoku game.\"\"\"\n\nfrom board import Board, BLACK, WHITE\nfrom game import Game\nfrom player import Player\nfrom ui import ConsoleUI\n\n\ndef main():\n    ui = ConsoleUI()\n    ui.welcome()\n    while True:\n        black_name, white_name = ui.get_player_names()\n        players = [Player(black_name, BLACK), Player(white_name, WHITE)]\n        Game(Board(), players, ui).play()\n        if not ui.ask_replay():\n            ui.farewell()\n            break\n\n\nif __name__ == '__main__':\n    try:\n        main()\n    except (KeyboardInterrupt, EOFError):\n        print('\\nGame aborted. Goodbye!')\n```\n\nboard.py\n```python\n\"\"\"Board state and win detection for Gomoku.\"\"\"\n\nSIZE = 15\nEMPTY, BLACK, WHITE = 0, 1, 2\n\n\nclass Board:\n    def __init__(self, size=SIZE):\n        self.size = size\n        self.grid = [[EMPTY] * size for _ in range(size)]\n\n    def in_bounds(self, r, c):\n        return 0 <= r < self.size and 0 <= c < self.size\n\n    def is_empty(self, r, c):\n        return self.in_bounds(r, c) and self.grid[r][c] == EMPTY\n\n    def place(self, r, c, stone):\n        self.grid[r][c] = stone\n\n    def is_full(self):\n        return all(v != EMPTY for row in self.grid for v in row)\n\n    def check_win(self, r, c):\n        \"\"\"True if the stone just placed at (r, c) completes five in a row.\"\"\"\n        stone = self.grid[r][c]\n        if stone == EMPTY:\n            return False\n        for dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):\n            count = 1\n            for step in (1, -1):\n                nr, nc = r + dr * step, c + dc * step\n                while self.in_bounds(nr, nc) and self.grid[nr][nc] == stone:\n                    count += 1\n                    nr += dr * step\n                    nc += dc * step\n            if count >= 5:\n                return True\n        return False\n```\n\nplayer.py\n```python\n\"\"\"Player representation for Gomoku.\"\"\"\n\n\nclass Player:\n    def __init__(self, name, stone):\n        self.name = name\n        self.stone = stone\n```\n\ngame.py\n```python\n\"\"\"Turn-based game loop for Gomoku.\"\"\"\n\n\nclass Game:\n    def __init__(self, board, players, ui):\n        self.board = board\n        self.players = players\n        self.ui = ui\n\n    def play(self):\n        turn = 0\n        while True:\n            self.ui.render(self.board)\n            player = self.players[turn]\n            r, c = self.ui.get_move(player, self.board)\n            self.board.place(r, c, player.stone)\n            if self.board.check_win(r, c):\n                self.ui.render(self.board)\n                self.ui.announce_win(player)\n                return player\n            if self.board.is_full():\n                self.ui.render(self.board)\n                self.ui.announce_draw()\n                return None\n            turn ^= 1\n```\n\nui.py\n```python\n\"\"\"Console rendering and input for Gomoku.\"\"\"\n\nfrom board import EMPTY, BLACK, WHITE\n\nSYMBOLS = {EMPTY: '.', BLACK: 'X', WHITE: 'O'}\n\n\nclass ConsoleUI:\n    @staticmethod\n    def welcome():\n        print('=' * 48)\n        print(' GOMOKU - five in a row on a 15x15 board')\n        print(' Black (X) moves first. Enter moves as \"row col\".')\n        print('=' * 48)\n\n    @staticmethod\n    def render(board):\n        size = board.size\n        print()\n        print('    ' + ' '.join(f'{c:>2d}' for c in range(1, size + 1)))\n        for r in range(size):\n            cells = ' '.join(f'{SYMBOLS[v]:>2s}' for v in board.grid[r])\n            print(f'{r + 1:>2d}  {cells}')\n        print()\n\n    @staticmethod\n    def get_player_names():\n        black = input('Name of Black player (X) [Black]: ').strip() or 'Black'\n        white = input('Name of White player (O) [White]: ').strip() or 'White'\n        return black, white\n\n    @staticmethod\n    def get_move(player, board):\n        while True:\n            try:\n                raw = input(f'{player.name} ({SYMBOLS[player.stone]}), row col (1-{board.size}): ')\n            except EOFError:\n                raise SystemExit('\\nInput closed. Game aborted.')\n            parts = raw.replace(',', ' ').split()\n            if len(parts) != 2:\n                print('Invalid input. Enter two numbers, e.g. \"8 8\".')\n                continue\n            try:\n                r, c = int(parts[0]), int(parts[1])\n            except ValueError:\n                print('Invalid input. Enter two integers.')\n                continue\n            if not board.is_empty(r - 1, c - 1):\n                print('Cell is out of range or occupied. Try again.')\n                continue\n            return r - 1, c - 1\n\n    @staticmethod\n    def announce_win(player):\n        print(f'*** {player.name} ({SYMBOLS[player.stone]}) wins with five in a row! ***')\n\n    @staticmethod\n    def announce_draw():\n        print('*** The board is full. It is a draw! ***')\n\n    @staticmethod\n    def ask_replay():\n        return input('Play again? (y/n): ').strip().lower() in ('y', 'yes')\n\n    @staticmethod\n    def farewell():\n        print('Thanks for playing Gomoku. Goodbye!')\n```"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "source_snapshot": "321e9acee0bf009bf0f82014cb33986c03b0bc0ec26939047102c1ce70fd9f19",
+      "result": "{\"verdict\": \"finished\", \"issues\": []}"
+    },
+    {
+      "phase": "CodeReviewModification",
+      "source_snapshot": "321e9acee0bf009bf0f82014cb33986c03b0bc0ec26939047102c1ce70fd9f19",
+      "result": " Finished"
+    },
+    {
+      "phase": "TestErrorSummary",
+      "source_snapshot": "321e9acee0bf009bf0f82014cb33986c03b0bc0ec26939047102c1ce70fd9f19",
+      "result": "{\"status\": \"passed\", \"test_run_id\": \"bea75467afd9590c62574054faef42330ad4c767787d363400f25d1d397a34a4\", \"summary\": \"Startup smoke test passed (exit code 0). main.py launched successfully with no source errors or missing dependencies: the Gomoku welcome banner rendered, the Black player name prompt appeared, and the run terminated cleanly via the handled EOFError path ('Game aborted. Goodbye!'). All five modules (main.py, board.py, game.py, player.py, ui.py) imported and executed without issue.\"}"
+    }
+  ],
+  "evidence": {
+    "snapshot_id": "321e9acee0bf009bf0f82014cb33986c03b0bc0ec26939047102c1ce70fd9f19",
+    "source_digests": {
+      "board.py": "bda79746c1e28f8eafdd8a957732c94c57b2b45a017f39d038e3903aac31788b",
+      "game.py": "1c34e603fa801c0f90498ae6ecb684d8ffb217af020ed6b64e34c2de8f210246",
+      "main.py": "dd4c794296ed554453bf6d1b219ce795c482b6a86df8279bffae5803bca35369",
+      "player.py": "335e473c5b785965c282f6e2e0d21c1770b4100a02fa0b818744274bf50b249e",
+      "ui.py": "a2f59d9aa07ff7abd6838f73604a3f05c1cf43dc0489f087df0d4959088aa074"
+    },
+    "kind": "startup_smoke",
+    "command": [
+      "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+      "-E",
+      "main.py"
+    ],
+    "timeout_seconds": 3,
+    "status": "passed",
+    "exit_code": 0,
+    "stdout": "================================================\n GOMOKU - five in a row on a 15x15 board\n Black (X) moves first. Enter moves as \"row col\".\n================================================\nName of Black player (X) [Black]: \nGame aborted. Goodbye!\n",
+    "stderr": "",
+    "profile": "process_exit",
+    "id": "bea75467afd9590c62574054faef42330ad4c767787d363400f25d1d397a34a4"
+  },
+  "checks": [
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b388523dcdb5238544e22385a0a9e747488b82d756bacf2bda4f3ba0e1c754b5",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "DemandAnalysis",
+      "contract": "chatdev.demand.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "57d005c3b71920cefd5b63883aac3200365d1f8a4aa4b23a48238444adb055e7",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "18885f27b5af9012df19e496460f9294d5ab76128824c6f993787004f6d9a7db",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "LanguageChoose",
+      "contract": "chatdev.language.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "18885f27b5af9012df19e496460f9294d5ab76128824c6f993787004f6d9a7db",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "9199ef869c036524b1e19098dbaf37ce8d1c42e752944b2657b249ba57ab1966",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "Coding",
+      "contract": "chatdev.coding.v1",
+      "snapshot_id": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "9199ef869c036524b1e19098dbaf37ce8d1c42e752944b2657b249ba57ab1966",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "321e9acee0bf009bf0f82014cb33986c03b0bc0ec26939047102c1ce70fd9f19",
+      "accepted": false,
+      "violations": [
+        {
+          "layer": "C1",
+          "rule": "review_schema",
+          "path": "$",
+          "message": "Expected verdict and issues in a JSON object.",
+          "repair": "Return {\"verdict\":\"finished|changes_requested\",\"issues\":[{\"file\":\"main.py\",\"line\":1,\"message\":\"...\"}]}."
+        }
+      ],
+      "candidate_sha256": "e847512854b1f5f1cb36855ba317467dd3d0d6d548690868228ecd579f252a1b",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": "Let me review the code for functional correctness against the task requirements:\n\nTask: Develop a standard Gomoku game. 15x15 board, two players alternate placing black or white stones. A player wins by forming an unbroken row of five stones horizontally, vertically, or diagonally.\n\nLet me check each file:\n\n**main.py**: Entry point, imports Board, BLACK, WHITE from board; Game; Player; ConsoleUI. Creates UI, welcome, gets player names, creates players, plays game, asks replay. Handles KeyboardInterrupt/EOFError. Looks fine.\n\n**board.py**: \n- SIZE = 15, EMPTY, BLACK, WHITE = 0, 1, 2\n- Board init with size, grid of empty cells.\n- in_bounds, is_empty, place, is_full — fine.\n- check_win(r, c): gets stone at (r,c), checks 4 directions: (0,1) horizontal, (1,0) vertical, (1,1) diagonal, (1,-1) anti-diagonal. For each direction, counts contiguous stones in both directions starting from count=1. If count >= 5, returns True.\n\nWait — standard Gomoku: exactly five wins, or five or more? \"A player wins by forming an unbroken row of five stones horizontally, vertically, or diagonally.\" The check uses `count >= 5`, which means overlines (six or more) also win. In \"standard\" Gomoku (free-style), five or more wins is generally acceptable; in Renju rules overline doesn't count for black. The task says \"unbroken row of five stones\" — count >= 5 includes rows of 5+. This is typically acceptable for a standard Gomoku game. Most implementations use >= 5. I don't think this is a blocking defect.\n\nLet me trace check_win logic carefully:\n\n```python\nfor dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):\n    count = 1\n    for step in (1, -1):\n        nr, nc = r + dr * step, c + dc * step\n        while self.in_bounds(nr, nc) and self.grid[nr][nc] == stone:\n            count += 1\n            nr += dr * step\n            nc += dc * step\n    if count >= 5:\n        return True\n```\n\nFor direction (0,1): step=1 checks (r, c+1), (r, c+2), ... step=-1 checks (r, c-1), (r, c-2), ... Correct.\n\nFor (1,0): vertical. Correct.\n\nFor (1,1): diagonal down-right and up-left. Correct.\n\nFor (1,-1): step=1: (r+1, c-1), (r+2, c-2)... step=-1: (r-1, c+1), (r-2, c+2)... Correct anti-diagonal.\n\nSo win detection is correct.\n\n**player.py**: Simple. Fine.\n\n**game.py**: Turn loop. Renders board, gets move, places, checks win, checks full, toggles turn with `turn ^= 1`. players list has 2 elements. Fine.\n\n**ui.py**:\n- render: prints column headers 1..size with width 2, rows with row number. Fine.\n- get_player_names: defaults. Fine.\n- get_move: reads input, handles EOFError by raising SystemExit. Parses with comma replacement, splits. Validates two parts, integers, and board.is_empty(r-1, c-1). Note: is_empty checks in_bounds too, so out-of-range is caught. Returns 0-indexed. Fine.\n\nWait — one subtle issue: in get_move, the input prompt says \"row col (1-{board.size})\". Fine.\n\n- announce_win, announce_draw, ask_replay, farewell. Fine.\n\nPotential issues:\n\n1. In main.py, `except (KeyboardInterrupt, EOFError)` — but in ui.get_move, EOFError is caught and re-raised as SystemExit, which is not caught by main's handler. SystemExit would propagate and terminate with the message printed. Actually SystemExit with a string message prints the message to stderr and exits with code 1. That's fine behavior-wise. KeyboardInterrupt during input in get_player_names or ask_replay would be caught by main's handler. Fine.\n\n2. `check_win` uses `count >= 5` — overline wins. For \"standard Gomoku\" this is generally fine (freestyle gomoku). Not a defect.\n\n3. Board rendering: column header uses `f'{c:>2d}'` joined by space, cells use `f'{SYMBOLS[v]:>2s}'` joined by space. Alignment: header \"    \" + \" \".join of 2-wide numbers. Row: f'{r+1:>2d}  ' + cells. Let me check alignment: header starts with 4 spaces, then each column number is 2 chars separated by single spaces. So column c occupies position 4 + (c-1)*3 ... cells: row label 2 chars + 2 spaces = 4 chars prefix, then each symbol 2 chars separated by single space. So symbols align with numbers. Good.\n\n4. Is there any issue with `is_full` being checked after win check? Order: place, check win, then check full. If the last move fills the board and wins, win is announced first. Correct.\n\n5. Draw detection: board full without win → draw. Correct.\n\n6. The game returns player or None; main ignores return. Fine.\n\n7. `turn ^= 1` — works for 2 players.\n\n8. In ui.get_move, if input is like \"8 8 8\" → len(parts) != 2 → error. Fine.\n\n9. Negative numbers: \"-1 5\" → int parses, is_empty(-2, 4) → in_bounds false → error message. Fine.\n\n10. What about \"08 08\"? int(\"08\") = 8. Fine.\n\nHmm, is there any real defect? Let me think about the EOFError handling in get_move: `raise SystemExit('\\nInput closed. Game aborted.')`. In main, `except (KeyboardInterrupt, EOFError)` won't catch SystemExit. SystemExit propagates through main() — wait, main() is called inside try in `if __name__ == '__main__':`. SystemExit is a BaseException, not Exception, but the except clause catches only KeyboardInterrupt and EOFError specifically. SystemExit is not caught, so it propagates and Python prints the message and exits. That's acceptable.\n\nActually wait — is there a subtle bug in check_win regarding counting? Let me re-trace with an example. Suppose row 0 has stones at columns 0-4 (BLACK). Place at (0,4). Direction (0,1): step=1: (0,5) — out of bounds? size 15, (0,5) in bounds, grid[0][5] = EMPTY, not stone, loop doesn't run. step=-1: (0,3) stone → count=2; (0,2) → 3; (0,1) → 4; (0,0) → 5; then (0,-1) out of bounds, stop. count=5 ≥ 5 → True. Correct.\n\nAnother: stones at columns 3-7, place at (0,7): step=1: (0,8) empty. step=-1: (0,6)→2, (0,5)→3, (0,4)→4, (0,3)→5. True. Correct.\n\nEverything seems functionally correct. The requirements: 15x15 board ✓, two players alternate ✓, black/white stones ✓, win by five in row horizontally/vertically/diagonally ✓.\n\nOne more consideration: the task says \"standard Gomoku game\" — some might argue that first-move restrictions (e.g., black cannot play overline) are Renju rules, not standard Gomoku. Standard Gomoku (free-style) allows overlines to win. So count >= 5 is fine.\n\nIs there any issue with the UI rendering column header alignment? `'    ' + ' '.join(f'{c:>2d}' for c in range(1, size + 1))` — for c=1..15, each is 2 chars: \" 1\", \" 2\", ..., \"10\", ..., \"15\". Joined with spaces: \" 1  2  3 ...  9 10 11 ... 15\". Row: f'{r+1:>2d}  ' gives \" 1  \" then cells \" \".join of 2-char symbols: \".  .  . ...\". So symbol at column c is at position 4 + (c-1)*3, and header number c is at 4 + (c-1)*3. Aligned. Good.\n\nPotential minor issue: `SYMBOLS[v]` where v is grid value; all values 0,1,2 covered. Fine.\n\nSo the code appears functionally complete and correct. Verdict: finished, empty issues.\n\nWait, let me double-check one thing: in game.py, `self.ui.get_move(player, self.board)` — get_move is a staticmethod in ConsoleUI, called on instance — fine.\n\nAlso `ui.welcome()` etc. static methods called on instance — fine.\n\nOne more: main.py imports `BLACK, WHITE` from board — used in Player creation. Fine.\n\nEdge: `ask_replay` returns True for 'y'/'yes'. Fine.\n\nHmm, what about the case where the board is full but the winning move also fills the last cell — handled (win checked first).\n\nWhat about a potential infinite loop if get_move never returns valid? It loops until valid input. Fine.\n\nI'm fairly confident: verdict finished.\n\nActually, let me reconsider the EOFError handling once more. In `get_move`, EOFError → SystemExit with message. In main's try, SystemExit isn't caught, so it propagates out of `main()` call... but wait, the try block wraps `main()`. SystemExit is raised inside get_move inside Game.play inside main inside try. The except clause doesn't match SystemExit, so it propagates. Python's default handling for SystemExit with a string argument: prints the string to stderr, exit code 1. So the user sees \"Input closed. Game aborted.\" Good.\n\nKeyboardInterrupt during get_move's input: not caught in get_move (only EOFError), propagates to main's handler → prints \"Game aborted. Goodbye!\". Good.\n\nSo no defects. Final answer: {\"verdict\":\"finished\",\"issues\":[]}{\"verdict\":\"finished\",\"issues\":[]}"
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "321e9acee0bf009bf0f82014cb33986c03b0bc0ec26939047102c1ce70fd9f19",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "41a4b7cba60fe48a82dea68df25c150b1c1a538a99dbfb89714d4f298e56bd57",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewComment",
+      "contract": "chatdev.review.v1",
+      "snapshot_id": "321e9acee0bf009bf0f82014cb33986c03b0bc0ec26939047102c1ce70fd9f19",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "2e268ff0cef63580c64233b07e8fd026c494a543f47a7717f2245832819f24fe",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "321e9acee0bf009bf0f82014cb33986c03b0bc0ec26939047102c1ce70fd9f19",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "b8700fb183943e095d13134cd4e69d7c20578218ffc78582ca4a8388a666754b",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "CodeReviewModification",
+      "contract": "chatdev.review_fix.v1",
+      "snapshot_id": "321e9acee0bf009bf0f82014cb33986c03b0bc0ec26939047102c1ce70fd9f19",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "3713dc9d1785c47081ef36c7e993dd51ecf9c4913bd8e04500b2a4717fc9a3a0",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "321e9acee0bf009bf0f82014cb33986c03b0bc0ec26939047102c1ce70fd9f19",
+        "source_digests": {
+          "board.py": "bda79746c1e28f8eafdd8a957732c94c57b2b45a017f39d038e3903aac31788b",
+          "game.py": "1c34e603fa801c0f90498ae6ecb684d8ffb217af020ed6b64e34c2de8f210246",
+          "main.py": "dd4c794296ed554453bf6d1b219ce795c482b6a86df8279bffae5803bca35369",
+          "player.py": "335e473c5b785965c282f6e2e0d21c1770b4100a02fa0b818744274bf50b249e",
+          "ui.py": "a2f59d9aa07ff7abd6838f73604a3f05c1cf43dc0489f087df0d4959088aa074"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "================================================\n GOMOKU - five in a row on a 15x15 board\n Black (X) moves first. Enter moves as \"row col\".\n================================================\nName of Black player (X) [Black]: \nGame aborted. Goodbye!\n",
+        "stderr": "",
+        "profile": "process_exit",
+        "id": "bea75467afd9590c62574054faef42330ad4c767787d363400f25d1d397a34a4"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "321e9acee0bf009bf0f82014cb33986c03b0bc0ec26939047102c1ce70fd9f19",
+        "source_digests": {
+          "board.py": "bda79746c1e28f8eafdd8a957732c94c57b2b45a017f39d038e3903aac31788b",
+          "game.py": "1c34e603fa801c0f90498ae6ecb684d8ffb217af020ed6b64e34c2de8f210246",
+          "main.py": "dd4c794296ed554453bf6d1b219ce795c482b6a86df8279bffae5803bca35369",
+          "player.py": "335e473c5b785965c282f6e2e0d21c1770b4100a02fa0b818744274bf50b249e",
+          "ui.py": "a2f59d9aa07ff7abd6838f73604a3f05c1cf43dc0489f087df0d4959088aa074"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "================================================\n GOMOKU - five in a row on a 15x15 board\n Black (X) moves first. Enter moves as \"row col\".\n================================================\nName of Black player (X) [Black]: \nGame aborted. Goodbye!\n",
+        "stderr": "",
+        "profile": "process_exit",
+        "id": "bea75467afd9590c62574054faef42330ad4c767787d363400f25d1d397a34a4"
+      },
+      "accepted": true
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "321e9acee0bf009bf0f82014cb33986c03b0bc0ec26939047102c1ce70fd9f19",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "74361f9906f565c793f8484824da37634db3c0ce891d471c931ebb49ef9fba1d",
+      "termination_reasons": [
+        "stop"
+      ],
+      "rejected_candidate": null
+    },
+    {
+      "phase": "TestErrorSummary",
+      "contract": "chatdev.test_summary.v1",
+      "snapshot_id": "321e9acee0bf009bf0f82014cb33986c03b0bc0ec26939047102c1ce70fd9f19",
+      "accepted": true,
+      "violations": [],
+      "candidate_sha256": "95c286cdc33b41e3c136abcb9d14e4c266acfd2a7a39e2cb4ea0fc391200318f",
+      "termination_reasons": [],
+      "rejected_candidate": null
+    },
+    {
+      "contract": "chatdev.startup_evidence.v1",
+      "evidence": {
+        "snapshot_id": "321e9acee0bf009bf0f82014cb33986c03b0bc0ec26939047102c1ce70fd9f19",
+        "source_digests": {
+          "board.py": "bda79746c1e28f8eafdd8a957732c94c57b2b45a017f39d038e3903aac31788b",
+          "game.py": "1c34e603fa801c0f90498ae6ecb684d8ffb217af020ed6b64e34c2de8f210246",
+          "main.py": "dd4c794296ed554453bf6d1b219ce795c482b6a86df8279bffae5803bca35369",
+          "player.py": "335e473c5b785965c282f6e2e0d21c1770b4100a02fa0b818744274bf50b249e",
+          "ui.py": "a2f59d9aa07ff7abd6838f73604a3f05c1cf43dc0489f087df0d4959088aa074"
+        },
+        "kind": "startup_smoke",
+        "command": [
+          "source/chatdev-mpst\\integrations\\ChatDev1.0\\.venv\\Scripts\\python.exe",
+          "-E",
+          "main.py"
+        ],
+        "timeout_seconds": 3,
+        "status": "passed",
+        "exit_code": 0,
+        "stdout": "================================================\n GOMOKU - five in a row on a 15x15 board\n Black (X) moves first. Enter moves as \"row col\".\n================================================\nName of Black player (X) [Black]: \nGame aborted. Goodbye!\n",
+        "stderr": "",
+        "profile": "process_exit",
+        "id": "bea75467afd9590c62574054faef42330ad4c767787d363400f25d1d397a34a4"
+      },
+      "accepted": true
+    },
+    {
+      "contract": "chatdev.stage_exit.v1",
+      "accepted": true,
+      "evidence_id": "bea75467afd9590c62574054faef42330ad4c767787d363400f25d1d397a34a4"
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "task_index": 11,
+  "project_name": "Wordle",
+  "framework": "ChatDev",
+  "workflow_status": "completed",
+  "workspace": "data/runs/baseline/r01/11_Wordle/artifact",
+  "source_file_count": 5,
+  "python_compile": {
+    "checked": 5,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-01T14:38:24+0800",
+  "judge": {
+    "verdict": "fail",
+    "functional_completeness": 0.4,
+    "executable_likelihood": 0.3,
+    "implemented_requirements": [
+      {
+        "requirement": "Provide a daily 5‑letter English word",
+        "fulfilled": true,
+        "evidence": "word_list.py defines ANSWER_WORDS and get_daily_word() which deterministically selects a word based on the date."
+      },
+      {
+        "requirement": "Allow up to 6 guesses",
+        "fulfilled": true,
+        "evidence": "wordle_game.py defines MAX_ATTEMPTS = 6 and the WordleGame class enforces max_attempts."
+      },
+      {
+        "requirement": "Validate each guess (length, alphabetic, in word list)",
+        "fulfilled": true,
+        "evidence": "validator.py implements validate_guess() with length, alphabetic, and dictionary checks."
+      },
+      {
+        "requirement": "Compute Wordle‑accurate feedback (green, yellow, grey) with duplicate‑letter handling",
+        "fulfilled": true,
+        "evidence": "validator.compute_feedback() implements the two‑pass algorithm and uses GREEN/YELLOW/GREY constants."
+      },
+      {
+        "requirement": "Render colored feedback in the terminal",
+        "fulfilled": true,
+        "evidence": "terminal_colors.render_guess_row() and render_keyboard() produce ANSI‑colored cells based on feedback states."
+      },
+      {
+        "requirement": "Print results on each turn and let the player enter guesses via the terminal",
+        "fulfilled": false,
+        "evidence": "No code is present that reads from stdin, prints the game board, or loops through attempts. main.py only contains import statements."
+      },
+      {
+        "requirement": "Declare win/loss and reveal the solution if not guessed",
+        "fulfilled": false,
+        "evidence": "WordleGame provides is_won() and is_finished() but there is no driver code that displays a win/loss message or reveals the answer."
+      }
+    ],
+    "critical_issues": [
+      "main.py does not contain any executable logic – it only imports symbols and never runs a game loop.",
+      "There is no entry point (e.g., if __name__ == '__main__') that ties together word selection, input handling, validation, feedback rendering, and termination messages.",
+      "User input is never read; guess validation and feedback are never invoked from a running program.",
+      "The daily word is never used in any visible flow, so the game cannot be played as described.",
+      "Missing handling for enabling/disabling colors based on terminal capabilities in the actual run‑time code."
+    ],
+    "summary": "The repository includes well‑implemented core utilities (word list, validation, feedback computation, rendering, and a game state class) but lacks any top‑level script that orchestrates these pieces into a playable terminal Wordle. Because the required interactive loop, input handling, and win/loss messaging are absent, the solution does not satisfy the benchmark’s core functional requirements and is unlikely to run as a complete game.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": false
+}

@@ -1,0 +1,38 @@
+{
+  "task_index": 26,
+  "project_name": "TextBasedSpaceInvaders",
+  "description": "Program a simplified Space Invaders game. The player controls a ship at the bottom of the screen and can move horizontally and fire shots to destroy descending alien rows. The game ends if aliens reach the bottom or the player defeats all aliens. Add multiple alien rows, a limited number of lives, and score tracking.",
+  "framework": "ChatDev1.0",
+  "model": "glm-5.3-flash:cloud",
+  "content_contracts_enabled": true,
+  "session_type_enabled": true,
+  "status": "failed",
+  "error": "exit code 1",
+  "failure_type": "content_contract",
+  "project_path": "data/runs/mpst_contract/r04/26_TextBasedSpaceInvaders/artifact",
+  "elapsed_seconds": 111.109,
+  "contract_rejections": 1,
+  "violated_rules": [
+    "current_startup_passed"
+  ],
+  "last_diagnostic": "move(b)\n\n        if self.frame % 2 == 0:\n            self.march()\n\n        self.fire_timer -= 1\n        if self.fire_timer <= 0 and self.aliens:\n            s = random.choice(self.aliens).rect\n            self.bombs.append(pygame.Rect(s.centerx - 2, s.bottom, 4, 12))\n            self.fire_timer = random.randint(40, 90)\n\n        for b in self.bombs[:]:\n            b.y += ENEMY_BULLET_SPEED\n            if b.top > HEIGHT:\n                self.bombs.remove(b)\n\n        for b in self.bullets[:]:\n            for a in self.aliens:\n                if b.colliderect(a.rect):\n                    self.aliens.remove(a)\n                    self.bullets.remove(b)\n                    self.score += 10 + (ALIEN_ROWS - 1 - a.row) * 5\n                    break\n\n        if self.ship.invuln == 0:\n            for b in self.bombs[:]:\n                if b.colliderect(self.ship.rect):\n                    self.bombs.remove(b)\n                    self.ship.lives -= 1\n                    self.ship.invuln = 90\n                    if self.ship.lives <= 0:\n                        self.state = \"over\"\n                    break\n\n        if any(a.rect.bottom >= self.ship.rect.top for a in self.aliens):\n            self.state = \"over\"\n        elif not self.aliens:\n            self.state = \"win\"\n\n    def draw(self):\n        self.screen.fill(BG)\n        for x, y, s in self.stars:\n            pygame.draw.circle(self.screen, (70, 75, 95), (x, y), s)\n        for a in self.aliens:\n            a.draw(self.screen, self.frame)\n        self.ship.draw(self.screen)\n        for b in self.bullets:\n            pygame.draw.rect(self.screen, YELLOW, b)\n        for b in self.bombs:\n            pygame.draw.rect(self.screen, RED, b)\n        pygame.draw.rect(self.screen, (40, 45, 60), (0, HEIGHT - 26, WIDTH, 26))\n        hud = self.font.render(f\"SCORE {self.score}    LIVES {self.ship.lives}\", True, WHITE)\n        self.screen.blit(hud, (14, 8))\n        if self.state != \"play\":\n            win = self.state == \"win\"\n            t = self.big.render(\"YOU WIN!\" if win else \"GAME OVER\", True, GREEN if win else RED)\n            sub = self.font.render(f\"Final score: {self.score}  |  R = restart, ESC = quit\", True, WHITE)\n            self.screen.blit(t, t.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 24)))\n            self.screen.blit(sub, sub.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 34)))\n\n    def run(self):\n        while True:\n            for e in pygame.event.get():\n                if e.type == pygame.QUIT:\n                    pygame.quit()\n                    sys.exit()\n                if e.type == pygame.KEYDOWN:\n                    if e.key == pygame.K_ESCAPE:\n                        pygame.quit()\n                        sys.exit()\n                    if self.state == \"play\" and e.key == pygame.K_SPACE and self.ship.cooldown == 0:\n                        r = self.ship.rect\n                        self.bullets.append(pygame.Rect(r.centerx - 2, r.top - 12, 4, 14))\n                        self.ship.cooldown = 18\n                    elif self.state != \"play\" and e.key == pygame.K_r:\n                        self.reset()\n            if self.state == \"play\":\n                self.update()\n            self.draw()\n            pygame.display.flip()\n            self.clock.tick(FPS)\n\n\nif __name__ == \"__main__\":\n    Game().run()\n```\n\n**[Update Codes]**\n\nmain.py updated.\n\n\n```\n'''\n\n'''\n--- Old\n+++ New\n@@ -1,6 +1,10 @@\n-import pygame\n+import sys\n import random\n-import sys\n+\n+try:\n+    import pygame\n+except ImportError:\n+    sys.exit(\"pygame is required to run Space Invaders. Install it with: pip install pygame\")\n \n WIDTH, HEIGHT = 800, 600\n FPS = 60\n```\n\ndir: data/runs/mpst_contract/r04/26_TextBasedSpaceInvaders/artifact\n**[Software Info]**:\n\n \n\n💰**cost**=unknown\n\n🔨**version_updates**=-1\n\n📃**num_code_files**=1\n\n🏞**num_png_files**=0\n\n📚**num_doc_files**=5\n\n📃**code_lines**=178\n\n📋**env_lines**=-1\n\n📒**manual_lines**=-1\n\n🗣**num_utterances**=14\n\n🤔**num_self_reflections**=0\n\n❓**num_prompt_tokens**=11859\n\n❗**num_completion_tokens**=15024\n\n🌟**num_total_tokens**=26883\n\nTraceback (most recent call last):\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\run.py\", line 136, in <module>\n    chat_chain.execute_chain()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\chat_chain.py\", line 183, in execute_chain\n    content_guard.finish()\n  File \"source/pure-contract\\integrations\\ChatDev1.0\\chatdev\\content_guard.py\", line 134, in finish\n    raise ContentViolation(\"chatdev.stage_exit.v1\", findings)\ncontent_lab.chatdev_contracts.ContentViolation: {\"contract\": \"chatdev.stage_exit.v1\", \"violations\": [{\"layer\": \"A\", \"rule\": \"current_startup_passed\", \"path\": \"$\", \"message\": \"Current startup did not pass.\", \"repair\": \"Inspect the host launch/probe and recorded dependency/runtime errors. Preserve required CLI arguments and ongoing GUI/game behavior.\"}]}\n",
+  "artifact_pass": false,
+  "evaluation_error": null,
+  "result_path": "data/runs/mpst_contract/r04/26_TextBasedSpaceInvaders\\run_result.json",
+  "model_decision_enabled": false,
+  "model_decision_calls": 0,
+  "terminal_contract": "chatdev.stage_exit.v1",
+  "terminal_rules": [
+    "current_startup_passed"
+  ],
+  "audit_checks": 18,
+  "delivered_phases": [
+    "DemandAnalysis",
+    "LanguageChoose",
+    "Coding",
+    "CodeReviewComment",
+    "CodeReviewModification",
+    "TestErrorSummary",
+    "TestModification"
+  ]
+}

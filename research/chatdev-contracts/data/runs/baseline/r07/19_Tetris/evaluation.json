@@ -1,0 +1,75 @@
+{
+  "task_index": 19,
+  "project_name": "Tetris",
+  "framework": "ChatDev",
+  "workflow_status": "completed",
+  "workspace": "data/runs/baseline/r07/19_Tetris/artifact",
+  "source_file_count": 7,
+  "python_compile": {
+    "checked": 7,
+    "failures": []
+  },
+  "project_integrity": {
+    "passed": true,
+    "issues": []
+  },
+  "self_tests": {
+    "available": false
+  },
+  "evaluated_at": "2026-10-04T03:41:15+0800",
+  "judge": {
+    "verdict": "fail",
+    "functional_completeness": 0.92,
+    "executable_likelihood": 0.28,
+    "implemented_requirements": [
+      {
+        "requirement": "Tetrominoes fall from the top of the board",
+        "fulfilled": true,
+        "evidence": "Game.spawn_next creates a Tetromino with y = 0 and Game.update repeatedly calls try_move(0, 1) based on a fall timer."
+      },
+      {
+        "requirement": "Player can move or rotate pieces before they land",
+        "fulfilled": true,
+        "evidence": "Game.handle_event processes LEFT/RIGHT/DOWN/UP/Z keys and calls try_move or try_rotate; try_rotate uses wall‑kick offsets."
+      },
+      {
+        "requirement": "Completed lines are cleared",
+        "fulfilled": true,
+        "evidence": "Board.full_rows returns filled rows; Game.lock_current calls board.clear_rows(cleared) after a piece is locked."
+      },
+      {
+        "requirement": "Scoring increases according to cleared lines and drops",
+        "fulfilled": true,
+        "evidence": "Game.lock_current adds LINE_SCORES[len(cleared)] to score; soft_drop adds SOFT_DROP_SCORE; hard_drop adds distance * HARD_DROP_SCORE."
+      },
+      {
+        "requirement": "Game ends when no more pieces can be placed",
+        "fulfilled": true,
+        "evidence": "Game.spawn_next sets self.state = 'game_over' if board.is_valid_position fails; Board.lock_piece returns overflow flag which also triggers game over."
+      },
+      {
+        "requirement": "Board updates after each move or drop",
+        "fulfilled": true,
+        "evidence": "Board.lock_piece merges the current piece into the grid; clear_rows updates the grid after line clears."
+      },
+      {
+        "requirement": "All seven standard Tetromino shapes are present",
+        "fulfilled": true,
+        "evidence": "settings.SHAPES defines keys 'I','O','T','S','Z','J','L' and Tetromino uses these definitions."
+      },
+      {
+        "requirement": "Drop speed increases as the game progresses",
+        "fulfilled": true,
+        "evidence": "Game.fall_interval returns a decreasing interval based on self.level, which rises with cleared lines."
+      }
+    ],
+    "critical_issues": [
+      "Renderer.draw_sidebar calls a non‑existent method self.draw_preview, causing an AttributeError at runtime.",
+      "renderer.py ends with an ellipsis placeholder after drawing controls, indicating incomplete UI code.",
+      "piecebag.py contains stub methods (e.g., Tetromino.cells, rotated_cw) that are never used but demonstrate unfinished code in the repository."
+    ],
+    "summary": "The codebase implements the core Tetris mechanics—falling pieces, movement, rotation, line clearing, scoring, game‑over detection, all seven tetromino shapes, and level‑based speed increase—so functional completeness is high. However, the rendering layer is incomplete (missing draw_preview) and will raise an exception when the game runs, making successful execution unlikely. Therefore the submission fails the acceptance criteria.",
+    "model": "gpt-oss:120b-cloud"
+  },
+  "artifact_pass": false
+}

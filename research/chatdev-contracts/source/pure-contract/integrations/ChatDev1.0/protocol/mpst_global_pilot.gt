@@ -1,0 +1,45 @@
+// ChatDev 1.0 MPSTPilot: coordinator-mediated phase order.
+// The active pilot configuration has CodeComplete=3, CodeReview=1, Test=1.
+// `mu t` deliberately relaxes the finite CodeComplete bound; no other
+// recursion variable is used.
+Coordinator -> ChiefProductOfficer : demand.
+ChiefProductOfficer -> Coordinator : demandResult.
+Coordinator -> ChiefTechnologyOfficer : language.
+ChiefTechnologyOfficer -> Coordinator : languageResult.
+Coordinator -> Programmer : coding.
+Programmer -> Coordinator : codingResult.
+mu t.
+(
+  Coordinator -> Programmer : codeComplete.
+  Programmer -> Coordinator : codeCompleteResult.
+  t
+  +
+  Coordinator -> CodeReviewer : review.
+  CodeReviewer -> Coordinator : reviewResult.
+  Coordinator -> Programmer : reviewFix.
+  Programmer -> Coordinator : reviewFixResult.
+  (
+    Coordinator -> SoftwareTestEngineer : test.
+    SoftwareTestEngineer -> Coordinator : testReport.
+    Coordinator -> Programmer : testSummary.
+    Programmer -> Coordinator : testSummaryResult.
+    Coordinator -> Programmer : testFix.
+    Programmer -> Coordinator : testFixResult.
+    Coordinator -> WorkflowEnd : done.
+    WorkflowEnd -> Coordinator : doneAck.
+    0
+    +
+    // ChatDev handles ModuleNotFoundError locally inside TestErrorSummary,
+    // so that phase has no model exchange and TestModification follows.
+    Coordinator -> Programmer : testFix.
+    Programmer -> Coordinator : testFixResult.
+    Coordinator -> WorkflowEnd : done.
+    WorkflowEnd -> Coordinator : doneAck.
+    0
+    +
+    // Test.break_cycle exits before TestErrorSummary when no bug is found.
+    Coordinator -> WorkflowEnd : done.
+    WorkflowEnd -> Coordinator : doneAck.
+    0
+  )
+)

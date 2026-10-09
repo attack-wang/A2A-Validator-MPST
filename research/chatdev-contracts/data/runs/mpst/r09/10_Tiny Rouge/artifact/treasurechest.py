@@ -1,0 +1,3 @@
+class TreasureChest:
+    def __init__(self, x, y, heal_amount):
+        ...
